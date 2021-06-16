@@ -1,0 +1,31 @@
+[flake8]
+max-line-length = 80
+exclude = .git,__pycache__,.readme,github2pypi
+ignore =
+  E203,
+  E206,
+  E501,
+  E731,  # E731: do not assign a lambda expression, use a defflake8()
+  F812,  # F812: list comprehension redefines ...
+  H101,  # H101: Use TODO(NAME)
+  H102,  # H102: Apache 2.0 header not found
+  H104,  # H104: File contains nothing but comments
+  H202,  # H202: assertRaises Exception too broad
+  H233,  # H233: Python 3.x incompatible use of print operator
+  H301,  # H301: one import per line
+  H306,  # H306: imports not in alphabetical order (time, os)
+  H401,  # H401: docstring should not start with a space
+  H403,  # H403: multi line docstrings should end on a new line
+  H404,  # H404: multi line docstring should start without a leading new line
+  H405,  # H405: multi line docstring summary not separated with an empty line
+  H501,  # H501: Do not use self.__dict__ for string formatting
+  I100,  # I100:
+  I101,  # I101: I don't know why but isort orders CONSTANTS first
+  I201,  # I201: Newline bewteen groups
+  N802,  # function name should be lowercase
+  N803,  # N803, arguments should be lowercase
+  N806,  # N806, should be lowercase
+  N812,  # N812, non lowercase
+  N817,  # N817: camelcase
+  W503,
+  EXE001  # EXE001: Shebang is present but the file is not executable.
