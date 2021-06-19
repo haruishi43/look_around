@@ -1,2 +1,11 @@
-# look_around
-Looking around to find "something"
+# Look Around
+
+Agents looking around to find "something".
+
+## Installation
+
+```Bash
+pip install -r requirements.txt
+```
+
+- Install `mycv`
