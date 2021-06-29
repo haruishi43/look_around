@@ -1,4 +1,4 @@
-# Look Around
+# LookAround
 
 Agents looking around to find "something".
 

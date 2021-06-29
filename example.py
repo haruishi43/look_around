@@ -1,0 +1,1 @@
+simulator = dict(name='SingleFrame')
