@@ -9,3 +9,9 @@ pip install -r requirements.txt
 ```
 
 - Install `mycv`
+
+## Type Checking
+
+```Bash
+mypy . --ignore-missing-imports
+```

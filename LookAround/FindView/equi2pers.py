@@ -26,19 +26,21 @@ class Equi2Pers:
         from equilib import Equi2Pers
 
         self.equi2pers = Equi2Pers(
-            w_pers=w_pers,
-            h_pers=h_pers,
+            height=h_pers,
+            width=w_pers,
             fov_x=fov_x,
             skew=skew,
-            sampling_method=sampling_method,
             mode=mode,
             z_down=z_down,
         )
 
     def __call__(
         self,
-        rad,
         equi: Union[np.ndarray, torch.Tensor],
+        rots,
     ) -> np.ndarray:
-        pers = self.equi2pers(equi)
+        pers = self.equi2pers(
+            equi,
+            rots=rots,
+        )
         return pers

@@ -13,12 +13,12 @@ from LookAround.config import Config
 from LookAround.FindView.equi2pers import Equi2Pers
 
 
-def seed(seed: int):
+def set_seed(seed: int):
     random.seed(seed)
     np.random.seed(seed)
 
 
-seed(0)  # Consistancy
+set_seed(0)
 
 
 def create_sample_episodes_with_single_image(
@@ -168,7 +168,7 @@ class SimpleParallelEnv:
         return pers
 
     def reset(self, i: int):
-
+        ...
 
 
 if __name__ == "__main__":
@@ -201,4 +201,4 @@ if __name__ == "__main__":
 
     num_steps = configs.basic.num_steps
     for step in range(num_steps):
-
+        ...
