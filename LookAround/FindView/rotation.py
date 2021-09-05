@@ -117,6 +117,7 @@ class Rot:
 class RotationTracker:
     """Keep track of rotation
     """
+
     def __init__(
         self,
         inc: int = 1,
