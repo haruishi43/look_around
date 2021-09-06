@@ -42,18 +42,33 @@ Prior criteria:
 
 ## Create splits
 
+- Save as pickle file for now
+
 ## How to sample:
 
 ### Test and validation sets
 
+- We can't have varying validation and test dataset since even if we set the seed,
+  there are no guarantees that the dataset will be the same
+- It is better to save the test and validation datasets for reproducability
+
 1. Set hyper parameters (save to txt file or something so I don't forget)
 2. Get all images
+3. Make a list of dictionaries (each dictionary is a dataset)
+4. Dump to json!
 
 ### Training Set
+
+- Training set would be huge to save and load (set seed and load dynamically)
+- Perhaps create training set on-the-fly...
+- Performance issues with sampling init and targ rotations
+- Speed of data loading (creation)
+- Memory usage of allocating tremendous amounts of training data
 
 """
 
 import argparse
+from functools import partial
 import json
 import os
 from os import PathLike
@@ -63,8 +78,16 @@ from typing import Dict, List
 
 from mycv.utils.config import Config
 import numpy as np
+from tqdm import tqdm
 
-from LookAround.dataset.sampling import get_pitch_range, get_yaw_range
+from LookAround.dataset.sampling import (
+    base_condition,
+    easy_condition,
+    medium_condition,
+    hard_condition,
+    get_pitch_range,
+    get_yaw_range,
+)
 
 
 def seed(n: int):
@@ -129,55 +152,31 @@ def make_splits(
     return [list(arr) for arr in np.split(img_paths, split_indices)]
 
 
-def easy_condition(init_pitch, init_yaw, targ_pitch, targ_yaw):
-    # check pitch
-    # NOTE: should consider aspect ratio of the image, but
-    # think that it's height is smaller than width
-    diff_pitch = np.abs(init_pitch - targ_pitch)
-
-    # check yaw
-    diff_yaw = np.abs(init_yaw - targ_yaw)
-    if diff_yaw > 180:
-        diff_yaw = 360 - diff_yaw
-    return np.sqrt(diff_yaw**2 + diff_pitch**2) <= np.sqrt(2 * ((fov / 2)**2))
-
-
-def medium_condition(init_pitch, init_yaw, targ_pitch, targ_yaw):
-    # check yaw
-    diff_yaw = np.abs(init_yaw - targ_yaw)
-    if diff_yaw > 180:
-        diff_yaw = 360 - diff_yaw
-    return (diff_yaw > fov / 2 and diff_yaw <= fov)
-
-
-def hard_condition(init_pitch, init_yaw, targ_pitch, targ_yaw):
-    # check yaw
-    diff_yaw = np.abs(init_yaw - targ_yaw)
-    if diff_yaw > 180:
-        diff_yaw = 360 - diff_yaw
-    return diff_yaw > fov
-
-
 def make_single_data_based_on_difficulty(
     difficulty: str,
     fov: float,
+    min_steps: int,
+    max_steps: int,
+    step_size: int,
     threshold: int = 60,
 ):
     # return initial and target rotations based on difficulty
     pitches, prob = get_pitch_range(threshold=threshold, mu=0.0, sigma=0.3)
     yaws = get_yaw_range()
 
-    condition = None
+    base_cond = partial(base_condition, min_steps=min_steps, max_steps=max_steps, step_size=step_size)
+
+    cond = None
     if difficulty == "easy":
-        condition = easy_condition
+        cond = partial(easy_condition, fov=fov)
     elif difficulty == "medium":
-        condition = medium_condition
+        cond = partial(medium_condition, fov=fov)
     elif difficulty == "hard":
-        condition = hard_condition
+        cond = partial(hard_condition, fov=fov)
     else:
         raise ValueError(f"ERR: unknown difficulty {difficulty}")
 
-    assert condition is not None, "ERR something went horribly wrong here"
+    assert cond is not None, "ERR something went horribly wrong here"
 
     _count = 0
     while True:
@@ -188,7 +187,10 @@ def make_single_data_based_on_difficulty(
         targ_pitch = int(np.random.choice(pitches, p=prob))
         targ_yaw = int(np.random.choice(yaws))
 
-        if condition(init_pitch, init_yaw, targ_pitch, targ_yaw):
+        if (
+            base_cond(init_pitch, init_yaw, targ_pitch, targ_yaw)
+            and cond(init_pitch, init_yaw, targ_pitch, targ_yaw)
+        ):
             return {
                 "initial_rotation": {
                     "roll": 0,
@@ -208,6 +210,69 @@ def make_single_data_based_on_difficulty(
             raise RuntimeError("Raised because it's hard sampling with condition")
 
 
+def check_single_data_based_on_difficulty(
+    initial_rotation,
+    target_rotation,
+    difficulty,
+    min_steps: int,
+    max_steps: int,
+    step_size: int,
+):
+    init_pitch = initial_rotation['pitch']
+    init_yaw = initial_rotation['yaw']
+    targ_pitch = target_rotation['pitch']
+    targ_yaw = target_rotation['yaw']
+
+    assert np.abs(init_pitch) <= 60, np.abs(targ_pitch) <= 60
+
+    assert base_condition(
+        init_pitch,
+        init_yaw,
+        targ_pitch,
+        targ_yaw,
+        min_steps,
+        max_steps,
+        step_size,
+    )
+
+    if difficulty == "easy":
+        ret = easy_condition(
+            init_pitch,
+            init_yaw,
+            targ_pitch,
+            targ_yaw,
+            fov,
+        )
+    elif difficulty == "medium":
+        ret = medium_condition(
+            init_pitch,
+            init_yaw,
+            targ_pitch,
+            targ_yaw,
+            fov,
+        )
+    elif difficulty == "hard":
+        ret = hard_condition(
+            init_pitch,
+            init_yaw,
+            targ_pitch,
+            targ_yaw,
+            fov,
+        )
+    else:
+        raise ValueError(f"{difficulty} is not supported")
+    assert ret, (
+        "ERR: failed check with ({init_pitch}, {init_yaw}) "
+        "({targ_pitch}, {targ_yaw}) for {difficulty}"
+    ).format(
+        init_pitch=init_pitch,
+        init_yaw=init_yaw,
+        targ_pitch=targ_pitch,
+        targ_yaw=targ_yaw,
+        difficulty=difficulty,
+    )
+
+
 def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument(
@@ -218,6 +283,10 @@ def parse_args():
     )
     parser.add_argument(
         "--rebuild-splits",
+        action="store_true",
+    )
+    parser.add_argument(
+        "--check-dataset",
         action="store_true",
     )
     return parser.parse_args()
@@ -299,12 +368,20 @@ if __name__ == "__main__":
     # Create Datasets
 
     # read splits from path
+    print("reading data...")
     splits = {}
-    for name, path in split_paths.items():
+    for name, path in tqdm(split_paths.items()):
         with open(path, 'rb') as f:
             splits[name] = pickle.load(f)
 
     print("[train, val, test]", [len(s) for s in splits.values()])
+
+    # check
+    for name, paths in splits.items():
+        print(f"checking {name}")
+        for path in tqdm(paths):
+            assert os.path.exists(os.path.join(sun360_root, path)), \
+                f"ERR: {path} doesn't exist! Did the dataset change?"
 
     # NOTE: make dataset for `val` and `test` only?
     # output format list of dict as (json)
@@ -324,55 +401,113 @@ if __name__ == "__main__":
     num_easy = cfg.num_easy
     num_medium = cfg.num_medium
     num_hard = cfg.num_hard
+    min_steps = cfg.min_steps
+    max_steps = cfg.max_steps
+    step_size = cfg.step_size
 
-    for split_name in ['val', 'test']:
-        img_paths = splits[split_name]
-        print(f"making dataset for {split_name} -> {len(img_paths)}")
+    dataset_paths = {
+        "train": os.path.join(dataset_root, "train.json"),
+        "val": os.path.join(dataset_root, "val.json"),
+        "test": os.path.join(dataset_root, "test.json"),
+    }
 
-        dataset = []
-        for img in img_paths:
-            assert os.path.exists(os.path.join(sun360_root, img)), f"{img} doesn't exist"
+    if args.check_dataset:
+        # only check if the dataset created is valid
 
-            base = {
-                "name": os.path.split(img)[-1],
-                "path": img,
-            }
+        for split_name in ['val', 'test']:
+            print(f"checking data for {split_name}")
+            dataset_path = dataset_paths[split_name]
+            assert os.path.exists(dataset_path)
 
-            for _ in range(num_easy):
-                # easy
-                difficulty = "easy"
-                data = make_single_data_based_on_difficulty(
+            with open(dataset_path, 'r') as f:
+                dataset = json.load(f)
+
+            assert len(dataset) > 0 and isinstance(dataset, list)
+
+            for data in tqdm(dataset):
+                name = data["name"]
+                path = data["path"]
+                initial_rotation = data["initial_rotation"]
+                target_rotation = data["target_rotation"]
+                difficulty = data["difficulty"]
+                assert os.path.exists(os.path.join(sun360_root, path))
+
+                check_single_data_based_on_difficulty(
+                    initial_rotation=initial_rotation,
+                    target_rotation=target_rotation,
                     difficulty=difficulty,
-                    fov=fov,
-                    threshold=threshold,
+                    min_steps=min_steps,
+                    max_steps=max_steps,
+                    step_size=step_size,
                 )
-                dataset.append({**base, **data})  # update dict
 
-            for _ in range(num_medium):
-                # medium
-                difficulty = "medium"
-                data = make_single_data_based_on_difficulty(
-                    difficulty=difficulty,
-                    fov=fov,
-                    threshold=threshold,
-                )
-                dataset.append({**base, **data})  # update dict
+    else:
 
-            for _ in range(num_hard):
-                # hard
-                difficulty = "hard"
-                data = make_single_data_based_on_difficulty(
-                    difficulty=difficulty,
-                    fov=fov,
-                    threshold=threshold,
-                )
-                dataset.append({**base, **data})  # update dict
+        # create a new dataset
+        for split_name in ['val', 'test']:
 
-        # dump to json
-        save_path = os.path.join(dataset_root, f'{split_name}.json')
-        with open(save_path, "w") as f:
-            json.dump(dataset, f)
+            # save path for dataset
+            save_path = dataset_paths[split_name]
+            if os.path.exists(save_path):
+                print(f"ALREADY HAVE DATASET for {split_name}; consider removing before continuing")
+                continue
 
-        print("dumped")
+            img_paths = splits[split_name]
+            print(f"making dataset for {split_name} -> {len(img_paths)}")
+
+            dataset = []
+            for img in tqdm(img_paths):
+                assert os.path.exists(os.path.join(sun360_root, img)), f"{img} doesn't exist"
+
+                base = {
+                    "name": os.path.split(img)[-1],
+                    "path": img,
+                }
+
+                for _ in range(num_easy):
+                    # easy
+                    difficulty = "easy"
+                    data = make_single_data_based_on_difficulty(
+                        difficulty=difficulty,
+                        fov=fov,
+                        min_steps=min_steps,
+                        max_steps=max_steps,
+                        step_size=step_size,
+                        threshold=threshold,
+                    )
+                    dataset.append({**base, **data})  # update dict
+
+                for _ in range(num_medium):
+                    # medium
+                    difficulty = "medium"
+                    data = make_single_data_based_on_difficulty(
+                        difficulty=difficulty,
+                        fov=fov,
+                        min_steps=min_steps,
+                        max_steps=max_steps,
+                        step_size=step_size,
+                        threshold=threshold,
+                    )
+                    dataset.append({**base, **data})  # update dict
+
+                for _ in range(num_hard):
+                    # hard
+                    difficulty = "hard"
+                    data = make_single_data_based_on_difficulty(
+                        difficulty=difficulty,
+                        fov=fov,
+                        min_steps=min_steps,
+                        max_steps=max_steps,
+                        step_size=step_size,
+                        threshold=threshold,
+                    )
+                    dataset.append({**base, **data})  # update dict
+
+            # dump to json
+            # json_dataset = json.dumps(dataset, indent=4)  # turns to string
+            with open(save_path, "w") as f:
+                json.dump(dataset, f, indent=4)
+
+            print("dumped")
 
     print("done")
