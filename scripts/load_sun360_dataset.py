@@ -1,5 +1,22 @@
 #!/usr/bin/env python3
 
+"""Simple script to checkout a dataset
+
+Dataset
+- creates an iterator for val/test
+- creates a generator for train
+
+Why:
+- Validation and test sets are static
+- Training can be dynamic (create more training set by sampling)
+- Training dataset is huge (around 500mb in raw json)
+- Allocating all episodes is none sense
+- Generators use almost no space at the cost of time
+- Two modes during training `Dataset` (static and dynamic)
+
+"""
+
+
 import argparse
 import json
 import os
@@ -40,11 +57,6 @@ if __name__ == "__main__":
     # params
     fov = cfg.fov
     threshold = cfg.threshold_pitch
-    num_easy = cfg.num_easy
-    num_medium = cfg.num_medium
-    num_hard = cfg.num_hard
-    min_steps = cfg.min_steps
-    max_steps = cfg.max_steps
     step_size = cfg.step_size
 
     dataset_paths = {

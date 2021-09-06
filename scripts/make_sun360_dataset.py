@@ -17,15 +17,21 @@ SUN360 scenes:
 - Sub scenes: only for indoor and outdoor
 
 What we need for our dataset:
+Val and Test
 - episode_id
 - img_name
 - path
 - label (scene)
-- suib_label (sub scene)
+- sub_label (sub scene)
 - initial_rotation
 - target_rotation
 - difficulty
 - steps_for_shortest_path (hints for training)
+Train
+- img_name
+- path
+- label (scene)
+- sub_label (sub scene)
 
 Difficulties:
 - easy (target is near initial rot; can see in FOV)
@@ -35,7 +41,7 @@ Difficulties:
 I think `difficulties` are used in scheduling to make it so that the agent can gradually
 understand the task
 
-Prior criteria:
+Prior criteria: ASSUMPTIONS!
 - Need to make sure that the agent can reach the target
 - Set yaw and pitch movements to increments of 1 degree (integers!)
 - Using integers saves space too
@@ -316,7 +322,7 @@ def parse_args():
         action="store_true",
     )
     parser.add_argument(
-        "--add-train",
+        "--static-train",
         action="store_true",
     )
     return parser.parse_args()
@@ -430,8 +436,8 @@ if __name__ == "__main__":
     # ]
 
     use_splits = ['val', 'test']
-    if args.add_train:
-        print("adding train to this script")
+    if args.static_train:
+        print(">>> adding static train to this script")
         use_splits = ['train'] + use_splits
 
     # params from config
@@ -454,7 +460,7 @@ if __name__ == "__main__":
         # only check if the dataset created is valid
 
         for split_name in use_splits:
-            print(f"checking data for {split_name}")
+            print(f">>> checking data for {split_name}")
             dataset_path = dataset_paths[split_name]
             assert os.path.exists(dataset_path)
 
@@ -500,7 +506,7 @@ if __name__ == "__main__":
                 continue
 
             img_paths = splits[split_name]
-            print(f"making dataset for {split_name} -> {len(img_paths)}")
+            print(f">>> making dataset for {split_name} -> {len(img_paths)}")
 
             dataset = []
             eps_id = 0  # FIXME be aware of overflows...
@@ -565,6 +571,42 @@ if __name__ == "__main__":
 
             # dump to json
             # json_dataset = json.dumps(dataset, indent=4)  # turns to string
+            with open(save_path, "w") as f:
+                json.dump(dataset, f, indent=4)
+
+            print("dumped")
+
+    # if training mode is dynamic, we just save the essentials in `train.json`
+    if not args.static_train and not args.check_dataset:
+        print(">>> making train.json with only essential items (img_name, etc...)")
+
+        # save path for train
+        save_path = dataset_paths["train"]
+
+        if os.path.exists(save_path):
+            print("ALREADY HAVE DATASET for train; consider removing before continuing")
+        else:
+            train_imgs = splits["train"]
+
+            dataset = []
+            for img in tqdm(train_imgs):
+                assert os.path.exists(os.path.join(sun360_root, img)), f"{img} doesn't exist"
+
+                # get cat and subcat
+                # img_path is
+                s = img.split('/')
+                assert len(s) == 3, f"{img} is not valid"
+                category = s[0]
+                sub_category = s[1]
+
+                base = {
+                    "img_name": os.path.splitext(os.path.split(img)[-1])[0],
+                    "path": img,
+                    "label": category,
+                    "sub_label": sub_category,
+                }
+                dataset.append(base)
+
             with open(save_path, "w") as f:
                 json.dump(dataset, f, indent=4)
 
