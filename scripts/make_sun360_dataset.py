@@ -12,14 +12,19 @@ First, I think we divide the dataset (SUN360) into 3 sets:
 
 I think we should use validation to check if the agent is not overfitting the training set
 
-SUN360 classes:
-- Indoor, outdoor, other
-- Subclasses
+SUN360 scenes:
+- Main scenes: indoor, outdoor, other
+- Sub scenes: only for indoor and outdoor
 
 What we need for our dataset:
-- img_path
-- initial rot
-- target rot
+- episode_id
+- img_name
+- path
+- label (scene)
+- suib_label (sub scene)
+- initial_rotation
+- target_rotation
+- difficulty
 
 Difficulties:
 - easy (target is near initial rot; can see in FOV)
@@ -74,7 +79,7 @@ import os
 from os import PathLike
 import pickle
 import random
-from typing import Dict, List
+from typing import Any, Dict, List
 
 from mycv.utils.config import Config
 import numpy as np
@@ -121,9 +126,9 @@ def gather_image_paths_in_category(
 
 
 def create_splits_for_category(
-    img_paths: Dict[str, List[str]],
+    img_paths: Dict[str, List[PathLike]],
     split_ratios: List[float],
-) -> List[List[str]]:
+) -> List[List[PathLike]]:
     splits = [[] for _ in range(len(split_ratios))]
     for _, subcat_img_paths in img_paths.items():
         subcat_splits = make_splits(subcat_img_paths, split_ratios)
@@ -135,7 +140,7 @@ def create_splits_for_category(
 
 
 def make_splits(
-    img_paths: List[str],
+    img_paths: List[PathLike],
     split_ratios: List[float],
 ) -> List[List[str]]:
     # NOTE: shuffle images!
@@ -159,7 +164,10 @@ def make_single_data_based_on_difficulty(
     max_steps: int,
     step_size: int,
     threshold: int = 60,
-):
+) -> Dict[str, Any]:
+
+    # FIXME: Optimize since it does take a bit of time...
+
     # return initial and target rotations based on difficulty
     pitches, prob = get_pitch_range(threshold=threshold, mu=0.0, sigma=0.3)
     yaws = get_yaw_range()
@@ -178,7 +186,7 @@ def make_single_data_based_on_difficulty(
 
     assert cond is not None, "ERR something went horribly wrong here"
 
-    _count = 0
+    _count = 0  # FIXME: how to deal with criteria that's REALLY hard?
     while True:
         # sample rotations
         init_pitch = int(np.random.choice(pitches, p=prob))
@@ -207,17 +215,25 @@ def make_single_data_based_on_difficulty(
         _count += 1
 
         if _count > 100000:
-            raise RuntimeError("Raised because it's hard sampling with condition")
+            raise RuntimeError(
+                "Raised because it's hard sampling with condition, try making the condition easier"
+            )
 
 
 def check_single_data_based_on_difficulty(
-    initial_rotation,
-    target_rotation,
-    difficulty,
+    initial_rotation: Dict[str, int],
+    target_rotation: Dict[str, int],
+    difficulty: str,
     min_steps: int,
     max_steps: int,
     step_size: int,
-):
+) -> None:
+    # check input
+    for d in initial_rotation.values():
+        assert isinstance(d, int)
+    for d in target_rotation.values():
+        assert isinstance(d, int)
+
     init_pitch = initial_rotation['pitch']
     init_yaw = initial_rotation['yaw']
     targ_pitch = target_rotation['pitch']
@@ -225,6 +241,7 @@ def check_single_data_based_on_difficulty(
 
     assert np.abs(init_pitch) <= 60, np.abs(targ_pitch) <= 60
 
+    # check basic condition
     assert base_condition(
         init_pitch,
         init_yaw,
@@ -235,6 +252,7 @@ def check_single_data_based_on_difficulty(
         step_size,
     )
 
+    # check difficulty condition
     if difficulty == "easy":
         ret = easy_condition(
             init_pitch,
@@ -289,6 +307,10 @@ def parse_args():
         "--check-dataset",
         action="store_true",
     )
+    parser.add_argument(
+        "--add-train",
+        action="store_true",
+    )
     return parser.parse_args()
 
 
@@ -303,8 +325,8 @@ if __name__ == "__main__":
     print(cfg.pretty_text)
 
     # params
-    sun360_root = os.path.join(cfg.data_root, "sun360")
-    dataset_root = os.path.join(cfg.dataset_root, "sun360", cfg.version, cfg.category)
+    sun360_root = os.path.join(cfg.data_root, cfg.dataset_name)
+    dataset_root = os.path.join(cfg.dataset_root, cfg.dataset_name, cfg.version, cfg.category)
     split_ratios = cfg.splits
 
     # check params
@@ -315,7 +337,7 @@ if __name__ == "__main__":
 
     # splits paths
     # NOTE: using pickle just because it's easier for now
-    # if we want to read what's in the .data files, that might
+    # if we want to read what are in the .data files, that might
     # be a problem for now
     split_paths = {
         "train": os.path.join(dataset_root, "train.data"),
@@ -376,7 +398,7 @@ if __name__ == "__main__":
 
     print("[train, val, test]", [len(s) for s in splits.values()])
 
-    # check
+    # check if the imageexists
     for name, paths in splits.items():
         print(f"checking {name}")
         for path in tqdm(paths):
@@ -384,16 +406,25 @@ if __name__ == "__main__":
                 f"ERR: {path} doesn't exist! Did the dataset change?"
 
     # NOTE: make dataset for `val` and `test` only?
+    # around >500mb for training json file
     # output format list of dict as (json)
     # [
     #   {
-    #     "name": <img_name>,
-    #     "path": <img_path>,
-    #     "initial_rot": {"roll": 0., "pitch": 0., "yaw": 0.},
-    #     "target_rot": {"roll": 0., "pitch": 0., "yaw": 0.},
-    #     "difficulty": <string value>,
+    #     "episode_id": <int>,
+    #     "img_name": <string>,
+    #     "path": <string>,
+    #     "label": <string>,
+    #     "sub_label": <string>,
+    #     "initial_rot": {"roll": <int>, "pitch": <int>, "yaw": <int>},
+    #     "target_rot": {"roll": <int>, "pitch": <int>, "yaw": <int>},
+    #     "difficulty": <string>,
     #   }
     # ]
+
+    use_splits = ['val', 'test']
+    if args.add_train:
+        print("adding train to this script")
+        use_splits = ['train'] + use_splits
 
     # params from config
     fov = cfg.fov
@@ -414,7 +445,7 @@ if __name__ == "__main__":
     if args.check_dataset:
         # only check if the dataset created is valid
 
-        for split_name in ['val', 'test']:
+        for split_name in use_splits:
             print(f"checking data for {split_name}")
             dataset_path = dataset_paths[split_name]
             assert os.path.exists(dataset_path)
@@ -424,12 +455,16 @@ if __name__ == "__main__":
 
             assert len(dataset) > 0 and isinstance(dataset, list)
 
+            id_count = 0  # iterating though list takes too much...
             for data in tqdm(dataset):
-                name = data["name"]
+                name = data["img_name"]
                 path = data["path"]
                 initial_rotation = data["initial_rotation"]
                 target_rotation = data["target_rotation"]
                 difficulty = data["difficulty"]
+                eps_id = data["episode_id"]
+                assert eps_id == id_count
+                id_count += 1
                 assert os.path.exists(os.path.join(sun360_root, path))
 
                 check_single_data_based_on_difficulty(
@@ -444,7 +479,7 @@ if __name__ == "__main__":
     else:
 
         # create a new dataset
-        for split_name in ['val', 'test']:
+        for split_name in use_splits:
 
             # save path for dataset
             save_path = dataset_paths[split_name]
@@ -456,12 +491,22 @@ if __name__ == "__main__":
             print(f"making dataset for {split_name} -> {len(img_paths)}")
 
             dataset = []
+            eps_id = 0  # FIXME be aware of overflows...
             for img in tqdm(img_paths):
                 assert os.path.exists(os.path.join(sun360_root, img)), f"{img} doesn't exist"
 
+                # get cat and subcat
+                # img_path is
+                s = img.split('/')
+                assert len(s) == 3, f"{img} is not valid"
+                category = s[0]
+                sub_category = s[1]
+
                 base = {
-                    "name": os.path.split(img)[-1],
+                    "img_name": os.path.splitext(os.path.split(img)[-1])[0],
                     "path": img,
+                    "label": category,
+                    "sub_label": sub_category,
                 }
 
                 for _ in range(num_easy):
@@ -475,7 +520,8 @@ if __name__ == "__main__":
                         step_size=step_size,
                         threshold=threshold,
                     )
-                    dataset.append({**base, **data})  # update dict
+                    dataset.append({**{"episode_id": eps_id}, **base, **data})  # update dict
+                    eps_id += 1
 
                 for _ in range(num_medium):
                     # medium
@@ -488,7 +534,8 @@ if __name__ == "__main__":
                         step_size=step_size,
                         threshold=threshold,
                     )
-                    dataset.append({**base, **data})  # update dict
+                    dataset.append({**{"episode_id": eps_id}, **base, **data})  # update dict
+                    eps_id += 1
 
                 for _ in range(num_hard):
                     # hard
@@ -501,7 +548,8 @@ if __name__ == "__main__":
                         step_size=step_size,
                         threshold=threshold,
                     )
-                    dataset.append({**base, **data})  # update dict
+                    dataset.append({**{"episode_id": eps_id}, **base, **data})  # update dict
+                    eps_id += 1
 
             # dump to json
             # json_dataset = json.dumps(dataset, indent=4)  # turns to string

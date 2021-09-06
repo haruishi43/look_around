@@ -1,6 +1,7 @@
 seed = 0
 data_root = 'data'
 dataset_root = 'dataset'
+dataset_name = 'sun360'
 version = 'alpha'
 category = 'indoor'
 splits = [0.8, 0.1, 0.1]
