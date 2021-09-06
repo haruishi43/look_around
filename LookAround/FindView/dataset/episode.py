@@ -18,3 +18,4 @@ class Episode:
     initial_rotation: Dict[str, int] = attr.ib(default=None, validator=not_none_validator)
     target_rotation: Dict[str, int] = attr.ib(default=None, validator=not_none_validator)
     difficulty: str = attr.ib(default=None, validator=not_none_validator)
+    steps_for_shortest_path: int = attr.ib(default=None, validator=not_none_validator)

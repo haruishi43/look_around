@@ -25,6 +25,7 @@ What we need for our dataset:
 - initial_rotation
 - target_rotation
 - difficulty
+- steps_for_shortest_path (hints for training)
 
 Difficulties:
 - easy (target is near initial rot; can see in FOV)
@@ -85,7 +86,7 @@ from mycv.utils.config import Config
 import numpy as np
 from tqdm import tqdm
 
-from LookAround.dataset.sampling import (
+from LookAround.FindView.dataset.sampling import (
     base_condition,
     easy_condition,
     medium_condition,
@@ -211,6 +212,9 @@ def make_single_data_based_on_difficulty(
                     "yaw": targ_yaw,
                 },
                 "difficulty": difficulty,
+                "steps_for_shortest_path": int(
+                    np.abs(init_pitch - targ_pitch) + np.abs(init_yaw - targ_yaw)
+                ),  # NOTE: includes `stop` action
             }
         _count += 1
 
@@ -224,6 +228,7 @@ def check_single_data_based_on_difficulty(
     initial_rotation: Dict[str, int],
     target_rotation: Dict[str, int],
     difficulty: str,
+    short_step: int,
     min_steps: int,
     max_steps: int,
     step_size: int,
@@ -289,6 +294,9 @@ def check_single_data_based_on_difficulty(
         targ_yaw=targ_yaw,
         difficulty=difficulty,
     )
+
+    # NOTE: includes `stop` action
+    assert int(np.abs(init_pitch - targ_pitch) + np.abs(init_yaw - targ_yaw)) == short_step
 
 
 def parse_args():
@@ -457,20 +465,24 @@ if __name__ == "__main__":
 
             id_count = 0  # iterating though list takes too much...
             for data in tqdm(dataset):
-                name = data["img_name"]
-                path = data["path"]
-                initial_rotation = data["initial_rotation"]
-                target_rotation = data["target_rotation"]
-                difficulty = data["difficulty"]
                 eps_id = data["episode_id"]
                 assert eps_id == id_count
                 id_count += 1
+
+                name = data["img_name"]
+                path = data["path"]
                 assert os.path.exists(os.path.join(sun360_root, path))
+
+                initial_rotation = data["initial_rotation"]
+                target_rotation = data["target_rotation"]
+                difficulty = data["difficulty"]
+                short_step = data["steps_for_shortest_path"]
 
                 check_single_data_based_on_difficulty(
                     initial_rotation=initial_rotation,
                     target_rotation=target_rotation,
                     difficulty=difficulty,
+                    short_step=short_step,
                     min_steps=min_steps,
                     max_steps=max_steps,
                     step_size=step_size,
