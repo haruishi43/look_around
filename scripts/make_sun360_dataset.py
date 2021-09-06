@@ -16,7 +16,7 @@ SUN360 scenes:
 - Main scenes: indoor, outdoor, other
 - Sub scenes: only for indoor and outdoor
 
-What we need for our dataset:
+NOTE: What we need for our dataset:
 Val and Test
 - episode_id
 - img_name
@@ -38,10 +38,10 @@ Difficulties:
 - medium (a little bit far; can see a little in FOV)
 - hard (farther; can't see in FOV)
 
-I think `difficulties` are used in scheduling to make it so that the agent can gradually
+NOTE: I think `difficulties` are used in scheduling to make it so that the agent can gradually
 understand the task
 
-Prior criteria: ASSUMPTIONS!
+NOTE: Prior criteria: ASSUMPTIONS!
 - Need to make sure that the agent can reach the target
 - Set yaw and pitch movements to increments of 1 degree (integers!)
 - Using integers saves space too
@@ -341,7 +341,7 @@ if __name__ == "__main__":
     # params
     sun360_root = os.path.join(cfg.data_root, cfg.dataset_name)
     dataset_root = os.path.join(cfg.dataset_root, cfg.dataset_name, cfg.version, cfg.category)
-    split_ratios = cfg.splits
+    split_ratios = cfg.split_ratios
 
     # check params
     seed(cfg.seed)  # set seed
@@ -432,6 +432,7 @@ if __name__ == "__main__":
     #     "initial_rot": {"roll": <int>, "pitch": <int>, "yaw": <int>},
     #     "target_rot": {"roll": <int>, "pitch": <int>, "yaw": <int>},
     #     "difficulty": <string>,
+    #     "steps_for_shortest_path": <int>,
     #   }
     # ]
 
@@ -442,7 +443,7 @@ if __name__ == "__main__":
 
     # params from config
     fov = cfg.fov
-    threshold = cfg.threshold_pitch
+    threshold = cfg.pitch_threshold
     num_easy = cfg.num_easy
     num_medium = cfg.num_medium
     num_hard = cfg.num_hard
@@ -494,6 +495,11 @@ if __name__ == "__main__":
                     step_size=step_size,
                 )
 
+            # TODO: check for same/similar episodes
+            # highly unlikely, but when the `step_size` becomes larger,
+            # and test/val number per image increases,
+            # there will be higher likelihood
+
     else:
 
         # create a new dataset
@@ -528,6 +534,7 @@ if __name__ == "__main__":
                 }
 
                 for _ in range(num_easy):
+                    # FIXME: make sure that there won't be identical episodes
                     # easy
                     difficulty = "easy"
                     data = make_single_data_based_on_difficulty(

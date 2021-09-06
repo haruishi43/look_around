@@ -73,8 +73,8 @@ class FindViewEnv(object):
 
     def __init__(
         self,
-        scheduler,
-        sim_config,
+        config,
+        dataset,  # Optional -> call `make_dataset` using `config`
     ) -> None:
         ...
 
