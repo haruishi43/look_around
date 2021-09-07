@@ -17,7 +17,7 @@ from LookAround.core.improc import (
 )
 
 Tensor = Union[np.ndarray, torch.Tensor]
-Rots = Dict[str, Union[int, float]]
+Rots = Dict[str, int]
 Dtypes = Union[np.dtype, torch.dtype]
 
 
@@ -28,6 +28,14 @@ def copy_tensor(t: Tensor) -> Tensor:
         return t.clone()
     else:
         raise ValueError("ERR: cannot copy tensor")
+
+
+def deg2rad(rot):
+    return {
+        "roll": 0.,
+        "pitch": rot['pitch'] * np.pi / 180,
+        "yaw": rot['yaw'] * np.pi / 180,
+    }
 
 
 class FindViewSim(object):
@@ -117,7 +125,9 @@ class FindViewSim(object):
         self,
         rot: Rots,
     ) -> Tensor:
-        return self.equi2pers(copy_tensor(self.equi), rots=rot)
+        # NOTE: convert deg to rad
+        rad_rot = deg2rad(rot)
+        return self.equi2pers(copy_tensor(self.equi), rots=rad_rot)
 
     def move(self, rot: Rots) -> Tensor:
         """Rotate view and return unrefined view
@@ -166,14 +176,19 @@ class FindViewSim(object):
         del self.pers
         del self.equi2pers
 
+    def close(self) -> None:
+        pass
+
 
 def batch_sample(sims: List[FindViewSim], rots: List[Rots]) -> Tensor:
+    rad_rots = [deg2rad(rot) for rot in rots]
+
     if sims[0].is_torch:
         batched_equi = torch.stack([s.equi.clone() for s in sims], dim=0)
     else:
         batched_equi = np.stack([s.equi.copy() for s in sims], axis=0)
 
-    batched_pers = sims[0].equi2pers(batched_equi, rots=rots)
+    batched_pers = sims[0].equi2pers(batched_equi, rots=rad_rots)
 
     for i, sim in enumerate(sims):
         sim.pers = batched_pers[i]

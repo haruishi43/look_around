@@ -99,14 +99,14 @@ class DynamicDataset(Generic[T]):
         )
 
     def filter_episodes(self, filter_fn: Callable[[T], bool]) -> "DynamicDataset":
-        new_episodes = []
-        for episode in self.episodes:
-            if filter_fn(episode):
-                new_episodes.append(episode)
-        assert len(new_episodes) > 0, \
-            "ERR: filtered all episodes; no episode for dataset"
+        new_pseudos = []
+        for pseudo in self.pseudos:
+            if filter_fn(pseudo):
+                new_pseudos.append(pseudo)
+        assert len(new_pseudos) > 0, \
+            "ERR: filtered all pseudos; no pseudo for dataset"
         new_dataset = copy(self)
-        new_dataset.episodes = new_episodes
+        new_dataset.pseudos = new_pseudos
         return new_dataset
 
 

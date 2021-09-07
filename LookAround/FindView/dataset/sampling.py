@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 
-
 from functools import lru_cache, partial
 from typing import Any, Dict, Tuple
 
@@ -147,6 +146,7 @@ class DifficultySampler(Sampler):
         max_steps: int,
         step_size: int,
         threshold: int,
+        seed: int,
         mu: float = 0.0,
         sigma: float = 0.3,
         num_tries: int = 100000,
@@ -252,3 +252,6 @@ class DifficultySampler(Sampler):
     def set_difficulty(self, difficulty: str):
         assert difficulty in self.difficulties
         self.difficulty = difficulty
+
+    def seed(self, seed: int) -> None:
+        np.random.seed(0)

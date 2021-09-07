@@ -12,16 +12,18 @@ NOTE: think about how to make the `Sim` Parallel!
 
 import argparse
 from functools import partial
-from typing import Dict, List
+import os
+from typing import List
 
 from tqdm import tqdm
 
 from mycv.utils import Config
-import numpy as np
 import torch
 
 from LookAround.FindView.dataset import Episode, make_dataset
 from LookAround.FindView.sim import FindViewSim
+from LookAround.FindView.env import FindViewActions, RotationTracker
+from LookAround.utils.visualizations import save_images_as_video
 
 
 def filter_episodes_by_img_names(episode: Episode, names: List[str]) -> bool:
@@ -32,59 +34,9 @@ def filter_episodes_by_sub_labels(episode: Episode, sub_labels: List[str]) -> bo
     return episode.sub_label in sub_labels
 
 
-class Action2Rotation(object):
-
-    def __init__(
-        self,
-        initial_rot,
-        inc: int = 1,
-        pitch_thresh: int = 60,
-    ) -> None:
-        self.rot = initial_rot
-        self.inc = inc
-        self.pitch_thresh = pitch_thresh
-
-    def convert(
-        self,
-        action: str,
-    ) -> Dict[str, float]:
-
-        pitch = self.rot['pitch']
-        yaw = self.rot['yaw']
-
-        if action == "up":
-            pitch += self.inc
-        elif action == "down":
-            pitch -= self.inc
-        elif action == "right":
-            yaw += self.inc
-        elif action == "left":
-            yaw -= self.inc
-
-        if pitch >= self.pitch_thresh:
-            pitch = self.pitch_thresh
-        elif pitch <= -self.pitch_thresh:
-            pitch = -self.pitch_thresh
-        if yaw > 180:
-            yaw -= 2 * 180
-        elif yaw <= -180:
-            yaw += 2 * 180
-
-        self.rots = {
-            "roll": 0,
-            "pitch": pitch,
-            "yaw": yaw,
-        }
-
-        return {
-            "roll": 0.,
-            "pitch": pitch * np.pi / 180,
-            "yaw": yaw * np.pi / 180,
-        }
-
-
 class SingleMovementAgent(object):
     def __init__(self, action: str = "right") -> None:
+        assert action in FindViewActions.all
         self.action = action
 
     def act(self):
@@ -135,43 +87,59 @@ if __name__ == "__main__":
     sim = FindViewSim(
         **cfg.sim,
     )
+    # sim.inititialize_loader(
+    #     is_torch=True,
+    #     dtype=torch.float32,
+    #     device=torch.device('cpu'),
+    # )
     sim.inititialize_loader(
         is_torch=True,
         dtype=torch.float32,
         device=torch.device('cuda:0'),
     )
     # sim.inititialize_loader(
-    #     is_torch=True,
-    #     dtype=torch.float32,
-    #     device=torch.device('cpu'),
-    # )
-    # sim.inititialize_loader(
     #     is_torch=False,
     #     dtype=np.float32,
     # )
-    num_iter = 10
+
+    rot_tracker = RotationTracker(
+        inc=cfg.step_size,
+        pitch_threshold=cfg.pitch_threshold,
+    )
+
+    # run loops for testing
+    num_iter = 2
     num_steps = 1000
     for i in range(num_iter):
         episode = next(episode_iterator)
         print(episode.img_name)
 
+        initial_rotation = episode.initial_rotation
+        target_rotation = episode.target_rotation
+
+        print("init/target rot:", initial_rotation, target_rotation)
+
+        rot_tracker.initialize(initial_rotation)
         # reset/init sim from episode
         pers, target = sim.reset(
             equi_path=episode.path,
-            initial_rotation=episode.initial_rotation,
-            target_rotation=episode.target_rotation,
+            initial_rotation=initial_rotation,
+            target_rotation=target_rotation,
         )
 
-        # initialize action2rotation conversion
-        a2r = Action2Rotation(
-            initial_rot=episode.initial_rotation,
-            inc=cfg.step_size,
-            pitch_thresh=cfg.pitch_threshold,
-        )
+        pers_list = []
 
         for j in tqdm(range(num_steps)):
             action = agent.act()
-            rot = a2r.convert(action)
+            rot = rot_tracker.convert(action)
             pers = sim.move(rot)
 
             render_pers = sim.render_pers()
+            pers_list.append(render_pers)
+
+        # save as video
+        # save_path = os.path.join('./results/', f"{episode.img_name}.mp4")
+        # save_images_as_video(pers_list, save_path)
+
+        # for rot in rot_tracker.history:
+        #     print(rot)

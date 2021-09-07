@@ -10,6 +10,7 @@ fov = 90.0
 pitch_threshold = 60
 min_steps = 10
 max_steps = 5000
+max_seconds = 10000000
 step_size = 1
 dataset_json_path = "{root}/{name}/{version}/{category}/{split}.json"
 sim = dict(
@@ -17,4 +18,13 @@ sim = dict(
     width=256,
     fov=90.0,
     sampling_mode="bilinear",
+)
+episode_generator_kwargs = dict(
+    shuffle=True,
+    num_repeat_pseudo=-1,
+)
+episode_iterator_kwargs = dict(
+    cycle=False,
+    shuffle=False,
+    num_episode_sample=-1,
 )
