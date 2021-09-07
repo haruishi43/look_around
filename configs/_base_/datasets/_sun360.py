@@ -12,3 +12,9 @@ min_steps = 10
 max_steps = 5000
 step_size = 1
 dataset_json_path = "{root}/{name}/{version}/{category}/{split}.json"
+sim = dict(
+    height=256,
+    width=256,
+    fov=90.0,
+    sampling_mode="bilinear",
+)

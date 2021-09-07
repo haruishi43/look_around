@@ -86,18 +86,18 @@ if __name__ == "__main__":
         for i in tqdm(range(len(dataset))):
             episode = next(episode_iterator)
             assert i == episode.episode_id
-            # print(episode.img_name, episode.episode_id)
+            print(episode.path, episode.episode_id)
 
-        # # test run cycle
-        # print(">>> Test #2")
-        # episode_iterator = dataset.get_iterator(
-        #     cycle=True,
-        #     shuffle=False,
-        #     num_episode_sample=-1,
-        # )
-        # for i in tqdm(range(2 * len(dataset))):
-        #     episode = next(episode_iterator)
-        #     assert i % len(dataset) == episode.episode_id
+        # test run cycle
+        print(">>> Test #2")
+        episode_iterator = dataset.get_iterator(
+            cycle=True,
+            shuffle=False,
+            num_episode_sample=-1,
+        )
+        for i in tqdm(range(2 * len(dataset))):
+            episode = next(episode_iterator)
+            assert i % len(dataset) == episode.episode_id
 
         # test random
         print(">>> Test #3")
@@ -143,19 +143,31 @@ if __name__ == "__main__":
 
         # test for generator
         print(">>> Testing generator")
+
+        print(">>> Test #1")
+        episode_generator = dataset.get_generator(
+            sampler=sampler,
+            shuffle=False,
+            num_repeat_pseudo=-1,
+        )
+        num_iter = 100
+        for i in range(num_iter):
+            episode = next(episode_generator)
+            print(i, episode.path, episode.difficulty)
+
+        print(">>> Test #2")
         episode_generator = dataset.get_generator(
             sampler=sampler,
             shuffle=True,
             num_repeat_pseudo=-1,
         )
-
         num_iter = 10000
         for i in range(num_iter):
             episode = next(episode_generator)
             print(i, episode.img_name, episode.difficulty)
 
         # change difficulty
-        print(">>> Changed Diff")
+        print(">>> Test #3: Changed Diff")
         sampler.set_difficulty('hard')
         for i in range(num_iter):
             episode = next(episode_generator)

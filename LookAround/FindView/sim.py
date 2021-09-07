@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 from functools import partial
-from typing import Dict, Union
+from typing import Dict, List, Union
 
 from equilib import Equi2Pers
 
@@ -21,38 +21,33 @@ Rots = Dict[str, Union[int, float]]
 Dtypes = Union[np.dtype, torch.dtype]
 
 
+def copy_tensor(t: Tensor) -> Tensor:
+    if isinstance(t, np.ndarray):
+        return t.copy()
+    elif torch.is_tensor(t):
+        return t.clone()
+    else:
+        raise ValueError("ERR: cannot copy tensor")
+
+
 class FindViewSim(object):
 
     equi: Tensor
+    target: Tensor
     pers: Tensor
+    equi_path: str
+    initial_rotation: Rots
+    target_rotation: Rots
+
+    _load_func = None
 
     def __init__(
         self,
-        equi_path: str,
-        initial_rots: Rots,
-        is_torch: bool,
-        dtype: Dtypes,
         height: int,
         width: int,
         fov: float,
         sampling_mode: str,
     ) -> None:
-
-        self._equi_path = equi_path
-        self._initial_rots = initial_rots
-
-        if is_torch:
-            self._load_func = partial(
-                load2torch,
-                dtype=dtype,
-                is_cv2=False,
-            )
-        else:
-            self._load_func = partial(
-                load2numpy,
-                dtype=dtype,
-                is_cv2=False
-            )
 
         self.equi2pers = Equi2Pers(
             height=height,
@@ -63,73 +58,124 @@ class FindViewSim(object):
             mode=sampling_mode,
         )
 
-        # initialize
-        self.equi = self._load_from_path(equi_path=self._equi_path)
-        self.pers = self._sample_pers(rots=self._initial_rots)
+        # initialize important variables to None
+        self.equi = None
+        self.target = None
+        self.pers = None
+        self.equi_path = None
+        self.initial_rotation = None
+        self.target_rotation = None
 
-    def _load_from_path(
+    def inititialize_loader(
+        self,
+        is_torch: bool,
+        dtype: Dtypes,
+        device: torch.device = torch.device('cpu'),
+    ) -> None:
+
+        # FIXME: how to make it so that it loads to some cuda device?
+
+        self.is_torch = is_torch
+        if is_torch:
+            print(f"NOTE: Using loading to {device.type} with index: {device.index}")
+            self._load_func = partial(
+                load2torch,
+                dtype=dtype,
+                device=device,
+                is_cv2=False,
+            )
+        else:
+            self._load_func = partial(
+                load2numpy,
+                dtype=dtype,
+                is_cv2=False
+            )
+
+    def initialize_from_episode(
         self,
         equi_path: str,
-    ) -> Tensor:
-        equi = self._load_func(img_path=equi_path)
-        assert isinstance(equi, (np.ndarray, torch.Tensor)), \
-            f"ERR: could not load {equi_path} to Tensor"
-        return equi
+        initial_rotation: Rots,
+        target_rotation: Rots,
+    ) -> None:
+        assert self._load_func is not None, \
+            "ERR: loading function is not initialized"
 
-    def _sample_pers(
+        if equi_path != self.equi_path:
+            # NOTE: only load equi when the equi_path differs
+            self.equi = self._load_func(img_path=equi_path)
+
+        # initialize data
+        self.equi_path = equi_path
+        self.initial_rotation = initial_rotation
+        self.target_rotation = target_rotation
+
+        # set images
+        self.pers = self.sample(rot=initial_rotation)
+        self.target = self.sample(rot=target_rotation)
+
+    def sample(
         self,
-        rots: Rots,
+        rot: Rots,
     ) -> Tensor:
-        return self.equi2pers(self._copy_tensor(self.equi), rots=rots)
+        return self.equi2pers(copy_tensor(self.equi), rots=rot)
 
-    @staticmethod
-    def _copy_tensor(
-        img: Tensor,
-    ) -> Tensor:
-        if isinstance(img, np.ndarray):
-            return img.copy()
-        elif torch.is_tensor(img):
-            return img.clone()
-        else:
-            raise ValueError("ERR: cannot copy tensor")
-
-    def move(self, rots: Rots) -> Tensor:
+    def move(self, rot: Rots) -> Tensor:
         """Rotate view and return unrefined view
         """
-        self.pers = self._sample_pers(rots=rots)
+        self.pers = self.sample(rot=rot)
         return self.pers
 
     def reset(
         self,
         equi_path: str,
-        initial_rots: Rots,
+        initial_rotation: Rots,
+        target_rotation: Rots,
     ) -> Tensor:
         """Reset rotation and change equi image
         """
-        self._initial_rots = initial_rots
-        if equi_path != self._equi_path:
-            # load when path differs (for efficiency)
-            self._equi_path = equi_path
-            self.equi = self._load_from_path(equi_path=equi_path)
-        return self._sample_pers(rots=initial_rots)
 
-    def get_view(self) -> Tensor:
-        """Return view (unrefined)
-        """
-        return self.pers
+        # set the new episode data
+        self.initialize_from_episode(
+            equi_path=equi_path,
+            initial_rotation=initial_rotation,
+            target_rotation=target_rotation,
+        )
 
-    def render(self) -> np.ndarray:
+        return self.pers, self.target
+
+    def render_pers(self) -> np.ndarray:
         """Return view (refined for cv2.imshow)
         """
-        if isinstance(self.pers, np.ndarray):
-            return post_process_for_render(self._copy_tensor(self.pers))
-        elif torch.is_tensor(self.pers):
-            return post_process_for_render_torch(self._copy_tensor(self.pers))
+        if self.is_torch:
+            return post_process_for_render_torch(copy_tensor(self.pers))
         else:
-            raise ValueError("ERR: cannot post process")
+            return post_process_for_render(copy_tensor(self.pers))
+
+    def render_target(self) -> np.ndarray:
+        """Return view (refined for cv2.imshow)
+        """
+        if self.is_torch:
+            return post_process_for_render_torch(copy_tensor(self.target))
+        else:
+            return post_process_for_render(copy_tensor(self.target))
 
     def __del__(self):
         # NOTE: clean up
         del self.equi
+        del self.target
         del self.pers
         del self.equi2pers
+
+
+def batch_sample(sims: List[FindViewSim], rots: List[Rots]) -> Tensor:
+    if sims[0].is_torch:
+        batched_equi = torch.stack([s.equi.clone() for s in sims], dim=0)
+    else:
+        batched_equi = np.stack([s.equi.copy() for s in sims], axis=0)
+
+    batched_pers = sims[0].equi2pers(batched_equi, rots=rots)
+
+    for i, sim in enumerate(sims):
+        sim.pers = batched_pers[i]
+
+    return batched_pers

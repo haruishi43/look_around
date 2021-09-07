@@ -93,6 +93,7 @@ def load2numpy(
 def load2torch(
     img_path: str,
     dtype: torch.dtype,
+    device: torch.device = torch.device('cpu'),
     is_cv2: bool = False,
 ) -> torch.Tensor:
 
@@ -120,4 +121,5 @@ def load2torch(
             img = img.permute((2, 0, 1)).contiguous()
         assert img.dtype == torch.uint8
 
+    img = img.to(device)
     return img

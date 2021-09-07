@@ -53,22 +53,6 @@ ActionSpace = {
 }
 
 
-class Dataset(object):
-    ...
-
-
-class Scheduler(object):
-    ...
-
-
-class Episode(object):
-    ...
-
-
-class RotationTracker(object):
-    ...
-
-
 class FindViewEnv(object):
 
     def __init__(
@@ -85,4 +69,13 @@ class FindViewEnv(object):
         ...
 
     def render(self):
+        ...
+
+
+class FindViewRLEnv(object):
+
+    def __init__(
+        self,
+        cfg:
+    ) -> None:
         ...
