@@ -121,7 +121,7 @@ if __name__ == "__main__":
                     new_episodes.append(episode)
             return new_episodes
 
-        episode_iterator.filter_episodes(filter_func=get_under_hard)
+        episode_iterator.filter_dataset(filter_func=get_under_hard)
 
         # NOTE: need to cycle first so self._iterator is set
         for i in tqdm(range(len(dataset))):

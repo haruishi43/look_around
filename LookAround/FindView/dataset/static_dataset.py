@@ -78,6 +78,12 @@ class StaticDataset(Generic[T]):
     def __len__(self) -> int:
         return len(self.episodes)
 
+    def get_img_names(self) -> List[str]:
+        return list(set([e.img_name for e in self.episodes]))
+
+    def get_sub_labels(self) -> List[str]:
+        return list(set([e.sub_label for e in self.episodes]))
+
     def from_json(
         self,
         json_str: str,
@@ -104,7 +110,7 @@ class StaticDataset(Generic[T]):
     ) -> "StaticIterator":
         return StaticIterator(self.episodes, **kwargs)
 
-    def filter_episodes(self, filter_fn: Callable[[T], bool]) -> "StaticDataset":
+    def filter_dataset(self, filter_fn: Callable[[T], bool]) -> "StaticDataset":
         new_episodes = []
         for episode in self.episodes:
             if filter_fn(episode):

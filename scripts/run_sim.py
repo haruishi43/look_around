@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-"""Running `Sim`
+"""Run `Sim`
 
 I think there're generally two important parts in an Env
 - `Sim`
@@ -71,8 +71,7 @@ if __name__ == "__main__":
     filter_by_labels = partial(filter_episodes_by_sub_labels, sub_labels=sub_labels)
 
     # initialize dataset
-    dataset = make_dataset(cfg=cfg, split=split)
-    dataset = dataset.filter_episodes(filter_by_names)
+    dataset = make_dataset(cfg=cfg, split=split, filter_func=filter_by_names)
     print(f"Using {len(dataset)}")  # 200
     episode_iterator = dataset.get_iterator(
         cycle=True,
@@ -138,8 +137,8 @@ if __name__ == "__main__":
             pers_list.append(render_pers)
 
         # save as video
-        # save_path = os.path.join('./results/', f"{episode.img_name}.mp4")
-        # save_images_as_video(pers_list, save_path)
+        save_path = os.path.join('./results/', f"{episode.img_name}.mp4")
+        save_images_as_video(pers_list, save_path)
 
         # for rot in rot_tracker.history:
         #     print(rot)

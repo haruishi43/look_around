@@ -13,12 +13,6 @@ max_steps = 5000
 max_seconds = 10000000
 step_size = 1
 dataset_json_path = "{root}/{name}/{version}/{category}/{split}.json"
-sim = dict(
-    height=256,
-    width=256,
-    fov=90.0,
-    sampling_mode="bilinear",
-)
 episode_generator_kwargs = dict(
     shuffle=True,
     num_repeat_pseudo=-1,

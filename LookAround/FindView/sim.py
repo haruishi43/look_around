@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 from functools import partial
-from typing import Dict, List, Union
+from typing import Dict, List, Optional, Union
 
 from equilib import Equi2Pers
 
@@ -180,17 +180,32 @@ class FindViewSim(object):
         pass
 
 
-def batch_sample(sims: List[FindViewSim], rots: List[Rots]) -> Tensor:
-    rad_rots = [deg2rad(rot) for rot in rots]
+def batch_sample(sims: List[FindViewSim], rots: List[Optional[Rots]]):
 
-    if sims[0].is_torch:
-        batched_equi = torch.stack([s.equi.clone() for s in sims], dim=0)
+    is_torch = sims[0].is_torch
+    none_idx = [i for i, rot in enumerate(rots) if rot is None]
+
+    rad_rots = [deg2rad(rot) for rot in rots if rot is not None]
+
+    batched_equi = []
+    for i, sim in enumerate(sims):
+        if i not in none_idx:
+            if is_torch:
+                batched_equi.append(sim.equi.clone())
+            else:
+                batched_equi.append(sim.equi.copy())
+    if is_torch:
+        batched_equi = torch.stack(batched_equi, dim=0)
     else:
-        batched_equi = np.stack([s.equi.copy() for s in sims], axis=0)
+        batched_equi = np.stack(batched_equi, axis=0)
 
     batched_pers = sims[0].equi2pers(batched_equi, rots=rad_rots)
 
+    count = 0
     for i, sim in enumerate(sims):
-        sim.pers = batched_pers[i]
+        # if `rot` was None, `sim` should keep the original `pers`
+        if i not in none_idx:
+            sim.pers = batched_pers[count]
+            count += 1
 
-    return batched_pers
+    assert count == len(batched_pers)

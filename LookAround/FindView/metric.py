@@ -51,7 +51,7 @@ def l1_distance(r1, r2):
 
     dp = np.abs(r1p - r2p)
     dy = find_minimum(np.abs(r1y - r2y))
-    return dp + dy
+    return float(dp + dy)
 
 
 def l2_distance(r1, r2):
@@ -62,4 +62,4 @@ def l2_distance(r1, r2):
 
     dp = np.abs(r1p - r2p)
     dy = find_minimum(np.abs(r1y - r2y))
-    return np.sqrt(dp**2 + dy**2)
+    return float(np.sqrt(dp**2 + dy**2))

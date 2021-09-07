@@ -254,4 +254,4 @@ class DifficultySampler(Sampler):
         self.difficulty = difficulty
 
     def seed(self, seed: int) -> None:
-        np.random.seed(0)
+        np.random.seed(seed)

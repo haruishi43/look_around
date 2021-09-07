@@ -67,6 +67,12 @@ class DynamicDataset(Generic[T]):
     def __len__(self) -> int:
         return len(self.pseudos)
 
+    def get_img_names(self) -> List[str]:
+        return list(set([p.img_name for p in self.pseudos]))
+
+    def get_sub_labels(self) -> List[str]:
+        return list(set([p.sub_label for p in self.pseudos]))
+
     def from_json(
         self,
         json_str: str,
@@ -98,7 +104,7 @@ class DynamicDataset(Generic[T]):
             **kwargs,
         )
 
-    def filter_episodes(self, filter_fn: Callable[[T], bool]) -> "DynamicDataset":
+    def filter_dataset(self, filter_fn: Callable[[T], bool]) -> "DynamicDataset":
         new_pseudos = []
         for pseudo in self.pseudos:
             if filter_fn(pseudo):

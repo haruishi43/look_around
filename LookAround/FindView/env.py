@@ -127,6 +127,7 @@ class FindViewEnv(object):
         self,
         cfg: Config,
         split='train',
+        filter_fn=None,
         is_torch=True,
         dtype=torch.float32,
         device=torch.device('cpu'),
@@ -135,17 +136,21 @@ class FindViewEnv(object):
         self._cfg = cfg
 
         # initialize dataset
-        self._dataset = make_dataset(cfg=self._cfg, split=split)
+        self._dataset = make_dataset(
+            cfg=self._cfg,
+            split=split,
+            filter_fn=filter_fn,
+        )
         if split == 'train':
             self._sampler = DifficultySampler(
-                difficulty='easy',
+                difficulty='easy',  # difficulty...
                 fov=self._cfg.fov,
                 min_steps=self._cfg.min_steps,
                 max_steps=self._cfg.max_steps,
                 step_size=self._cfg.step_size,
                 threshold=self._cfg.pitch_threshold,
                 seed=self._cfg.seed,
-                num_tries=100000,
+                num_tries=100000,  # num tries is pretty large
             )
             iter_options = self._cfg.episode_generator_kwargs
             iter_options['seed'] = self._cfg.seed
@@ -310,7 +315,7 @@ class FindViewEnv(object):
         self._reset_stats()
 
         # FIXME: what to do when iterator is finished and `reset` is called?
-        self.current_episode = next(self._episode_iterator)
+        self._current_episode = next(self._episode_iterator)
 
         initial_rotation = self._current_episode.initial_rotation
         target_rotation = self._current_episode.target_rotation
@@ -333,6 +338,36 @@ class FindViewEnv(object):
         self._episode_over = self._called_stop
         if self._past_limit():
             self._episode_over = True
+
+    def step_before(self, action: str):
+        assert self._episode_start_time is not None, \
+            "Cannot call step before calling reset"
+
+        assert self._episode_over is False, \
+            "ERR: Episode is over, call reset before calling step"
+
+        # FIXME: usually I would check if action is in the list, but I'm lazy
+        # FIXME: add support for integer and other action formats
+        if action == FindViewActions.STOP:
+            self._called_stop = True
+            rot = None
+        else:
+            rot = self._rot_tracker.convert(action)
+
+        return rot
+
+    def step_after(self):
+        pers = self._sim.pers
+        target = self._sim.target
+
+        obs = self._make_base_obs(
+            pers=pers,
+            target=target,
+        )
+
+        self._update_step_stats()
+
+        return obs
 
     def step(self, action: str):
 
@@ -444,8 +479,19 @@ class FindViewRLEnv(gym.Env):
     def get_info(self, observations):
         raise NotImplementedError
 
+    def step_before(self, *args, **kwargs):
+        return self._env.step_before(*args, **kwargs)
+
+    def step_after(self):
+        observations = self._env.step_after()
+        reward = self.get_reward(observations)
+        done = self.get_done(observations)
+        info = self.get_info(observations)
+
+        return observations, reward, done, info
+
     def step(self, *args, **kwargs):
-        r"""Perform an action in the environment.
+        """Perform an action in the environment.
         :return: :py:`(observations, reward, done, info)`
         """
         observations = self._env.step(*args, **kwargs)
@@ -469,3 +515,27 @@ class FindViewRLEnv(gym.Env):
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         self.close()
+
+
+# FIXME: don't have the usecase for this...
+def make_env(
+    cfg: Config,
+    split: str,
+    filter_fn=None,
+    is_torch: bool = True,
+    dtype: Union[np.dtype, torch.dtype] = torch.float32,
+    device: torch.device = torch.device('cpu'),
+) -> FindViewEnv:
+    if is_torch:
+        assert dtype in (torch.float16, torch.float32, torch.float64)
+    else:
+        assert dtype in (np.float32, np.float64)
+    env = FindViewEnv(
+        cfg=cfg,
+        split=split,
+        filter_fn=filter_fn,
+        is_torch=is_torch,
+        dtype=dtype,
+        device=device,
+    )
+    return env
