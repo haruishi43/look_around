@@ -11,11 +11,12 @@ import random
 from typing import List
 
 from mycv.utils import Config
-import numpy as np
+# import numpy as np
 import torch
 from tqdm import tqdm
 
-from LookAround.FindView.env import FindViewActions, FindViewRLEnv, FindViewEnv
+from LookAround.FindView.env import FindViewActions
+from LookAround.FindView.rl_env import FindViewRLEnv
 from LookAround.FindView.vec_env import construct_envs
 from LookAround.utils.visualizations import save_images_as_video
 
@@ -90,9 +91,9 @@ if __name__ == "__main__":
     vec_type = "threaded"
     env_cls = FindViewRLEnv
     split = 'train'
-    is_torch = False
-    dtype = np.float32
-    device = torch.device('cuda:0')
+    is_torch = True
+    dtype = torch.float32
+    device = torch.device('cpu')
     num_steps = 500
 
     envs = construct_envs(
@@ -129,6 +130,7 @@ if __name__ == "__main__":
         # print(rewards)
         # print(dones)
         pers = envs.render()['pers']
+        # target = envs.render()['target']
         images.append(pers)
 
         for i, done in enumerate(dones):

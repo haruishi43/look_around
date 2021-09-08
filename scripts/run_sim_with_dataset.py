@@ -21,8 +21,9 @@ from mycv.utils import Config
 import torch
 
 from LookAround.FindView.dataset import Episode, make_dataset
+from LookAround.FindView.env import FindViewActions
 from LookAround.FindView.sim import FindViewSim
-from LookAround.FindView.env import FindViewActions, RotationTracker
+from LookAround.FindView.rotation_tracker import RotationTracker
 from LookAround.utils.visualizations import save_images_as_video
 
 

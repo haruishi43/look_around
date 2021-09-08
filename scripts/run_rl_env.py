@@ -15,7 +15,8 @@ from mycv.utils import Config
 import torch
 from tqdm import tqdm
 
-from LookAround.FindView.env import FindViewActions, make_rl_env
+from LookAround.FindView.env import FindViewActions
+from LookAround.FindView.rl_env import make_rl_env
 from LookAround.utils.visualizations import save_images_as_video
 
 random.seed(0)
@@ -111,20 +112,20 @@ if __name__ == "__main__":
     # agent = SingleMovementAgent(action="right")
     agent = GreedyMovementAgent()
 
-    # images = []
+    images = []
     obs = rlenv.reset()
     print(obs.keys())
-    # render = rlenv.render()
-    # images.append(render['target'])
-    # images.append(render['pers'])
+    render = rlenv.render()
+    images.append(render['target'])
+    images.append(render['pers'])
 
     for i in tqdm(range(num_steps)):
         action = agent.act()
         obs, reward, done, info = rlenv.step(action)
 
         # print("reward", reward, action, done)
-        # pers = rlenv.render()['pers']
-        # images.append(pers)
+        pers = rlenv.render()['pers']
+        images.append(pers)
         if done:
             if action == "stop":
                 print("called stop")
@@ -137,10 +138,10 @@ if __name__ == "__main__":
 
             # NEED TO RESET!
             obs = rlenv.reset()
-            # render = rlenv.render()
-            # images.append(render['target'])
-            # images.append(render['pers'])
+            render = rlenv.render()
+            images.append(render['target'])
+            images.append(render['pers'])
             agent.reset()
 
-    # save_path = os.path.join('./results/rlenv', 'test_rl_env.mp4')
-    # save_images_as_video(images, save_path)
+    save_path = os.path.join('./results/rlenv', 'test_rl_env.mp4')
+    save_images_as_video(images, save_path)
