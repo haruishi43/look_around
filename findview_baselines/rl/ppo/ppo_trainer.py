@@ -397,18 +397,6 @@ class PPOTrainer:
         ):
             step_action = act.item()
 
-
-
-            # FIXME: action is integer???
-            #
-
-
-
-
-            # DEBUGGGGGGG
-
-
-
             self.envs.async_step_at(index_env, step_action)
 
         self.env_time += time.time() - t_step_env
