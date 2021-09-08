@@ -37,7 +37,8 @@ import torch
 from torch import multiprocessing as mp  # type:ignore
 
 from LookAround.FindView.dataset import Episode, PseudoEpisode, make_dataset
-from LookAround.FindView.env import FindViewEnv, FindViewRLEnv
+from LookAround.FindView.env import FindViewEnv
+from LookAround.FindView.rl_env import FindViewRLEnv
 from LookAround.FindView.sim import batch_sample
 from LookAround.utils.visualizations import tile_images
 from LookAround.utils.pickle5_multiprocessing import ConnectionWrapper
@@ -52,6 +53,7 @@ CALL_COMMAND = "call"
 EPISODE_OVER_NAME = "episode_over"
 GET_METRICS_NAME = "get_metrics"
 CURRENT_EPISODE_NAME = "current_episode"
+NUMBER_OF_EPISODE_NAME = "number_of_episodes"
 ACTION_SPACE_NAME = "action_space"
 OBSERVATION_SPACE_NAME = "observation_space"
 
@@ -143,11 +145,16 @@ class MPVecEnv(object):
         self.action_spaces = [
             read_fn() for read_fn in self._connection_read_fns
         ]
+        for write_fn in self._connection_write_fns:
+            write_fn((CALL_COMMAND, (NUMBER_OF_EPISODE_NAME, None)))
+        self.number_of_episodes = [
+            read_fn() for read_fn in self._connection_read_fns
+        ]
         self._paused: List[Tuple] = []
 
     @property
     def num_envs(self):
-        r"""number of individual environments."""
+        """number of individual environments."""
         return self._num_envs - len(self._paused)
 
     @staticmethod
@@ -159,7 +166,7 @@ class MPVecEnv(object):
         child_pipe: Optional[Connection] = None,
         parent_pipe: Optional[Connection] = None,
     ) -> None:
-        r"""process worker for creating and interacting with the environment."""
+        """process worker for creating and interacting with the environment."""
 
         auto_reset_done = True
 
@@ -287,7 +294,7 @@ class MPVecEnv(object):
         return results
 
     def reset(self):
-        r"""Reset all the vectorized environments
+        """Reset all the vectorized environments
         :return: list of outputs from the reset method of envs.
         """
         for write_fn in self._connection_write_fns:
@@ -298,7 +305,7 @@ class MPVecEnv(object):
         return results
 
     def reset_at(self, index_env: int):
-        r"""Reset in the index_env environment in the vector.
+        """Reset in the index_env environment in the vector.
         :param index_env: index of the environment to be reset
         :return: list containing the output of reset method of indexed env.
         """
@@ -320,7 +327,7 @@ class MPVecEnv(object):
         return self._connection_read_fns[index_env]()
 
     def step_at(self, index_env: int, action: Union[int, str, Dict[str, Any]]):
-        r"""Step in the index_env environment in the vector.
+        """Step in the index_env environment in the vector.
         :param index_env: index of the environment to be stepped into
         :param action: action to be taken
         :return: list containing the output of step method of indexed env.
@@ -331,7 +338,7 @@ class MPVecEnv(object):
     def async_step(
         self, data: Sequence[Union[int, str, Dict[str, Any]]]
     ) -> None:
-        r"""Asynchronously step in the environments.
+        """Asynchronously step in the environments.
         :param data: list of size _num_envs containing keyword arguments to
             pass to :ref:`step` method for each Environment. For example,
             :py:`[{"action": "TURN_LEFT", "action_args": {...}}, ...]`.
@@ -349,7 +356,7 @@ class MPVecEnv(object):
     def step(
         self, data: Sequence[Union[int, str, Dict[str, Any]]]
     ) -> List[Any]:
-        r"""Perform actions in the vectorized environments.
+        """Perform actions in the vectorized environments.
         :param data: list of size _num_envs containing keyword arguments to
             pass to :ref:`step` method for each Environment. For example,
             :py:`[{"action": "TURN_LEFT", "action_args": {...}}, ...]`.
@@ -381,7 +388,7 @@ class MPVecEnv(object):
         self._is_closed = True
 
     def pause_at(self, index: int) -> None:
-        r"""Pauses computation on this env without destroying the env.
+        """Pauses computation on this env without destroying the env.
         :param index: which env to pause. All indexes after this one will be
             shifted down by one.
         This is useful for not needing to call steps on all environments when
@@ -409,7 +416,7 @@ class MPVecEnv(object):
         function_name: str,
         function_args: Optional[Dict[str, Any]] = None,
     ) -> Any:
-        r"""Calls a function or retrieves a property/member variable (which is passed by name)
+        """Calls a function or retrieves a property/member variable (which is passed by name)
         on the selected env and returns the result.
         :param index: which env to call the function on.
         :param function_name: the name of the function to call or property to retrieve on the env.
@@ -427,7 +434,7 @@ class MPVecEnv(object):
         function_names: List[str],
         function_args_list: Optional[List[Any]] = None,
     ) -> List[Any]:
-        r"""Calls a list of functions (which are passed by name) on the
+        """Calls a list of functions (which are passed by name) on the
         corresponding env (by index).
         :param function_names: the name of the functions to call on the envs.
         :param function_args_list: list of function args for each function. If
@@ -451,7 +458,7 @@ class MPVecEnv(object):
     def render(
         self, *args, **kwargs,
     ) -> Union[np.ndarray, None]:
-        r"""Render observations from all environments in a tiled image."""
+        """Render observations from all environments in a tiled image."""
         for write_fn in self._connection_write_fns:
             write_fn((RENDER_COMMAND, (args, kwargs)))
         renders = [read_fn() for read_fn in self._connection_read_fns]
@@ -488,7 +495,7 @@ class MPVecEnv(object):
 
 
 class ThreadedVecEnv(MPVecEnv):
-    r"""Provides same functionality as :ref:`VectorEnv`, the only difference
+    """Provides same functionality as :ref:`VectorEnv`, the only difference
     is it runs in a multi-thread setup inside a single process.
     The :ref:`VectorEnv` runs in a multi-proc setup. This makes it much easier
     to debug when using :ref:`VectorEnv` because you can actually put break
@@ -556,12 +563,14 @@ class SlowVecEnv(object):
 
         self.action_spaces = [env.action_space for env in self.envs]
         self.observation_spaces = [env.observation_space for env in self.envs]
+        self.number_of_episodes = [env.number_of_episodes for env in self.envs]
+        self._paused: List[Tuple] = []
 
     @property
     def num_envs(self):
         """number of individual environments.
         """
-        return self._num_envs
+        return self._num_envs - len(self._paused)
 
     def current_episodes(self):
         results = []
@@ -621,6 +630,15 @@ class SlowVecEnv(object):
 
     def step_at(self, i, action: str):
         return self.envs[i].step(action)
+
+    def pause_at(self, index: int) -> None:
+        env = self.envs.pop(index)
+        self._paused.append((index, env))
+
+    def resume_all(self) -> None:
+        for index, env in reversed(self._paused):
+            self.envs.insert(index, env)
+        self._paused = []
 
     def render(self):
         renders = [env.render() for env in self.envs]
@@ -692,7 +710,7 @@ def construct_envs(
     is_torch: bool = True,
     dtype: Union[np.dtype, torch.dtype] = torch.float32,
     device: torch.device = torch.device('cpu'),
-    vec_type: str = "slow",
+    vec_type: str = "threaded",
 ) -> Union[SlowVecEnv, MPVecEnv, ThreadedVecEnv]:
 
     num_envs = cfg.num_envs

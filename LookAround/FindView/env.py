@@ -28,6 +28,8 @@ from LookAround.FindView.dataset.sampling import DifficultySampler, Sampler
 
 class FindViewEnv(object):
 
+    number_of_episodes: Optional[int]
+
     _dataset: Union[DynamicDataset, StaticDataset]
     _sampler: Optional[Sampler]
     _episode_iterator: Union[DynamicGenerator, StaticIterator]
@@ -76,6 +78,7 @@ class FindViewEnv(object):
                 sampler=self._sampler,
                 **iter_options,
             )
+            self.number_of_episodes = None
         else:
             self._sampler = None
             iter_options = self._cfg.episode_iterator_kwargs
@@ -83,6 +86,7 @@ class FindViewEnv(object):
             self._episode_iterator = self._dataset.get_iterator(
                 **iter_options,
             )
+            self.number_of_episodes = len(self._dataset.episodes)
 
         # initialize simulator
         self._sim = FindViewSim(
@@ -114,18 +118,18 @@ class FindViewEnv(object):
                         low=torch.finfo(dtype).min,
                         high=torch.finfo(dtype).max,
                         shape=(
-                            self._cfg.sim['height'],
-                            self._cfg.sim['width'],
                             3,
+                            self._cfg.sim.height,
+                            self._cfg.sim.width,
                         ),
                     ),
                     "target": spaces.Box(
                         low=torch.finfo(dtype).min,
                         high=torch.finfo(dtype).max,
                         shape=(
-                            self._cfg.sim['height'],
-                            self._cfg.sim['width'],
                             3,
+                            self._cfg.sim.height,
+                            self._cfg.sim.width,
                         ),
                     ),
                 }
@@ -137,18 +141,18 @@ class FindViewEnv(object):
                         low=np.finfo(dtype).min,
                         high=np.finfo(dtype).max,
                         shape=(
-                            self._cfg.sim['height'],
-                            self._cfg.sim['width'],
                             3,
+                            self._cfg.sim.height,
+                            self._cfg.sim.width,
                         ),
                     ),
                     "target": spaces.Box(
                         low=np.finfo(dtype).min,
                         high=np.finfo(dtype).max,
                         shape=(
-                            self._cfg.sim['height'],
-                            self._cfg.sim['width'],
                             3,
+                            self._cfg.sim.height,
+                            self._cfg.sim.width,
                         ),
                     ),
                 }
@@ -211,9 +215,9 @@ class FindViewEnv(object):
 
         # NOTE: this might be heavy...
         # Great for debugging:
-        history = {
-            "rotation_history": self._rot_tracker.history,
-        }
+        # history = {
+        #     "rotation_history": self._rot_tracker.history,
+        # }
 
         # NOTE: do some metric calculations
         same_rots = count_same_rots(self._rot_tracker.history)
@@ -224,7 +228,7 @@ class FindViewEnv(object):
 
         return {
             **info,
-            **history,
+            # **history,
             **distances,
             **same_rots,
         }

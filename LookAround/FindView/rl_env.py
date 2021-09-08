@@ -34,11 +34,13 @@ class FindViewRLEnv(gym.Env):
             **kwargs,
         )
 
+        self.number_of_episodes = self._env.number_of_episodes
+
         self._min_steps = self._cfg.min_steps
         self._max_steps = self._cfg.max_steps
         self._rl_env_cfg = self._cfg.rl_env_cfgs
-        self._slack_reward = self._rl_env_cfg['slack_reward']
-        self._success_reward = self._rl_env_cfg['success_reward']
+        self._slack_reward = self._rl_env_cfg.slack_reward
+        self._success_reward = self._rl_env_cfg.success_reward
 
         self.observation_space = self._env.observation_space
         self.action_space = self._env.action_space
