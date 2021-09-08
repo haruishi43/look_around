@@ -137,7 +137,7 @@ if __name__ == "__main__":
             pers_list.append(render_pers)
 
         # save as video
-        save_path = os.path.join('./results/', f"{episode.img_name}.mp4")
+        save_path = os.path.join('./results/sim', f"{episode.img_name}.mp4")
         save_images_as_video(pers_list, save_path)
 
         # for rot in rot_tracker.history:

@@ -11,4 +11,8 @@ episode_iterator_kwargs = dict(
     shuffle=False,
     num_episode_sample=-1,
 )
-num_envs = 6
+num_envs = 8
+rl_env_cfgs = dict(
+    success_reward=500.0,
+    slack_reward=-0.01,
+)

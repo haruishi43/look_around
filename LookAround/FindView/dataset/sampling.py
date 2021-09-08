@@ -174,6 +174,8 @@ class DifficultySampler(Sampler):
         )
         self.prev_kwargs = None
 
+        self.seed(seed)
+
     def __call__(self, pseudo: PseudoEpisode) -> Episode:
 
         kwargs = self.sample()

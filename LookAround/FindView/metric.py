@@ -15,9 +15,14 @@ def count_same_rots(history):
     occurrences = Counter(t)
     num_repeated = sum([v for v in occurrences.values() if v > 1])
     total = sum(occurrences.values())
-    return {
-        "looked_in_the_same_spot": num_repeated / total,
-    }
+    if total == 0:
+        return {
+            "num_same_view": 0.,
+        }
+    else:
+        return {
+            "num_same_view": num_repeated / total,
+        }
 
 
 def distance_to_target(
@@ -51,7 +56,7 @@ def l1_distance(r1, r2):
 
     dp = np.abs(r1p - r2p)
     dy = find_minimum(np.abs(r1y - r2y))
-    return float(dp + dy)
+    return int(dp + dy)
 
 
 def l2_distance(r1, r2):

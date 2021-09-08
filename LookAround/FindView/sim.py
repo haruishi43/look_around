@@ -194,12 +194,24 @@ def batch_sample(sims: List[FindViewSim], rots: List[Optional[Rots]]):
                 batched_equi.append(sim.equi.clone())
             else:
                 batched_equi.append(sim.equi.copy())
-    if is_torch:
-        batched_equi = torch.stack(batched_equi, dim=0)
-    else:
-        batched_equi = np.stack(batched_equi, axis=0)
 
+    if len(batched_equi) == 0:
+        return
+
+    if is_torch:
+        if len(batched_equi) == 1:
+            batched_equi = batched_equi[0].unsqueeze(0)
+        else:
+            batched_equi = torch.stack(batched_equi, dim=0)
+    else:
+        if len(batched_equi) == 1:
+            batched_equi = batched_equi[0][None, ...]
+        else:
+            batched_equi = np.stack(batched_equi, axis=0)
+
+    assert len(batched_equi.shape) == 4
     batched_pers = sims[0].equi2pers(batched_equi, rots=rad_rots)
+    assert len(batched_pers.shape) == 4
 
     count = 0
     for i, sim in enumerate(sims):

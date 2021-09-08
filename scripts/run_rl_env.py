@@ -1,8 +1,6 @@
 #!/usr/bin/env python3
 
-"""Run `Env`
-
-Before building parallel environments, we need to test the basic environments
+"""Run `RLEnv`
 
 """
 
@@ -17,7 +15,7 @@ from mycv.utils import Config
 import torch
 from tqdm import tqdm
 
-from LookAround.FindView.env import FindViewActions, make_env
+from LookAround.FindView.env import FindViewActions, make_rl_env
 from LookAround.utils.visualizations import save_images_as_video
 
 random.seed(0)
@@ -54,11 +52,11 @@ def movement_generator(size=4):
 class GreedyMovementAgent(object):
     def __init__(self, chance=0.001) -> None:
         self.movement_actions = ["up", "right", "down", "left"]
+        self.stop_action = "stop"
+        self.stop_chance = chance
         for action in self.movement_actions:
             assert action in FindViewActions.all
         self.g = movement_generator(len(self.movement_actions))
-        self.stop_action = "stop"
-        self.stop_chance = chance
 
     def act(self):
         if random.random() < self.stop_chance:
@@ -89,10 +87,10 @@ if __name__ == "__main__":
     print(cfg.pretty_text)
 
     # params:
-    split = 'test'
+    split = 'train'
     is_torch = True
     dtype = torch.float32
-    device = torch.device('cpu')
+    device = torch.device('cuda:0')
     num_steps = 5000
     img_names = ["pano_awotqqaapbgcaf", "pano_asxxieiyhiqchw"]
     sub_labels = ["restaurant"]
@@ -100,47 +98,49 @@ if __name__ == "__main__":
     # setup filter func
     filter_by_names = partial(filter_episodes_by_img_names, names=img_names)
 
-    # initialize env
-    env = make_env(
+    rlenv = make_rl_env(
         cfg=cfg,
         split=split,
-        filter_fn=filter_by_names,
+        # filter_fn=filter_by_names,
         is_torch=is_torch,
         dtype=dtype,
         device=device,
     )
+
     # initialize agent
     # agent = SingleMovementAgent(action="right")
     agent = GreedyMovementAgent()
 
-    images = []
-
-    obs = env.reset()
+    # images = []
+    obs = rlenv.reset()
     print(obs.keys())
-    render = env.render()
-    images.append(render['target'])
-    images.append(render['pers'])
+    # render = rlenv.render()
+    # images.append(render['target'])
+    # images.append(render['pers'])
 
     for i in tqdm(range(num_steps)):
         action = agent.act()
-        obs = env.step(action)
-        pers = env.render()['pers']
-        images.append(pers)
-        if env.episode_over:
-            print("next episode!")
-            # save stats to file
-            stats = env.get_metrics()
-            img_name = env.current_episode.img_name
-            save_path = os.path.join('./results/env', f'{img_name}.json')
+        obs, reward, done, info = rlenv.step(action)
+
+        # print("reward", reward, action, done)
+        # pers = rlenv.render()['pers']
+        # images.append(pers)
+        if done:
+            if action == "stop":
+                print("called stop")
+                assert info['called_stop']
+            print(">>> next episode!")
+            print("saving results")
+            save_path = os.path.join('./results/rlenv', f"{info['img_name']}.json")
             with open(save_path, 'w') as f:
-                json.dump(stats, f, indent=2)
+                json.dump(info, f, indent=2)
 
             # NEED TO RESET!
-            env.reset()
-            render = env.render()
-            images.append(render['target'])
-            images.append(render['pers'])
+            obs = rlenv.reset()
+            # render = rlenv.render()
+            # images.append(render['target'])
+            # images.append(render['pers'])
             agent.reset()
 
-    save_path = os.path.join('./results/env', 'test_env.mp4')
-    save_images_as_video(images, save_path)
+    # save_path = os.path.join('./results/rlenv', 'test_rl_env.mp4')
+    # save_images_as_video(images, save_path)

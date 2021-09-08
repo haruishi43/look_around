@@ -1,23 +1,22 @@
 #!/usr/bin/env python3
 
-"""Run `Env`
-
-Before building parallel environments, we need to test the basic environments
+"""Testing out parallel Env
 
 """
 
 import argparse
-from functools import partial
 import json
 import os
 import random
 from typing import List
 
 from mycv.utils import Config
+import numpy as np
 import torch
 from tqdm import tqdm
 
-from LookAround.FindView.env import FindViewActions, make_env
+from LookAround.FindView.env import FindViewActions, FindViewRLEnv, FindViewEnv
+from LookAround.FindView.vec_env import construct_envs
 from LookAround.utils.visualizations import save_images_as_video
 
 random.seed(0)
@@ -54,11 +53,11 @@ def movement_generator(size=4):
 class GreedyMovementAgent(object):
     def __init__(self, chance=0.001) -> None:
         self.movement_actions = ["up", "right", "down", "left"]
+        self.stop_action = "stop"
+        self.stop_chance = chance
         for action in self.movement_actions:
             assert action in FindViewActions.all
         self.g = movement_generator(len(self.movement_actions))
-        self.stop_action = "stop"
-        self.stop_chance = chance
 
     def act(self):
         if random.random() < self.stop_chance:
@@ -84,63 +83,65 @@ if __name__ == "__main__":
     args = parse_args()
     config_path = args.config
     cfg = Config.fromfile(config_path)
-    cfg.max_steps = 2000
     print(">>> Config:")
     print(cfg.pretty_text)
 
     # params:
-    split = 'test'
-    is_torch = True
-    dtype = torch.float32
-    device = torch.device('cpu')
-    num_steps = 5000
-    img_names = ["pano_awotqqaapbgcaf", "pano_asxxieiyhiqchw"]
-    sub_labels = ["restaurant"]
+    vec_type = "threaded"
+    env_cls = FindViewRLEnv
+    split = 'train'
+    is_torch = False
+    dtype = np.float32
+    device = torch.device('cuda:0')
+    num_steps = 500
 
-    # setup filter func
-    filter_by_names = partial(filter_episodes_by_img_names, names=img_names)
-
-    # initialize env
-    env = make_env(
+    envs = construct_envs(
+        env_cls=env_cls,
         cfg=cfg,
         split=split,
-        filter_fn=filter_by_names,
         is_torch=is_torch,
         dtype=dtype,
         device=device,
+        vec_type=vec_type,
     )
-    # initialize agent
-    # agent = SingleMovementAgent(action="right")
-    agent = GreedyMovementAgent()
+
+    agents = [GreedyMovementAgent() for _ in range(cfg.num_envs)]
+
+    assert envs.num_envs == cfg.num_envs
 
     images = []
 
-    obs = env.reset()
-    print(obs.keys())
-    render = env.render()
-    images.append(render['target'])
+    # reset env
+    print("reset!")
+    obs = envs.reset()
+    print(len(obs), obs[0].keys())
+    render = envs.render()
+    # images.append(render['target'])
     images.append(render['pers'])
+    episodes = envs.current_episodes()
 
-    for i in tqdm(range(num_steps)):
-        action = agent.act()
-        obs = env.step(action)
-        pers = env.render()['pers']
+    for step in tqdm(range(num_steps)):
+
+        actions = [agent.act() for agent in agents]
+
+        outputs = envs.step(actions)
+        obs, rewards, dones, infos = [list(x) for x in zip(*outputs)]
+        # print(rewards)
+        # print(dones)
+        pers = envs.render()['pers']
         images.append(pers)
-        if env.episode_over:
-            print("next episode!")
-            # save stats to file
-            stats = env.get_metrics()
-            img_name = env.current_episode.img_name
-            save_path = os.path.join('./results/env', f'{img_name}.json')
-            with open(save_path, 'w') as f:
-                json.dump(stats, f, indent=2)
 
-            # NEED TO RESET!
-            env.reset()
-            render = env.render()
-            images.append(render['target'])
-            images.append(render['pers'])
-            agent.reset()
+        for i, done in enumerate(dones):
+            if done:
+                if actions[i] == "stop":
+                    print(f"{i} called stop")
+                    assert infos[i]['called_stop']
+                print(f"Loading next episode for {i}")
+                save_path = os.path.join('./results/vecrlenv', f"{i}_{infos[i]['img_name']}.json")
+                with open(save_path, 'w') as f:
+                    json.dump(infos[i], f, indent=2)
 
-    save_path = os.path.join('./results/env', 'test_env.mp4')
+                agents[i].reset()
+
+    save_path = os.path.join('./results/vecrlenv', 'test.mp4')
     save_images_as_video(images, save_path)
