@@ -41,6 +41,8 @@ class RotationTracker(object):
 
         elif action == FindViewActions.LEFT:
             yaw -= self.inc
+        else:
+            raise ValueError(f"Invalid action called: {action}")
 
         if pitch >= self.pitch_threshold:
             pitch = self.pitch_threshold
