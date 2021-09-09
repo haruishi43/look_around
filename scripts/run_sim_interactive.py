@@ -105,18 +105,18 @@ if __name__ == "__main__":
 
     # params:
     will_write = True
-    is_video = True
+    is_video = False
     initial_rots = {
         "roll": 0,
-        "pitch": 0,
-        "yaw": 0,
+        "pitch": -40,
+        "yaw": 70,
     }
     target_rots = {
         "roll": 0,
-        "pitch": 20,
+        "pitch": -20,
         "yaw": -40,
     }
-    num_steps = 100
+    num_steps = 2000
     dtype = torch.float32
     height = 256
     width = 256
@@ -203,7 +203,7 @@ if __name__ == "__main__":
     if will_write:
         if not is_video:
             for i, frame in enumerate(frames):
-                cv2.imwrite(os.path.join(save_root, f"{img_name}_{i}"), frame)
+                cv2.imwrite(os.path.join(save_root, f"{img_name}_{i}.jpg"), frame)
         else:
             save_images_as_video(frames, os.path.join(save_root, f"{img_name}_video.mp4"))
 
