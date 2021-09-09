@@ -299,6 +299,13 @@ class FindViewEnv(object):
         assert self._episode_over is False, \
             "ERR: Episode is over, call reset before calling step"
 
+        # unwrap actions
+        if isinstance(action, dict):
+            action = action['action']
+
+        if isinstance(action, int):
+            action = FindViewActions.all[action]
+
         # FIXME: usually I would check if action is in the list, but I'm lazy
         # FIXME: add support for integer and other action formats
         if action == FindViewActions.STOP:
@@ -330,6 +337,7 @@ class FindViewEnv(object):
         assert self._episode_over is False, \
             "ERR: Episode is over, call reset before calling step"
 
+        # unwrap actions
         if isinstance(action, dict):
             action = action['action']
 
