@@ -2,7 +2,7 @@
 
 import argparse
 
-from mycv.utils import Config, DictAction
+from LookAround.config import Config, DictAction
 
 from findview_baselines.rl.ppo.ppo_trainer import PPOTrainer
 

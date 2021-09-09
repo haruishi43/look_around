@@ -1,10 +1,9 @@
 #!/usr/bin/env python3
 
-from mycv.utils import Config
-
-from .dynamic_dataset import DynamicDataset
-from .static_dataset import StaticDataset
-from .episode import Episode, PseudoEpisode
+from LookAround.config import Config
+from LookAround.FindView.dataset.dynamic_dataset import DynamicDataset
+from LookAround.FindView.dataset.static_dataset import StaticDataset
+from LookAround.FindView.dataset.episode import Episode, PseudoEpisode
 
 __all__ = [
     "Episode",

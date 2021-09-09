@@ -31,11 +31,11 @@ import warnings
 import attr
 import gym
 from gym import spaces
-from mycv.utils import Config
 import numpy as np
 import torch
 from torch import multiprocessing as mp  # type:ignore
 
+from LookAround.config import Config
 from LookAround.FindView.dataset import Episode, PseudoEpisode, make_dataset
 from LookAround.FindView.env import FindViewEnv
 from LookAround.FindView.rl_env import FindViewRLEnv

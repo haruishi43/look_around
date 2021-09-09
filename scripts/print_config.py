@@ -2,7 +2,7 @@
 
 import argparse
 
-from mycv import Config, DictAction
+from LookAround.config import Config, DictAction
 
 
 def parse_args():

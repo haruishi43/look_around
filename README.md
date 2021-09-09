@@ -8,7 +8,7 @@ Agents looking around to find "something".
 pip install -r requirements.txt
 ```
 
-- Install `mycv`
+- Install `mycv` or `mmcv`
 
 ## Type Checking
 

@@ -28,12 +28,10 @@ import os
 
 from tqdm import tqdm
 
-from mycv.utils.config import Config
-
+from LookAround.config import Config
 from LookAround.FindView.dataset.static_dataset import StaticDataset
 from LookAround.FindView.dataset.dynamic_dataset import DynamicDataset
 from LookAround.FindView.dataset.sampling import DifficultySampler
-
 
 from scripts.helpers import func_timer
 

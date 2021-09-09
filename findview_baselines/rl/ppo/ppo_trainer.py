@@ -6,13 +6,12 @@ import time
 from collections import defaultdict, deque
 from typing import Any, Dict, List, Optional, Tuple, Union
 
-from mycv.utils import Config
 import numpy as np
 import torch
 import tqdm
 from torch.optim.lr_scheduler import LambdaLR
 
-
+from LookAround.config import Config
 from LookAround.core import logger
 from LookAround.core.improc import post_process_for_render_torch
 from LookAround.FindView import ThreadedVecEnv, FindViewEnv, FindViewRLEnv

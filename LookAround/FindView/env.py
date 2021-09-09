@@ -7,7 +7,7 @@ from LookAround.FindView.dataset.episode import Episode
 from typing import Dict, Optional, Union
 
 from gym import spaces
-from mycv.utils import Config
+from LookAround.config import Config
 import numpy as np
 import torch
 

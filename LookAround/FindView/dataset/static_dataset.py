@@ -26,10 +26,10 @@ from typing import (
     TypeVar,
 )
 
-from mycv.utils.config import Config
 import numpy as np
 
-from .episode import Episode
+from LookAround.config import Config
+from LookAround.FindView.dataset.episode import Episode
 
 T = TypeVar("T", bound=Episode)
 

@@ -10,10 +10,10 @@ from LookAround.FindView.dataset.episode import Episode
 from typing import Optional, Union
 
 import gym
-from mycv.utils import Config
 import numpy as np
 import torch
 
+from LookAround.config import Config
 from LookAround.FindView.sim import FindViewSim
 from LookAround.FindView.env import FindViewEnv
 

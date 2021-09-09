@@ -11,10 +11,10 @@ import os
 import random
 from typing import List
 
-from mycv.utils import Config
 import torch
 from tqdm import tqdm
 
+from LookAround.config import Config
 from LookAround.FindView.env import FindViewActions
 from LookAround.FindView.rl_env import make_rl_env
 from LookAround.utils.visualizations import save_images_as_video

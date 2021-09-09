@@ -88,10 +88,10 @@ import pickle
 import random
 from typing import Any, Dict, List
 
-from mycv.utils.config import Config
 import numpy as np
 from tqdm import tqdm
 
+from LookAround.config import Config
 from LookAround.FindView.dataset.sampling import (
     base_condition,
     easy_condition,

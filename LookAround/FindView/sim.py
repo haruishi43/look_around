@@ -169,6 +169,14 @@ class FindViewSim(object):
         else:
             return post_process_for_render(copy_tensor(self.target))
 
+    def render_equi(self) -> np.ndarray:
+        """Return view (refined for cv2.imshow)
+        """
+        if self.is_torch:
+            return post_process_for_render_torch(copy_tensor(self.equi))
+        else:
+            return post_process_for_render(copy_tensor(self.equi))
+
     def __del__(self):
         # NOTE: clean up
         del self.equi

@@ -17,9 +17,9 @@ from typing import List
 
 from tqdm import tqdm
 
-from mycv.utils import Config
 import torch
 
+from LookAround.config import Config
 from LookAround.FindView.dataset import Episode, make_dataset
 from LookAround.FindView.env import FindViewActions
 from LookAround.FindView.sim import FindViewSim
