@@ -266,7 +266,7 @@ def batch_obs(
 
 def get_checkpoint_id(ckpt_path: str) -> Optional[int]:
     """Attempts to extract the ckpt_id from the filename of a checkpoint.
-    Assumes structure of ckpt.ID.path .
+    Assumes structure of ckpt.ID.pth .
     Args:
         ckpt_path: the path to the ckpt file
     Returns:
@@ -330,7 +330,7 @@ def generate_video(
     checkpoint_idx: int,
     metrics: Dict[str, float],
     tb_writer: TensorboardWriter,
-    fps: int = 10,
+    fps: int = 30,
     verbose: bool = True,
 ) -> None:
     """Generate video according to specified information.

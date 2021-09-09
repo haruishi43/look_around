@@ -1,2 +1,4 @@
 gym
 pyequilib
+imageio-ffmpeg
+moviepy

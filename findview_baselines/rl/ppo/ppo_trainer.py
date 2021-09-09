@@ -768,7 +768,7 @@ class PPOTrainer:
                     f"ERR: could not find valid ckpt for {ckpt_path}"
                 ckpt_idx = proposed_index
                 self._test_checkpoint(
-                    self.ckpt_dir,
+                    ckpt_path,
                     writer,
                     checkpoint_index=ckpt_idx,
                 )
@@ -808,25 +808,26 @@ class PPOTrainer:
         ckpt_dict = self.load_checkpoint(checkpoint_path, map_location="cpu")
 
         if self.cfg.test.use_ckpt_cfg:
-            cfg = Config(ckpt_dict["cfg"])
+            loaded_cfg = ckpt_dict["cfg"]
         else:
-            cfg = Config(deepcopy(self.cfg))
+            loaded_cfg = deepcopy(self.cfg)
 
-        ppo_cfg = cfg.ppo
+        self.cfg.policy = loaded_cfg.policy
+        self.cfg.ppo = loaded_cfg.ppo
 
-        if cfg.verbose:
-            logger.info(f"env config: {cfg}")
+        if self.cfg.verbose:
+            logger.info(self.cfg.pretty_text)
 
         self._init_envs(
             split="test",
-            cfg=cfg,
+            cfg=self.cfg,
         )
 
         self.policy_action_space = self.envs.action_spaces[0]
         action_shape = (1,)
         action_type = torch.long
 
-        self._setup_actor_critic_agent(ppo_cfg)
+        self._setup_actor_critic_agent()
 
         self.agent.load_state_dict(ckpt_dict["state_dict"])
         self.actor_critic = self.agent.actor_critic
@@ -843,7 +844,7 @@ class PPOTrainer:
         test_recurrent_hidden_states = torch.zeros(
             self.envs.num_envs,
             self.actor_critic.net.num_recurrent_layers,
-            ppo_cfg.hidden_size,
+            self.cfg.ppo.hidden_size,
             device=self.device,
         )
         prev_actions = torch.zeros(
@@ -935,7 +936,7 @@ class PPOTrainer:
             n_envs = self.envs.num_envs
             for i in range(n_envs):
                 if (
-                    next_episodes[i].scene_id,
+                    next_episodes[i].img_name,
                     next_episodes[i].episode_id,
                 ) in stats_episodes:
                     envs_to_pause.append(i)
@@ -949,10 +950,10 @@ class PPOTrainer:
                         self._extract_scalars_from_info(infos[i])
                     )
                     current_episode_reward[i] = 0
-                    # use scene_id + episode_id as unique id for storing stats
+                    # use img_name + episode_id as unique id for storing stats
                     stats_episodes[
                         (
-                            current_episodes[i].scene_id,
+                            current_episodes[i].img_name,
                             current_episodes[i].episode_id,
                         )
                     ] = episode_stats

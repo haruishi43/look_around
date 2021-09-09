@@ -70,45 +70,48 @@ class FindViewRLEnv(gym.Env):
         return observations
 
     def get_reward_range(self):
+        # NOTE: it's a `gym` thing, don't really need to implement
+        # return (-np.inf, np.inf)
         # FIXME: better range calculation
         return (
             self._max_steps * self._slack_reward - (120 + 180),
             self._min_steps * self._slack_reward + self._success_reward,
         )
 
+    def _episode_over_and_stop(self, measures):
+        reward_success = 0
+        if self._env.episode_over and measures['called_stop']:
+            # l1 = measures['l1_distance_to_target']
+            l2 = measures['l2_distance_to_target']
+
+            # FIXME: is success reward too high???
+            reward_success = self._success_reward - l2
+        return reward_success
+
+    def _same_view_penalty(self, measures):
+        # Penality: Looked in the same spot
+        # value is in the range of (0 ~ 1)
+        num_same_rots = measures['num_same_view']
+        reward_same_view = -num_same_rots
+        return reward_same_view
+
     def get_reward(self, observations):
         # FIXME: make a good reward function here
+        measures = self._env.get_metrics()
+        curr_dist = measures['l1_distance_to_target']
 
         # Penalty: slack reward for every step it takes
         # value is small
         reward_slack = self._slack_reward
 
-        measures = self._env.get_metrics()
-        curr_dist = measures['l1_distance_to_target']
-
         # Reward/Penalty: if the agent is further from the target, penalize
         # value is either 1 or -1
-        reward_dist = self._prev_dist - curr_dist
+        reward_dist = 0.01 * (self._prev_dist - curr_dist)
         self._prev_dist = curr_dist
 
-        # Penality: Looked in the same spot
-        # value is in the range of (0 ~ 1)
-        num_same_rots = measures['num_same_view']
-        reward_same_view = -num_same_rots
+        reward_success = self._episode_over_and_stop(measures)
 
-        # FIXME: add comparison with shortest path?
-        # Reward: when agent hits `stop` and the distance is close
-        # giving high reward to calling stop because I think it will be hard
-        # to teach an agent to stop...
-        reward_success = 0
-        if self._env.episode_over and measures['called_stop']:
-            if curr_dist < 1:
-                reward_success += self._success_reward
-            else:
-                reward_success -= self._success_reward
-
-        # calculate total rewards
-        reward = reward_slack + reward_dist + reward_same_view + reward_success
+        reward = reward_slack + reward_dist + reward_success
 
         return reward
 
