@@ -106,6 +106,7 @@ class MPVecEnv(object):
     _workers: List[Union[mp.Process, Thread]]
     _mp_ctx: BaseContext
     _num_envs: int
+    _auto_reset_done: bool
     _connection_read_fns: List[_ReadWrapper]
     _connection_write_fns: List[_WriteWrapper]
 
@@ -163,12 +164,11 @@ class MPVecEnv(object):
         connection_write_fn: Callable,
         env_fn: Callable,
         env_fn_kwargs: Tuple[Any],
+        auto_reset_done: bool,
         child_pipe: Optional[Connection] = None,
         parent_pipe: Optional[Connection] = None,
     ) -> None:
         """process worker for creating and interacting with the environment."""
-
-        auto_reset_done = True
 
         env = env_fn(**env_fn_kwargs)
         if parent_pipe is not None:
@@ -249,6 +249,7 @@ class MPVecEnv(object):
                     worker_conn.send,
                     make_env_fn,
                     env_kwargs,
+                    self._auto_reset_done,
                     worker_conn,
                     parent_conn,
                 ),
@@ -524,6 +525,8 @@ class ThreadedVecEnv(MPVecEnv):
                     make_env_fn,
                     env_kwargs,
                     self._auto_reset_done,
+                    None,  # child_conn
+                    None,  # parent_conn
                 ),
             )
             self._workers.append(thread)
@@ -547,13 +550,17 @@ class SlowVecEnv(object):
     observation_spaces: List[spaces.Dict]
     action_spaces: List[spaces.Dict]
 
+    _auto_reset_done: bool
+
     def __init__(
         self,
         make_env_fn,
         env_fn_kwargs,
+        auto_reset_done: bool = True,
     ) -> None:
 
         self._num_envs = len(env_fn_kwargs)
+        self._auto_reset_done = auto_reset_done
 
         # initialize envs
         self.envs = [
@@ -607,7 +614,7 @@ class SlowVecEnv(object):
         for env in self.envs:
             observation, reward, done, info = env.step_after()
 
-            if done:
+            if done and self._auto_reset_done:
                 observation = env.reset()
 
             batch_ret.append(

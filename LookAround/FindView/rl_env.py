@@ -78,7 +78,7 @@ class FindViewRLEnv(gym.Env):
             self._min_steps * self._slack_reward + self._success_reward,
         )
 
-    def _episode_over_and_stop(self, measures):
+    def _rewards_from_episode_over_and_stop(self, measures):
         reward_success = 0
         if self._env.episode_over and measures['called_stop']:
             # l1 = measures['l1_distance_to_target']
@@ -106,10 +106,11 @@ class FindViewRLEnv(gym.Env):
 
         # Reward/Penalty: if the agent is further from the target, penalize
         # value is either 1 or -1
-        reward_dist = 0.01 * (self._prev_dist - curr_dist)
+        coef_dist = 0.1  # run_2=0.01, run1=1.0, etc...
+        reward_dist = coef_dist * (self._prev_dist - curr_dist)
         self._prev_dist = curr_dist
 
-        reward_success = self._episode_over_and_stop(measures)
+        reward_success = self._rewards_from_episode_over_and_stop(measures)
 
         reward = reward_slack + reward_dist + reward_success
 

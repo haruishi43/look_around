@@ -1,5 +1,5 @@
 _base_ = ['./findview_baselines/ppo.py']
-run_id = 1
+run_id = 2
 num_envs = 16
 num_updates = 10000
 num_ckpts = 200
