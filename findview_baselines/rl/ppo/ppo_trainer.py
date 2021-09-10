@@ -242,6 +242,7 @@ class PPOTrainer:
             )
         )
 
+        # FIXME: add tests in Policy and PPO agent
         self.actor_critic = FindViewBaselinePolicy(
             observation_space=self.obs_space,
             action_space=self.policy_action_space,
@@ -661,6 +662,7 @@ class PPOTrainer:
         count_checkpoints = 0
         prev_time = 0
 
+        # this is only used when `user_linear_decay` is True
         lr_scheduler = LambdaLR(
             optimizer=self.agent.optimizer,
             lr_lambda=lambda x: 1 - self.percent_done(),

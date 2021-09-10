@@ -85,7 +85,8 @@ class FindViewRLEnv(gym.Env):
             # l2 = measures['l2_distance_to_target']
 
             # FIXME: is success reward too high???
-            reward_success = self._success_reward - l1
+            # reward_success = self._success_reward - l1
+            reward_success = self._success_reward / (l1 - 0.1)
         elif self._env.episode_over:
             # if agent couldn't finish by the limit, penalize them
             reward_success = -self._success_reward
