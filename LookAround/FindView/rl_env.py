@@ -90,8 +90,11 @@ class FindViewRLEnv(gym.Env):
             # l2 = measures['l2_distance_to_target']
 
             # FIXME: is success reward too high???
+            # runs 1, 2
             # reward_success = self._success_reward - l1
+            # run 3:
             # reward_success = self._success_reward / (l1 + 0.1)
+            # run 4
             reward_success = self._success_reward * curve(l1, 10)  # FIXME parametrize
 
         elif self._env.episode_over:
