@@ -10,12 +10,12 @@ policy = dict(
     action_activation="tanh",
 )
 ppo = dict(
-    clip_param=0.1,
+    clip_param=0.2,
     ppo_epoch=4,
     num_mini_batch=1,
     value_loss_coef=0.5,
     entropy_coef=0.01,
-    lr=2.5e-3,
+    lr=2.5e-4,
     eps=1e-5,
     max_grad_norm=0.5,
     num_steps=128,

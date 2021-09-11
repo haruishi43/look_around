@@ -730,7 +730,11 @@ class PPOTrainer:
 
                 self.num_updates_done += 1
                 losses = self._coalesce_post_step(
-                    dict(value_loss=value_loss, action_loss=action_loss),
+                    dict(
+                        value_loss=value_loss,
+                        action_loss=action_loss,
+                        dist_entorpy=dist_entropy,
+                    ),
                     count_steps_delta,
                 )
 

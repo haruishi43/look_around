@@ -78,7 +78,12 @@ class FindViewRLEnv(gym.Env):
             self._min_steps * self._slack_reward + self._success_reward,
         )
 
-    def _rewards_from_episode_over_and_stop(self, measures):
+    def _end_rewards(self, measures):
+
+        def curve(x, threshold_steps):
+            # NOTE: when x/threshold_steps == 1, the output is 0.36787944117144233
+            return (np.e)**(-(x / threshold_steps)**2)
+
         reward_success = 0
         if self._env.episode_over and measures['called_stop']:
             l1 = measures['l1_distance_to_target']
@@ -86,7 +91,9 @@ class FindViewRLEnv(gym.Env):
 
             # FIXME: is success reward too high???
             # reward_success = self._success_reward - l1
-            reward_success = self._success_reward / (l1 - 0.1)
+            # reward_success = self._success_reward / (l1 + 0.1)
+            reward_success = self._success_reward * curve(l1, 10)  # FIXME parametrize
+
         elif self._env.episode_over:
             # if agent couldn't finish by the limit, penalize them
             reward_success = -self._success_reward
@@ -115,7 +122,7 @@ class FindViewRLEnv(gym.Env):
         reward_dist = coef_dist * (self._prev_dist - curr_dist)
         self._prev_dist = curr_dist
 
-        reward_success = self._rewards_from_episode_over_and_stop(measures)
+        reward_success = self._end_rewards(measures)
 
         reward = reward_slack + reward_dist + reward_success
 
