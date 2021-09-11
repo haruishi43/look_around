@@ -86,7 +86,7 @@ def easy_condition(
     targ_yaw,
     fov,
 ):
-    # of course, this isn't accurate, but we just assume height is less than width
+    # NOTE: we just assume height is less than width
     max_l2 = l2_dist(fov / 2, fov / 2)
 
     diff_pitch = np.abs(init_pitch - targ_pitch)

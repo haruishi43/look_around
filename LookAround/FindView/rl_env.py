@@ -80,7 +80,8 @@ class FindViewRLEnv(gym.Env):
 
     def _end_rewards(self, measures):
 
-        def curve(x, threshold_steps):
+        def bell_curve(x, threshold_steps):
+            """Bell curve"""
             # NOTE: when x/threshold_steps == 1, the output is 0.36787944117144233
             return (np.e)**(-(x / threshold_steps)**2)
 
@@ -90,12 +91,12 @@ class FindViewRLEnv(gym.Env):
             # l2 = measures['l2_distance_to_target']
 
             # FIXME: is success reward too high???
-            # runs 1, 2
+            # runs 1, 2:
             # reward_success = self._success_reward - l1
             # run 3:
             # reward_success = self._success_reward / (l1 + 0.1)
-            # run 4
-            reward_success = self._success_reward * curve(l1, 10)  # FIXME parametrize
+            # run 4: threshold = 10
+            reward_success = self._success_reward * bell_curve(l1, 10)  # FIXME parametrize
 
         elif self._env.episode_over:
             # if agent couldn't finish by the limit, penalize them
