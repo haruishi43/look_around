@@ -302,7 +302,9 @@ class PPOTrainer:
         )
 
     def save_checkpoint(
-        self, file_name: str, extra_state: Optional[Dict] = None
+        self, file_name: str,
+        save_state: Dict,
+        extra_state: Optional[Dict] = None
     ) -> None:
         """Save checkpoint with specified name.
         Args:
@@ -310,15 +312,12 @@ class PPOTrainer:
         Returns:
             None
         """
-        checkpoint = {
-            "state_dict": self.agent.state_dict(),
-            "cfg": self.cfg,
-        }
+
         if extra_state is not None:
-            checkpoint["extra_state"] = extra_state
+            save_state["extra_state"] = extra_state
 
         torch.save(
-            checkpoint, os.path.join(self.ckpt_dir, file_name)
+            save_state, os.path.join(self.ckpt_dir, file_name)
         )
 
     def load_checkpoint(self, checkpoint_path: str, *args, **kwargs) -> Dict:
@@ -703,30 +702,53 @@ class PPOTrainer:
         if self.cfg.train.resume:
             ckpt_path = get_last_checkpoint_folder(self.ckpt_dir)
             ckpt_dict = self.load_checkpoint(ckpt_path, map_location="cpu")
-            self.agent.load_state_dict(ckpt_dict["state_dict"])
-            self.agent.optimizer.load_state_dict(ckpt_dict["optim_state"])
-            lr_scheduler.load_state_dict(ckpt_dict["lr_sched_state"])
 
-            # FIXME: change to `extra_states`
-            requeue_stats = ckpt_dict["requeue_stats"]
-            self.env_time = requeue_stats["env_time"]
-            self.pth_time = requeue_stats["pth_time"]
-            self.num_steps_done = requeue_stats["num_steps_done"]
-            self.num_updates_done = requeue_stats["num_updates_done"]
-            self._last_checkpoint_percent = requeue_stats[
-                "_last_checkpoint_percent"
-            ]
-            count_checkpoints = requeue_stats["count_checkpoints"]
-            prev_time = requeue_stats["prev_time"]
+            # load model state
+            state_dict = ckpt_dict.get('state_dict')
+            assert state_dict is not None, f"ERR: {ckpt_path} doesn't have `state_dict`"
+            self.agent.load_state_dict(state_dict)
 
-            self.running_episode_stats = requeue_stats["running_episode_stats"]
-            self.window_episode_stats.update(
-                requeue_stats["window_episode_stats"]
-            )
+            # FIXME: old code didn't save optim_state and lr_sched_state
+            optim_state = ckpt_dict.get('optim_state')
+            if optim_state is None:
+                logger.warn(f'{ckpt_path} has no `optim_state`')
+            else:
+                self.agent.optimizer.load_state_dict(optim_state)
+
+            lr_sched_state = ckpt_dict.get('lr_sched_state')
+            if lr_sched_state is None:
+                logger.warn(f'{ckpt_path} has no `lr_sched_state`')
+            else:
+                lr_scheduler.load_state_dict(lr_sched_state)
+
+            extra_state = ckpt_dict.get("extra_state")
+            if extra_state is None:
+                logger.warn(f'{ckpt_path} has no `extra_state`; may impact stats')
+            else:
+                # FIXME: change to `extra_states`
+                self.env_time = extra_state["env_time"]
+                self.pth_time = extra_state["pth_time"]
+                self.num_steps_done = extra_state["num_steps_done"]
+                self.num_updates_done = extra_state["num_updates_done"]
+                self._last_checkpoint_percent = extra_state[
+                    "_last_checkpoint_percent"
+                ]
+                count_checkpoints = extra_state["count_checkpoints"]
+                prev_time = extra_state["prev_time"]
+
+                self.running_episode_stats = extra_state["running_episode_stats"]
+                window_episode_stats = extra_state.get('window_episode_stats')
+                if window_episode_stats is None:
+                    logger.warn(f'{ckpt_path} has no `window_episode_stats`')
+                else:
+                    self.window_episode_stats.update(
+                        extra_state["window_episode_stats"]
+                    )
+
+            logger.info(f"resuming from {ckpt_path} starting with {self.num_steps_done} steps")
 
         with TensorboardWriter(self.tb_dir, flush_secs=self.flush_secs) as writer:
             while not self.is_done():
-
                 if ppo_cfg.use_linear_clip_decay:
                     self.agent.clip_param = ppo_cfg.clip_param * (
                         1 - self.percent_done()
@@ -775,12 +797,27 @@ class PPOTrainer:
 
                 # checkpoint model
                 if self.should_checkpoint():
+                    extra_state = dict(
+                        env_time=self.env_time,
+                        pth_time=self.pth_time,
+                        count_checkpoints=count_checkpoints,
+                        num_steps_done=self.num_steps_done,
+                        num_updates_done=self.num_updates_done,
+                        _last_checkpoint_percent=self._last_checkpoint_percent,
+                        prev_time=(time.time() - self.t_start) + prev_time,
+                        running_episode_stats=self.running_episode_stats,
+                        window_episode_stats=dict(self.window_episode_stats),
+                    )
+                    state = dict(
+                        state_dict=self.agent.state_dict(),
+                        optim_state=self.agent.optimizer.state_dict(),
+                        lr_sched_state=lr_scheduler.state_dict(),
+                        cfg=self.cfg,
+                    )
                     self.save_checkpoint(
                         f"ckpt.{count_checkpoints}.pth",
-                        dict(
-                            step=self.num_steps_done,
-                            wall_time=(time.time() - self.t_start) + prev_time,
-                        ),
+                        state,
+                        extra_state=extra_state,
                     )
                     count_checkpoints += 1
 
