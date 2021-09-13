@@ -13,7 +13,7 @@ video_option = ["disk"]
 ckpt_dir = "{results_root}/checkpoints/run_{run_id}"
 video_dir = "{results_root}/videos/run_{run_id}"
 tb_dir = "{tb_root}/run_{run_id}"
-log_file = "{log_root}/train_run_{run_id}.log"
+log_file = "{log_root}/{split}_run_{run_id}.log"
 verbose = True
 train = dict(
     device=0,
@@ -30,5 +30,5 @@ test = dict(
     is_torch=True,
     ckpt_path="",
     use_ckpt_cfg=True,
-    episode_count=10,
+    episode_count=20,
 )

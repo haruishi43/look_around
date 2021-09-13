@@ -207,11 +207,11 @@ class DifficultySampler(Sampler):
         _count = 0  # FIXME: how to deal with criteria that's REALLY hard?
         while True:
             # sample rotations
-            init_pitch = int(np.random.choice(self.pitches, p=self.prob))
-            init_yaw = int(np.random.choice(self.yaws))
+            init_pitch = int(self.rst.choice(self.pitches, p=self.prob))
+            init_yaw = int(self.rst.choice(self.yaws))
 
-            targ_pitch = int(np.random.choice(self.pitches, p=self.prob))
-            targ_yaw = int(np.random.choice(self.yaws))
+            targ_pitch = int(self.rst.choice(self.pitches, p=self.prob))
+            targ_yaw = int(self.rst.choice(self.yaws))
 
             if (
                 self.base_cond(init_pitch, init_yaw, targ_pitch, targ_yaw)
@@ -245,9 +245,9 @@ class DifficultySampler(Sampler):
 
     def get_difficulty(self):
         if self.difficulty == 'medium':
-            return np.random.choice(('easy', 'medium'))
+            return self.rst.choice(('easy', 'medium'))
         elif self.difficulty == 'hard':
-            return np.random.choice(('easy', 'medium', 'hard'))
+            return self.rst.choice(('easy', 'medium', 'hard'))
         else:
             return 'easy'
 
@@ -256,4 +256,4 @@ class DifficultySampler(Sampler):
         self.difficulty = difficulty
 
     def seed(self, seed: int) -> None:
-        np.random.seed(seed)
+        self.rst = np.random.RandomState(seed)

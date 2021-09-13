@@ -365,8 +365,9 @@ class FindViewEnv(object):
         return obs
 
     def seed(self, seed: int) -> None:
-        random.seed(seed)
-        np.random.seed(seed)
+        # multi-thread safe
+        self.rst = random.Random(seed)
+        self.np_rst = np.random.RandomState(seed)
 
     def render(self):
         pers = self._sim.render_pers()

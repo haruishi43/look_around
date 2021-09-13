@@ -8,7 +8,7 @@ episode_generator_kwargs = dict(
 )
 episode_iterator_kwargs = dict(
     cycle=False,
-    shuffle=False,
+    shuffle=True,
     num_episode_sample=-1,
 )
 num_envs = 8

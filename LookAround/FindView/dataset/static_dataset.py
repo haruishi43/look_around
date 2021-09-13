@@ -130,17 +130,17 @@ class StaticIterator(Iterator):
         cycle: bool = False,
         shuffle: bool = False,
         num_episode_sample: int = -1,
-        seed: int = None,
+        seed: int = 0,
     ) -> None:
 
-        if seed:
-            # FIXME: is this necessary?
-            random.seed(seed)
-            np.random.seed(seed)
+        # FIXME: is this necessary?
+        # making it multi-thread safe
+        self.rst = random.Random(seed)
+        self.np_rst = np.random.RandomState(seed)
 
         # sample episodes
         if num_episode_sample >= 0:
-            episodes = np.random.choice(
+            episodes = self.np_rst.choice(
                 episodes, num_episode_sample, replace=False
             )
 
@@ -153,7 +153,7 @@ class StaticIterator(Iterator):
 
         # shuffle
         if self.shuffle:
-            random.shuffle(episodes)
+            self.rst.shuffle(episodes)
 
         # set iterater
         self.episodes = episodes
@@ -177,7 +177,7 @@ class StaticIterator(Iterator):
 
             # shuffle
             if self.shuffle:
-                random.shuffle(episodes)
+                self.rst.shuffle(episodes)
 
             self._iterator = iter(episodes)
             next_episode = next(self._iterator)

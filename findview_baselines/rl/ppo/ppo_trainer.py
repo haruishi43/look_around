@@ -18,7 +18,7 @@ from LookAround.FindView import ThreadedVecEnv, FindViewEnv, FindViewRLEnv
 from LookAround.utils.visualizations import renders_to_image
 
 # FIXME: move this to findview_baselines?
-from LookAround.FindView.vec_env import construct_envs
+from LookAround.FindView.vec_env import construct_envs, construct_test_envs
 
 from findview_baselines.common.rollout_storage import RolloutStorage
 from findview_baselines.common.tensorboard_utils import TensorboardWriter
@@ -235,12 +235,10 @@ class PPOTrainer:
             None
         """
 
-        logger.add_filehandler(
-            self.cfg.log_file.format(
-                log_root=self.cfg.log_root,
-                run_id=self.cfg.run_id,
-            )
-        )
+        # random.seed(0)
+        torch.random.manual_seed(self.cfg.seed)
+        if torch.cuda.is_available():
+            torch.backends.cudnn.deterministic = True  # type: ignore
 
         # FIXME: add tests in Policy and PPO agent
         self.actor_critic = FindViewBaselinePolicy(
@@ -271,6 +269,32 @@ class PPOTrainer:
             env_cls=FindViewRLEnv,
             cfg=cfg,
             split=split,
+            is_torch=split_cfg.is_torch,
+            dtype=dtype,
+            device=torch.device(split_cfg.device),
+            vec_type="threaded",
+        )
+
+    def _init_test_envs(
+        self,
+        split: str,
+        difficulties: List[str] = ["easy"],
+        cfg: Optional[Config] = None,
+    ) -> None:
+        if cfg is None:
+            cfg = Config(deepcopy(self.cfg))
+        assert split == "test"  # FIXME: for now...
+        split_cfg = getattr(cfg, split)
+        assert split_cfg is not None
+        if split_cfg.is_torch:
+            dtype = torch.float32
+        else:
+            dtype = np.float32
+        self.envs = construct_test_envs(
+            env_cls=FindViewRLEnv,
+            cfg=cfg,
+            split=split,
+            difficulties=difficulties,
             is_torch=split_cfg.is_torch,
             dtype=dtype,
             device=torch.device(split_cfg.device),
@@ -604,6 +628,14 @@ class PPOTrainer:
             None
         """
 
+        logger.add_filehandler(
+            self.cfg.log_file.format(
+                split="train",
+                log_root=self.cfg.log_root,
+                run_id=self.cfg.run_id,
+            )
+        )
+
         self._init_envs(split="train")
 
         self.policy_action_space = self.envs.action_spaces[0]
@@ -675,6 +707,7 @@ class PPOTrainer:
             self.agent.optimizer.load_state_dict(ckpt_dict["optim_state"])
             lr_scheduler.load_state_dict(ckpt_dict["lr_sched_state"])
 
+            # FIXME: change to `extra_states`
             requeue_stats = ckpt_dict["requeue_stats"]
             self.env_time = requeue_stats["env_time"]
             self.pth_time = requeue_stats["pth_time"]
@@ -759,7 +792,17 @@ class PPOTrainer:
         or BaseILTrainer
         Returns:
             None
+
+        NOTE: make sure that `num_envs=1` inorder to get the most consistent results
         """
+
+        logger.add_filehandler(
+            self.cfg.log_file.format(
+                split="test",
+                log_root=self.cfg.log_root,
+                run_id=self.cfg.run_id,
+            )
+        )
 
         self.device = torch.device(self.cfg.test.device)
 
@@ -782,12 +825,11 @@ class PPOTrainer:
                 # evaluate multiple checkpoints in order
                 prev_ckpt_ind = -1
                 while True:
-                    current_ckpt = None
-                    while current_ckpt is None:
-                        current_ckpt = poll_checkpoint_folder(
-                            self.ckpt_dir, prev_ckpt_ind
-                        )
-                        time.sleep(2)  # sleep for 2 secs before polling again
+                    current_ckpt = poll_checkpoint_folder(
+                        self.ckpt_dir, prev_ckpt_ind
+                    )
+                    if current_ckpt is None:
+                        break
                     logger.info(f"=======current_ckpt: {current_ckpt}=======")
                     prev_ckpt_ind += 1
                     self._test_checkpoint(
@@ -821,11 +863,13 @@ class PPOTrainer:
         self.cfg.policy = loaded_cfg.policy
         self.cfg.ppo = loaded_cfg.ppo
 
-        if self.cfg.verbose:
-            logger.info(self.cfg.pretty_text)
+        # if self.cfg.verbose:
+        #     logger.info(self.cfg.pretty_text)
 
-        self._init_envs(
+        # initialize the envs
+        self._init_test_envs(
             split="test",
+            difficulties=["easy"],
             cfg=self.cfg,
         )
 
@@ -873,7 +917,21 @@ class PPOTrainer:
             [] for _ in range(self.envs.num_envs)
         ]  # type: List[List[np.ndarray]]
 
+        # Add initial frames
+        if len(self.cfg.video_option) > 0:
+            for i in range(self.envs.num_envs):
+                frame = renders_to_image(
+                    {
+                        k: post_process_for_render_torch(v[i], to_bgr=False)
+                        for k, v in batch.items()
+                    },
+                )
+                rgb_frames[i].append(frame)
+
+        # get the number of episodes to test
         number_of_eval_episodes = self.cfg.test.episode_count
+
+        # some checks for `number_of_eval_episodes`
         if number_of_eval_episodes == -1:
             number_of_eval_episodes = sum(self.envs.number_of_episodes)
         else:
@@ -950,6 +1008,7 @@ class PPOTrainer:
                 # episode ended
                 if not not_done_masks[i].item():
                     pbar.update()
+
                     episode_stats = {}
                     episode_stats["reward"] = current_episode_reward[i].item()
                     episode_stats.update(
@@ -975,17 +1034,23 @@ class PPOTrainer:
                             tb_writer=writer,
                         )
 
-                        rgb_frames[i] = []
+                        # add first frame
+                        rgb_frames[i] = [
+                            renders_to_image(
+                                {
+                                    k: post_process_for_render_torch(v[i], to_bgr=False)
+                                    for k, v in batch.items()
+                                },
+                            )
+                        ]
 
                 # episode continues
                 elif len(self.cfg.video_option) > 0:
-                    # TODO move normalization / channel changing out of the policy and undo it here
-                    # FIXME: change to outputs of render
                     frame = renders_to_image(
                         {
-                            k: post_process_for_render_torch(v[i]) for k, v in batch.items()
+                            k: post_process_for_render_torch(v[i], to_bgr=False)
+                            for k, v in batch.items()
                         },
-                        infos[i],
                     )
                     rgb_frames[i].append(frame)
 
@@ -1009,6 +1074,8 @@ class PPOTrainer:
                 rgb_frames,
             )
 
+        pbar.update()  # debug
+
         num_episodes = len(stats_episodes)
         aggregated_stats = {}
         for stat_key in next(iter(stats_episodes.values())).keys():
@@ -1025,13 +1092,13 @@ class PPOTrainer:
             step_id = ckpt_dict["extra_state"]["step"]
 
         writer.add_scalars(
-            "eval_reward",
+            "test_reward",
             {"average reward": aggregated_stats["reward"]},
             step_id,
         )
 
         metrics = {k: v for k, v in aggregated_stats.items() if k != "reward"}
         if len(metrics) > 0:
-            writer.add_scalars("eval_metrics", metrics, step_id)
+            writer.add_scalars("test_metrics", metrics, step_id)
 
         self.envs.close()

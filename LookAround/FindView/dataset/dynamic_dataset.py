@@ -124,13 +124,12 @@ class DynamicGenerator(Iterator):
         sampler: Sampler,
         shuffle: bool = True,
         num_repeat_pseudo: int = -1,
-        seed: int = None,
+        seed: int = 0,
     ) -> None:
 
-        if seed:
-            # FIXME: is this necessary?
-            random.seed(seed)
-            np.random.seed(seed)
+        # FIXME: is this necessary?
+        self.rst = random.Random(seed)
+        self.np_rst = np.random.RandomState(seed)
 
         if not isinstance(pseudos, list):
             pseudos = list(pseudos)
@@ -141,7 +140,7 @@ class DynamicGenerator(Iterator):
 
         # shuffle
         if self.shuffle:
-            random.shuffle(pseudos)
+            self.rst.shuffle(pseudos)
 
         self.pseudos = pseudos
         self._pseudo_iterator = iter(self.pseudos)
@@ -166,7 +165,7 @@ class DynamicGenerator(Iterator):
             if pseudo is None:
                 pseudos = deepcopy(self.pseudos)
                 if self.shuffle:
-                    random.shuffle(pseudos)
+                    self.rst.shuffle(pseudos)
                 self._pseudo_iterator = iter(pseudos)
                 pseudo = next(self._pseudo_iterator)
 

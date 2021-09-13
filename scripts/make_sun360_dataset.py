@@ -102,7 +102,8 @@ from LookAround.FindView.dataset.sampling import (
 )
 
 
-def seed(n: int):
+def seed(n: int = 0):
+    # Seed should be set to 0
     random.seed(n)
     np.random.seed(n)
 
@@ -344,7 +345,7 @@ if __name__ == "__main__":
     split_ratios = cfg.split_ratios
 
     # check params
-    seed(cfg.seed)  # set seed
+    seed(cfg.seed)  # set seed -> should be 0
     assert sum(split_ratios) == 1.0
     assert os.path.exists(sun360_root)
     assert os.path.exists(dataset_root)

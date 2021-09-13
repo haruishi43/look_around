@@ -31,6 +31,8 @@ from LookAround.utils.visualizations import images_to_video
 from findview_baselines.common.tensor_dict import DictTree, TensorDict
 from findview_baselines.common.tensorboard_utils import TensorboardWriter
 
+from LookAround.core import logger
+
 
 class CustomFixedCategorical(torch.distributions.Categorical):  # type: ignore
     def sample(
@@ -331,7 +333,7 @@ def generate_video(
     metrics: Dict[str, float],
     tb_writer: TensorboardWriter,
     fps: int = 30,
-    verbose: bool = True,
+    verbose: bool = False,
 ) -> None:
     """Generate video according to specified information.
     Args:
@@ -348,15 +350,20 @@ def generate_video(
         None
     """
     if len(images) < 1:
+        logger.warn("Skipping since there are no frames")
         return
 
-    metric_strs = []
-    for k, v in metrics.items():
-        metric_strs.append(f"{k}={v:.2f}")
+    # metric_strs = []
+    # for k, v in metrics.items():
+    #     metric_strs.append(f"{k}={v:.2f}")
 
-    video_name = f"episode={episode_id}-ckpt={checkpoint_idx}-" + "-".join(
-        metric_strs
-    )
+    # video_name = f"episode={episode_id}-ckpt={checkpoint_idx}-" + "-".join(
+    #     metric_strs
+    # )
+
+    # NOTE: until I need some metrics in the naming, I'm just leaving it this
+    video_name = f"episode-{episode_id}_ckpt-{checkpoint_idx}"
+
     if "disk" in video_option:
         assert video_dir is not None
         images_to_video(images, video_dir, video_name, verbose=verbose)

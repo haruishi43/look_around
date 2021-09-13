@@ -23,21 +23,23 @@ to_PIL = transforms.Compose(
 )
 
 
-def post_process_for_render(img: np.ndarray) -> np.ndarray:
+def post_process_for_render(img: np.ndarray, to_bgr: bool = True) -> np.ndarray:
     img = np.transpose(img, (1, 2, 0))
     img *= 255
     img = img.astype(np.uint8)
-    img = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
+    if to_bgr:
+        img = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
     return img
 
 
-def post_process_for_render_torch(img: torch.Tensor) -> np.ndarray:
+def post_process_for_render_torch(img: torch.Tensor, to_bgr: bool = True) -> np.ndarray:
     img = img.to('cpu')
     img *= 255
     img = img.type(torch.uint8)
     img = img.numpy()
     img = img.transpose((1, 2, 0))
-    img = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
+    if to_bgr:
+        img = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
     return img
 
 

@@ -122,8 +122,8 @@ def images_to_video(
         quality=quality,
         **kwargs,
     )
-    logger.info(f"Video created: {os.path.join(output_dir, video_name)}")
     if verbose:
+        logger.info(f"Video created: {os.path.join(output_dir, video_name)}")
         images_iter = tqdm.tqdm(images)
     else:
         images_iter = images
@@ -219,7 +219,7 @@ def tile_images(images: List[np.ndarray]) -> np.ndarray:
     return out_image
 
 
-def renders_to_image(render: Dict, info: Dict) -> np.ndarray:
+def renders_to_image(render: Dict, info: Dict = None) -> np.ndarray:
     """Generate image of single frame from render and info
     returned from a single environment step().
     Args:
