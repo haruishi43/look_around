@@ -79,7 +79,7 @@ class FindViewEnv(object):
                 **iter_options,
             )
             self.number_of_episodes = None
-        else:
+        else:  # test, val, etc... (test_small, val_small, etc...)
             self._sampler = None
             iter_options = self._cfg.episode_iterator_kwargs
             iter_options['seed'] = self._cfg.seed

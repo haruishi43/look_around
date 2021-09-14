@@ -1,9 +1,12 @@
-_base_ = ['./findview_baselines/ppo.py']
-run_id = 100
-num_envs = 2
-num_updates = 100
+_base_ = [
+    './findview_baselines/ppo.py',
+    './rl_trainer.py',
+]
+run_id = 4
+num_envs = 1
+num_updates = 1
 num_ckpts = -1
-ckpt_interval = 50
+ckpt_interval = 2
 total_num_steps = -1.0
 log_interval = 10
 results_root = "./results"
@@ -18,7 +21,7 @@ verbose = True
 train = dict(
     device=0,
     is_torch=True,
-    resume=False,
+    resume=True,
 )
 val = dict(
     device=0,

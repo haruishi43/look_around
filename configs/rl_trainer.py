@@ -1,14 +1,16 @@
-_base_ = [
-    './findview_baselines/ppo.py',
-    './rl_trainer.py',
-]
-run_id = 3
-num_envs = 16
-num_updates = 30000
+num_updates = 10000
 num_ckpts = -1
 ckpt_interval = 500
 total_num_steps = -1.0
 log_interval = 10
+results_root = "./results"
+log_root = "./logs"
+tb_root = "./tb"
+video_option = ["disk"]
+ckpt_dir = "{results_root}/checkpoints/run_{run_id}"
+video_dir = "{results_root}/videos/run_{run_id}"
+tb_dir = "{tb_root}/run_{run_id}"
+log_file = "{log_root}/{split}_run_{run_id}.log"
 verbose = True
 train = dict(
     device=0,
