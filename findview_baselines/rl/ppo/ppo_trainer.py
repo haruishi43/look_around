@@ -592,6 +592,7 @@ class PPOTrainer:
 
         # log stats
         if self.num_updates_done % self.cfg.log_interval == 0:
+            # FIXME: fps log increases every step
             logger.info(
                 "update: {}\tfps: {:.3f}\t".format(
                     self.num_updates_done,

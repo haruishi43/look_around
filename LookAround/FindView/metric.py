@@ -16,13 +16,9 @@ def count_same_rots(history):
     num_repeated = sum([v for v in occurrences.values() if v > 1])
     total = sum(occurrences.values())
     if total == 0:
-        return {
-            "num_same_view": 0.,
-        }
+        return 0.
     else:
-        return {
-            "num_same_view": num_repeated / total,
-        }
+        return num_repeated / total
 
 
 def distance_to_target(
@@ -30,10 +26,10 @@ def distance_to_target(
     current_rotation,
 ) -> dict:
 
-    # FIXME: calculate something...
     l1_distance_to_target = l1_distance(current_rotation, target_rotation)
     l2_distance_to_target = l2_distance(current_rotation, target_rotation)
 
+    # FIXME: ugly
     return {
         "l1_distance_to_target": l1_distance_to_target,
         "l2_distance_to_target": l2_distance_to_target,
@@ -68,3 +64,10 @@ def l2_distance(r1, r2):
     dp = np.abs(r1p - r2p)
     dy = find_minimum(np.abs(r1y - r2y))
     return float(np.sqrt(dp**2 + dy**2))
+
+
+def path_efficiency(
+    shortest_path,
+    steps,
+) -> float:
+    return float(np.abs(shortest_path - steps) / shortest_path)

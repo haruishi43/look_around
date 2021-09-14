@@ -3,7 +3,7 @@
 import argparse
 import os
 import random
-from typing import Dict, Optional
+from typing import Any, Dict, Optional
 
 import torch
 from gym.spaces import Box
@@ -20,6 +20,7 @@ class PPOAgent(Agent):
     def __init__(
         self,
         cfg: Config,
+        ckpt_filename: str = None,
     ) -> None:
         observation_space = SpaceDict(
             {
@@ -73,10 +74,19 @@ class PPOAgent(Agent):
             results_root=cfg.results_root,
             run_id=cfg.run_id,
         )
-        ckpt_path = os.path.join(
-            ckpt_path,
-            test_cfg.ckpt_path,
-        )
+
+        if ckpt_filename is None:
+            print("warning: using ckpt from config file")
+            ckpt_path = os.path.join(
+                ckpt_path,
+                test_cfg.ckpt_path,
+            )
+        else:
+            ckpt_path = os.path.join(
+                ckpt_path,
+                ckpt_filename,
+            )
+            print(f"loading from {ckpt_path}")
 
         assert os.path.exists(ckpt_path), \
             f"{ckpt_path} doesn't exist!"
@@ -109,7 +119,14 @@ class PPOAgent(Agent):
             1, 1, dtype=torch.long, device=self.device
         )
 
-    def act(self, observations) -> Dict[str, int]:
+    def act(self, observations: Dict[str, Any]) -> Dict[str, int]:
+
+        # NOTE: need to extend observation to 4 dims if not 4 dim
+        for name, value in observations.items():
+            if torch.is_tensor(value):
+                if len(value.shape) == 3:
+                    observations[name] = value.unsqueeze(0)
+
         with torch.no_grad():
             (
                 _,
@@ -142,14 +159,21 @@ def main():
         required=True,
     )
     parser.add_argument(
+        "--ckpt-fn",
+        type=str,
+    )
+    parser.add_argument(
         "--num-episodes",
         type=int,
         default=5,
     )
     args = parser.parse_args()
     cfg = Config.fromfile(args.config)
-    agent = PPOAgent(cfg)
-    benchmark = FindViewBenchmark(cfg=cfg)
+    agent = PPOAgent(cfg, ckpt_filename=args.ckpt_fn)
+    benchmark = FindViewBenchmark(
+        cfg=cfg,
+        device=agent.device,
+    )
     metrics = benchmark.evaluate(agent, num_episodes=args.num_episodes)
 
     for k, v in metrics.items():

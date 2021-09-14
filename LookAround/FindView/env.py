@@ -4,7 +4,7 @@ import random
 import time
 
 from LookAround.FindView.dataset.episode import Episode
-from typing import Dict, Optional, Union
+from typing import Dict, List, Optional, Union
 
 from gym import spaces
 from LookAround.config import Config
@@ -14,6 +14,7 @@ import torch
 from LookAround.FindView.metric import (
     count_same_rots,
     distance_to_target,
+    path_efficiency,
 )
 
 from LookAround.core.spaces import ActionSpace, EmptySpace
@@ -43,6 +44,8 @@ class FindViewEnv(object):
     _episode_start_time: Optional[float]
     _episode_over: bool
 
+    _random_generator: bool
+
     def __init__(
         self,
         cfg: Config,
@@ -61,7 +64,9 @@ class FindViewEnv(object):
             split=split,
             filter_fn=filter_fn,
         )
+        self._random_generator = False
         if split == 'train':
+            self._random_generator = True
             self._sampler = DifficultySampler(
                 difficulty='easy',  # difficulty...
                 fov=self._cfg.fov,
@@ -172,6 +177,11 @@ class FindViewEnv(object):
         return self._current_episode
 
     @property
+    def episodes(self) -> List[Episode]:
+        assert not self._random_generator
+        return self._dataset.episodes
+
+    @property
     def sim(self) -> FindViewSim:
         return self._sim
 
@@ -219,18 +229,39 @@ class FindViewEnv(object):
         #     "rotation_history": self._rot_tracker.history,
         # }
 
-        # NOTE: do some metric calculations
+        # number of times the agent looked in the same direction (normalized)
         same_rots = count_same_rots(self._rot_tracker.history)
+        same_rots_dict = dict(
+            num_same_view=same_rots,
+        )
+
+        # Distances to target
         distances = distance_to_target(
             target_rotation=self._current_episode.target_rotation,
             current_rotation=self._rot_tracker.rot,
+        )
+        distances_dict = dict(
+            l1_distance_to_target=distances['l1_distance_to_target'],
+            l2_distance_to_target=distances['l2_distance_to_target'],
+        )
+
+        # FIXME: might need to edit this metrics...
+        # if efficiency is close to zero, it means that the agent is stopping
+        # around the point of `steps_for_shortest_path` (doesn't mean the stopped place is close)
+        # if efficiency is large, it means that the agent is looking around too much or struggling
+        efficiency_dict = dict(
+            efficiency=path_efficiency(
+                shortest_path=info['steps_for_shortest_path'],
+                steps=info['elapsed_steps'],
+            ),
         )
 
         return {
             **info,
             # **history,
-            **distances,
-            **same_rots,
+            **distances_dict,
+            **same_rots_dict,
+            **efficiency_dict,
         }
 
     def _past_limit(self) -> bool:
@@ -381,6 +412,8 @@ class FindViewEnv(object):
         # FIXME: need to implement for iterators
         assert self._sampler is not None, \
             "Sampler is None, maybe you're using an iterator?"
+        assert self._random_generator, \
+            "Not using a random generator"
         self._sampler.set_difficulty(difficulty=difficulty)
 
     def close(self) -> None:

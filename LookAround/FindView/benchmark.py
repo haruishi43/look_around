@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 from collections import defaultdict
+from functools import partial
 from typing import Dict, List, Optional
 
 import torch
@@ -24,17 +25,20 @@ class FindViewBenchmark:
     def __init__(
         self,
         cfg: Config,
+        device: torch.device = torch.device('cpu'),
     ) -> None:
 
-        # FIXME: change config?
-        # FIXME: add filter?
+        # FIXME: change how we pass arguments
+        # - for rl agents, we mostly want gpu and torch.float32 environment
+        # - for baselines, we might want numpy environment
+        # - we will also want to change how we set the filter
         self._env = FindViewEnv(
             cfg=cfg,
             split='test',
-            filter_fn=None,
+            filter_fn=partial(filter_by_difficulty, difficulties=['easy']),
             is_torch=True,
             dtype=torch.float32,
-            device=torch.device('cpu'),
+            device=device,
         )
 
         # FIXME: since the evaluation is really long, maybe add a checkpoint?
@@ -58,7 +62,10 @@ class FindViewBenchmark:
 
         assert num_episodes > 0, "num_episodes should be greater than 0"
 
-        agg_metrics: Dict = defaultdict(float)
+        # NOTE: just save everything in a list first...
+        # calculate benchmark results from this
+        # also save the list results to find good qualitative test samples
+        episode_data = []
 
         count_episodes = 0
         while count_episodes < num_episodes:
@@ -70,15 +77,26 @@ class FindViewBenchmark:
                 observations = self._env.step(action)
 
             # FIXME: change the metrics to get
+            # we can't use `string` metrics
             metrics = self._env.get_metrics()
-
-            for m, v in metrics.items():
-                if isinstance(v, dict):
-                    for sub_m, sub_v in v.items():
-                        agg_metrics[m + "/" + str(sub_m)] += sub_v
-                else:
-                    agg_metrics[m] += v
+            episode_data.append(metrics)
             count_episodes += 1
+
+        # FIXME: save results to file? pkl, csv, etc...
+
+        # FIXME: calculate average metrics
+        # select metrics to calculate
+        metric_names = (
+            "l1_distance_to_target",
+            "l2_distance_to_target",
+            "num_same_view",
+            "efficiency",
+        )
+
+        agg_metrics = defaultdict(float)
+        for n in metric_names:
+            for m in episode_data:
+                agg_metrics[n] += m[n]
 
         avg_metrics = {k: v / count_episodes for k, v in agg_metrics.items()}
 
