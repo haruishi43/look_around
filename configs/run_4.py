@@ -4,7 +4,7 @@ _base_ = [
 ]
 run_id = 4
 num_envs = 16
-num_updates = 30000
+num_updates = 50000
 num_ckpts = -1
 ckpt_interval = 500
 total_num_steps = -1.0
