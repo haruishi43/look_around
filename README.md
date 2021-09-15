@@ -52,10 +52,12 @@ Temporary test using `trainer` (make sure that `num_envs=1`):
 CUDA_VISIBLE_DEVICES=0, python findview_baselines/run_ppo.py --config configs/run_3.py --mode test --options num_envs=1
 ```
 
-Test using the benchmark code (WIP):
+### Benchmarking
+
+Basic benchmark code for `ppo`:
 
 ```Bash
-
+CUDA_VISIBLE_DEVICES=0, python findview_baselines/agents/ppo.py --config configs/test_4.py --ckpt-fn ckpt.25.pth
 ```
 
 

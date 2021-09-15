@@ -1,14 +1,9 @@
 _base_ = [
-    './findview_baselines/ppo.py',
-    './rl_trainer.py',
+    './_base_/datasets/sun360_alpha_indoor.py',
+    './_base_/findview_sim.py',
+    './findview_agents/ppo.py',
 ]
 run_id = 4
-num_envs = 1
-num_updates = 1
-num_ckpts = -1
-ckpt_interval = 2
-total_num_steps = -1.0
-log_interval = 10
 results_root = "./results"
 log_root = "./logs"
 tb_root = "./tb"
@@ -18,16 +13,6 @@ video_dir = "{results_root}/videos/run_{run_id}"
 tb_dir = "{tb_root}/run_{run_id}"
 log_file = "{log_root}/{split}_run_{run_id}.log"
 verbose = True
-train = dict(
-    device=0,
-    is_torch=True,
-    resume=True,
-)
-val = dict(
-    device=0,
-    is_torch=True,
-    episode_count=-1,
-)
 test = dict(
     device=0,
     is_torch=True,

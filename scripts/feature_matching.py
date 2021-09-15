@@ -13,3 +13,19 @@ Input is the target image and a close image
 """
 
 import cv2
+
+
+
+if __name__ == "__main__":
+
+    # get two views
+
+    # extract features
+
+    # match features
+
+    # analyze match locations
+
+    # make a policy based on matched locations
+
+    ...

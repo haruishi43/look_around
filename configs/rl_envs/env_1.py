@@ -1,6 +1,6 @@
 _base_ = [
     '../_base_/datasets/sun360_alpha_indoor.py',
-    '../_base_/find_view_sim.py'
+    '../_base_/findview_sim.py'
 ]
 episode_generator_kwargs = dict(
     shuffle=True,

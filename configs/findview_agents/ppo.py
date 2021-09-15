@@ -1,4 +1,3 @@
-_base_ = ['../rl_env/env_1.py']
 policy = dict(
     action_distribution_type="categorical",
     use_log_std=False,

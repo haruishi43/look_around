@@ -1,3 +1,4 @@
+_base_ = ['./rl_envs/env_1.py']
 num_updates = 10000
 num_ckpts = -1
 ckpt_interval = 500

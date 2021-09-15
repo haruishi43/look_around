@@ -5,6 +5,7 @@ from functools import partial
 from typing import Dict, List, Optional
 
 import torch
+from tqdm import tqdm
 
 from LookAround.config import Config
 from LookAround.core.agent import Agent
@@ -67,6 +68,7 @@ class FindViewBenchmark:
         # also save the list results to find good qualitative test samples
         episode_data = []
 
+        pbar = tqdm(total=num_episodes)
         count_episodes = 0
         while count_episodes < num_episodes:
             observations = self._env.reset()
@@ -81,6 +83,7 @@ class FindViewBenchmark:
             metrics = self._env.get_metrics()
             episode_data.append(metrics)
             count_episodes += 1
+            pbar.update()
 
         # FIXME: save results to file? pkl, csv, etc...
 

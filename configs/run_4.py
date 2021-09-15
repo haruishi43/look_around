@@ -1,5 +1,5 @@
 _base_ = [
-    './findview_baselines/ppo.py',
+    './findview_agents/ppo.py',
     './rl_trainer.py',
 ]
 run_id = 4
