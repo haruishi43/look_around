@@ -17,6 +17,7 @@ from LookAround.FindView.actions import FindViewActions
 
 def movement_generator(size=4):
     """`size` is number of actions
+    This movement generator moves around the initial point
     """
     idx = 0
     repeat = 1

@@ -174,8 +174,10 @@ def main():
         cfg=cfg,
         device=agent.device,
     )
-    metrics = benchmark.evaluate(agent, num_episodes=args.num_episodes)
-
+    if args.num_episodes == 0:
+        metrics = benchmark.evaluate(agent, num_episodes=None)
+    else:
+        metrics = benchmark.evaluate(agent, num_episodes=args.num_episodes)
     for k, v in metrics.items():
         logger.info("{}: {:.3f}".format(k, v))
 
