@@ -41,6 +41,8 @@ class FindViewRLEnv(gym.Env):
         self._rl_env_cfg = self._cfg.rl_env_cfgs
         self._slack_reward = self._rl_env_cfg.slack_reward
         self._success_reward = self._rl_env_cfg.success_reward
+        self._end_reward_type = self._rl_env_cfg.end_type
+        self._end_reward_param = self._rl_env_cfg.end_type_param
 
         self.observation_space = self._env.observation_space
         self.action_space = self._env.action_space
@@ -94,9 +96,13 @@ class FindViewRLEnv(gym.Env):
             # runs 1, 2:
             # reward_success = self._success_reward - l1
             # run 3:
-            # reward_success = self._success_reward / (l1 + 0.1)
+            if self._end_reward_type == "inverse":
+                reward_success = self._success_reward / (l1 + self._end_reward_param)
             # run 4: threshold = 10
-            reward_success = self._success_reward * bell_curve(l1, 10)  # FIXME parametrize
+            elif self._end_reward_type == "bell":
+                reward_success = self._success_reward * bell_curve(l1, self._end_reward_param)  # FIXME parametrize
+            else:
+                raise ValueError("Reward function parameter is not set correctly")
 
         elif self._env.episode_over:
             # if agent couldn't finish by the limit, penalize them
