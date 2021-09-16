@@ -76,14 +76,17 @@ class FindViewSim(object):
 
     @property
     def equi(self) -> Tensor:
+        """Make sure that access to equi is always a clone"""
         return copy_tensor(self._equi)
 
     @property
     def target(self) -> Tensor:
+        """Make sure that access to target is always a clone"""
         return copy_tensor(self._target)
 
     @property
     def pers(self) -> Tensor:
+        """Make sure that access to pers is always a clone"""
         return copy_tensor(self._pers)
 
     def inititialize_loader(
