@@ -119,11 +119,6 @@ class FeatureMatchingAgent(Agent):
             # if m.distance > self.distance_threshold:
             #     continue
 
-            # location in the perspective image
-            # print(kps_pers[m.queryIdx].pt)
-            # locatin in the target image
-            # print(kps_target[m.trainIdx].pt)
-
             pers_loc = np.float32(kps_pers[m.queryIdx].pt)
             target_loc = np.float32(kps_target[m.trainIdx].pt)
 
@@ -191,7 +186,10 @@ def main():
         cfg=cfg,
         device=torch.device('cpu'),
     )
-    metrics = benchmark.evaluate(agent, num_episodes=args.num_episodes)
+    if args.num_episodes == 0:
+        metrics = benchmark.evaluate(agent, num_episodes=None)
+    else:
+        metrics = benchmark.evaluate(agent, num_episodes=args.num_episodes)
 
     for k, v in metrics.items():
         logger.info("{}: {:.3f}".format(k, v))
