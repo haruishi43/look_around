@@ -213,10 +213,7 @@ def batch_sample(sims: List[FindViewSim], rots: List[Optional[Rots]]):
     batched_equi = []
     for i, sim in enumerate(sims):
         if i not in none_idx:
-            if is_torch:
-                batched_equi.append(sim.equi.clone())
-            else:
-                batched_equi.append(sim.equi.copy())
+            batched_equi.append(sim.equi)
 
     if len(batched_equi) == 0:
         return
@@ -240,7 +237,7 @@ def batch_sample(sims: List[FindViewSim], rots: List[Optional[Rots]]):
     for i, sim in enumerate(sims):
         # if `rot` was None, `sim` should keep the original `pers`
         if i not in none_idx:
-            sim.pers = batched_pers[count]
+            sim._pers = batched_pers[count]
             count += 1
 
     assert count == len(batched_pers)

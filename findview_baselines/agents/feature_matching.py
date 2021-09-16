@@ -4,6 +4,7 @@
 Agent that moves in the direction where the features matches the target image
 """
 
+from collections import deque
 from statistics import mode
 
 import cv2
@@ -35,6 +36,7 @@ class FeatureMatchingAgent(Agent):
     def __init__(
         self,
         cfg: Config,
+        debug: bool = False,
     ) -> None:
         self.movement_actions = ["up", "right", "down", "left"]
         self.stop_action = "stop"
@@ -47,10 +49,16 @@ class FeatureMatchingAgent(Agent):
         self.num_matches = cfg.fm.num_matches
         self.distance_threshold = cfg.fm.distance_threshold
         self.stop_threshold = cfg.fm.stop_threshold
+        self.num_track_action = 50
 
         self.g = movement_generator(len(self.movement_actions))
+        self.tracked_actions = deque(maxlen=self.num_track_action)
 
     def reset(self):
+        self.reset_movement_generator()
+        self.tracked_actions = deque(maxlen=self.num_track_action)
+
+    def reset_movement_generator(self):
         self.g = movement_generator(len(self.movement_actions))
 
     def act(self, observations):
@@ -81,40 +89,35 @@ class FeatureMatchingAgent(Agent):
         if self.feature_type == "ORB":
             detector = cv2.ORB_create(nfeatures=self.num_features)
             norm_type = cv2.NORM_HAMMING
-
         elif self.feature_type == "SIFT":
             detector = cv2.SIFT_create(nfeatures=self.num_features)
             norm_type = cv2.NORM_L2
         else:
             raise NotImplementedError
-
         (kps_pers, des_pers) = detector.detectAndCompute(gray_pers, None)
         (kps_target, des_target) = detector.detectAndCompute(gray_target, None)
 
-        # FIXME: count kps to see if it has enough
         if len(kps_pers) < self.num_matches or len(kps_target) < self.num_matches:
-            # print("not enough kp")
-            return self.movement_actions[next(self.g)]
+            print("not enough kp")
+            action = self.movement_actions[next(self.g)]
+            return action
 
         # find matches
         # FIXME: flann or knn is better?
         matcher = cv2.BFMatcher(normType=norm_type, crossCheck=False)
         matches = matcher.match(des_pers, des_target)
 
-        # FIXME: filter only the 'good' matches
         if len(matches) < self.num_matches:
-            # print("not enough matches")
-            return self.movement_actions[next(self.g)]
+            print("not enough matches")
+            action = self.movement_actions[next(self.g)]
+            return action
 
-        # FIXME: need to see if there are enough matches
         matches = sorted(matches, key=lambda x: x.distance)
         matches = matches[:self.num_matches]
 
         # vote direction
         actions = []
         for m in matches:
-
-            # print(m.distance, m.queryIdx, m.trainIdx)
 
             # if m.distance > self.distance_threshold:
             #     continue
@@ -148,15 +151,28 @@ class FeatureMatchingAgent(Agent):
             actions.append(action)
 
         if len(actions) == 0:
-            # print("no actions")
-            return self.movement_actions[next(self.g)]
+            action = self.movement_actions[next(self.g)]
+            print("no actions")
+            return action
 
         # NOTE: reset generated movement
-        self.reset()
+        self.reset_movement_generator()
 
         # tally up the votes and choose the best movement
         # NOTE: this only gets the first most common
         action = mode(actions)
+
+        # append to deque
+        self.tracked_actions.append(action)
+
+        # if the tracked action consists of only opposites, it might mean that it's occilating
+        # NOTE: make track actions large enough
+        if len(self.tracked_actions) == self.num_track_action:
+            _what_actions = set(self.tracked_actions)
+            if _what_actions == set(['right', 'left']):
+                action = "stop"
+            elif _what_actions == set(['up', 'down']):
+                action = "stop"
 
         return action
 
