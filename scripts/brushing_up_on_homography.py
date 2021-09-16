@@ -1,15 +1,6 @@
 #!/usr/bin/env python3
 
-"""
-Trying out feature matching on OpenCV for feature matching agent
-
-Input is the target image and a close image
-
-- Compute feature matching
-- Get coordinates of matched feature
-- Compute population densities (where is it matching)
-- Decide action (Move in yaw or pitch direction or stop)
-
+"""Trying to figure out a way to use homography for active vision
 """
 
 import argparse
@@ -22,8 +13,6 @@ import torch
 from LookAround.config import Config
 from LookAround.FindView.sim import FindViewSim
 from LookAround.FindView.rotation_tracker import RotationTracker
-
-from findview_baselines.agents.feature_matching import FeatureMatchingAgent
 
 
 def parse_args():
@@ -101,7 +90,8 @@ if __name__ == "__main__":
     gray_target = cv2.cvtColor(target, cv2.COLOR_BGR2GRAY)
 
     # extract features
-    detector = cv2.ORB_create()
+    detector = cv2.SIFT_create()
+    # detector = cv2.ORB_create()
     (kps_pers, des_pers) = detector.detectAndCompute(gray_pers, None)
     tmp_pers = cv2.drawKeypoints(gray_pers, kps_pers, pers)
 
@@ -112,16 +102,40 @@ if __name__ == "__main__":
     cv2.imshow('kps_target', tmp_target)
 
     # match features
-    bf = cv2.BFMatcher(normType=cv2.NORM_HAMMING, crossCheck=False)
-    # bf = cv2.BFMatcher(normType=cv2.NORM_L2, crossCheck=False)
+    # bf = cv2.BFMatcher(normType=cv2.NORM_HAMMING, crossCheck=True)
+    bf = cv2.BFMatcher(normType=cv2.NORM_L2, crossCheck=False)
     matches = bf.match(des_pers, des_target)
     # sort maches in the order of their distance
     matches = sorted(matches, key=lambda x: x.distance)
     # limit matches
     matches = matches[:10]
+
     # draw matches
     tmp_match = cv2.drawMatches(gray_pers, kps_pers, gray_target, kps_target, matches, None, flags=cv2.DrawMatchesFlags_NOT_DRAW_SINGLE_POINTS)
     cv2.imshow('maches', tmp_match)
+
+    # FIXME: are query and train, src and target?
+    pts_pers = np.float32([kps_pers[m.queryIdx].pt for m in matches]).reshape(-1, 1, 2)
+    pts_target = np.float32([kps_target[m.trainIdx].pt for m in matches]).reshape(-1, 1, 2)
+
+    # homography matrix
+    M, mask = cv2.findHomography(pts_pers, pts_target, cv2.RANSAC, 5.0)
+
+    # intrinsic matrix
+    f = width / (2.0 * np.tan(np.radians(90).astype(np.float32) / 2.0))
+    K = np.array(
+        [
+            [f, 0.0, width / 2],
+            [0.0, f, height / 2],
+            [0.0, 0.0, 1.0],
+        ],
+        dtype=np.float32,
+    )
+
+    # decomposed homography
+    num, Rs, Ts, Ns = cv2.decomposeHomographyMat(M, K)
+
+    # TODO: what to do from here...
 
     # analyze match locations
 

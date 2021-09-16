@@ -124,7 +124,6 @@ if __name__ == "__main__":
     sampling_mode = "bilinear"
 
     # initialize simulator
-    # initialize simulator
     sim = FindViewSim(
         height=height,
         width=width,

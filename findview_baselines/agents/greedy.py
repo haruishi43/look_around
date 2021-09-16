@@ -34,16 +34,14 @@ class GreedyMovementAgent(Agent):
     def __init__(
         self,
         cfg: Config,
-        chance: float = 0.001,
-        seed: int = 0,
     ) -> None:
         self.movement_actions = ["up", "right", "down", "left"]
         self.stop_action = "stop"
-        self.stop_chance = chance
+        self.stop_chance = cfg.greedy.chance
         for action in self.movement_actions:
             assert action in FindViewActions.all
         self.g = movement_generator(len(self.movement_actions))
-        self.rs = random.Random(seed)
+        self.rs = random.Random(cfg.greedy.seed)
 
     def reset(self):
         self.g = movement_generator(len(self.movement_actions))

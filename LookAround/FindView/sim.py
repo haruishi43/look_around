@@ -40,9 +40,9 @@ def deg2rad(rot):
 
 class FindViewSim(object):
 
-    equi: Tensor
-    target: Tensor
-    pers: Tensor
+    _equi: Tensor
+    _target: Tensor
+    _pers: Tensor
     equi_path: str
     initial_rotation: Rots
     target_rotation: Rots
@@ -67,12 +67,24 @@ class FindViewSim(object):
         )
 
         # initialize important variables to None
-        self.equi = None
-        self.target = None
-        self.pers = None
+        self._equi = None
+        self._target = None
+        self._pers = None
         self.equi_path = None
         self.initial_rotation = None
         self.target_rotation = None
+
+    @property
+    def equi(self) -> Tensor:
+        return copy_tensor(self._equi)
+
+    @property
+    def target(self) -> Tensor:
+        return copy_tensor(self._target)
+
+    @property
+    def pers(self) -> Tensor:
+        return copy_tensor(self._pers)
 
     def inititialize_loader(
         self,
@@ -110,7 +122,7 @@ class FindViewSim(object):
 
         if equi_path != self.equi_path:
             # NOTE: only load equi when the equi_path differs
-            self.equi = self._load_func(img_path=equi_path)
+            self._equi = self._load_func(img_path=equi_path)
 
         # initialize data
         self.equi_path = equi_path
@@ -118,8 +130,8 @@ class FindViewSim(object):
         self.target_rotation = target_rotation
 
         # set images
-        self.pers = self.sample(rot=initial_rotation)
-        self.target = self.sample(rot=target_rotation)
+        self._pers = self.sample(rot=initial_rotation)
+        self._target = self.sample(rot=target_rotation)
 
     def sample(
         self,
@@ -127,12 +139,12 @@ class FindViewSim(object):
     ) -> Tensor:
         # NOTE: convert deg to rad
         rad_rot = deg2rad(rot)
-        return self.equi2pers(copy_tensor(self.equi), rots=rad_rot)
+        return self.equi2pers(self.equi, rots=rad_rot)
 
     def move(self, rot: Rots) -> Tensor:
         """Rotate view and return unrefined view
         """
-        self.pers = self.sample(rot=rot)
+        self._pers = self.sample(rot=rot)
         return self.pers
 
     def reset(
@@ -153,35 +165,35 @@ class FindViewSim(object):
 
         return self.pers, self.target
 
-    def render_pers(self) -> np.ndarray:
+    def render_pers(self, to_bgr: bool = True) -> np.ndarray:
         """Return view (refined for cv2.imshow)
         """
         if self.is_torch:
-            return post_process_for_render_torch(copy_tensor(self.pers))
+            return post_process_for_render_torch(self.pers, to_bgr=to_bgr)
         else:
-            return post_process_for_render(copy_tensor(self.pers))
+            return post_process_for_render(self.pers, to_bgr=to_bgr)
 
-    def render_target(self) -> np.ndarray:
+    def render_target(self, to_bgr: bool = True) -> np.ndarray:
         """Return view (refined for cv2.imshow)
         """
         if self.is_torch:
-            return post_process_for_render_torch(copy_tensor(self.target))
+            return post_process_for_render_torch(self.target, to_bgr=to_bgr)
         else:
-            return post_process_for_render(copy_tensor(self.target))
+            return post_process_for_render(self.target, to_bgr=to_bgr)
 
-    def render_equi(self) -> np.ndarray:
+    def render_equi(self, to_bgr: bool = True) -> np.ndarray:
         """Return view (refined for cv2.imshow)
         """
         if self.is_torch:
-            return post_process_for_render_torch(copy_tensor(self.equi))
+            return post_process_for_render_torch(self.equi, to_bgr=to_bgr)
         else:
-            return post_process_for_render(copy_tensor(self.equi))
+            return post_process_for_render(self.equi, to_bgr=to_bgr)
 
     def __del__(self):
         # NOTE: clean up
-        del self.equi
-        del self.target
-        del self.pers
+        del self._equi
+        del self._target
+        del self._pers
         del self.equi2pers
 
     def close(self) -> None:

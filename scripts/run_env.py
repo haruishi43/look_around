@@ -17,8 +17,12 @@ import torch
 from tqdm import tqdm
 
 from LookAround.config import Config
+from LookAround.core.agent import Agent
 from LookAround.FindView.env import FindViewActions, make_env
 from LookAround.utils.visualizations import save_images_as_video
+
+from findview_baselines.agents.greedy import GreedyMovementAgent
+from findview_baselines.agents.feature_matching import FeatureMatchingAgent
 
 random.seed(0)
 
@@ -27,46 +31,16 @@ def filter_episodes_by_img_names(episode, names: List[str]) -> bool:
     return episode.img_name in names
 
 
-class SingleMovementAgent(object):
+class SingleMovementAgent(Agent):
     def __init__(self, action: str = "right") -> None:
         assert action in FindViewActions.all
         self.action = action
 
-    def act(self):
+    def act(self, observation):
         return self.action
 
     def reset(self):
         ...
-
-
-def movement_generator(size=4):
-    idx = 0
-    repeat = 1
-    while True:
-        for r in range(repeat):
-            yield idx
-
-        idx = (idx + 1) % size
-        if idx % 2 == 0:
-            repeat += 1
-
-
-class GreedyMovementAgent(object):
-    def __init__(self, chance=0.001) -> None:
-        self.movement_actions = ["up", "right", "down", "left"]
-        for action in self.movement_actions:
-            assert action in FindViewActions.all
-        self.g = movement_generator(len(self.movement_actions))
-        self.stop_action = "stop"
-        self.stop_chance = chance
-
-    def act(self):
-        if random.random() < self.stop_chance:
-            return self.stop_action
-        return self.movement_actions[next(self.g)]
-
-    def reset(self):
-        self.g = movement_generator(len(self.movement_actions))
 
 
 def parse_args():
@@ -75,7 +49,13 @@ def parse_args():
         "--config",
         required=True,
         type=str,
-        help="config file for creating dataset"
+    )
+    parser.add_argument(
+        "--agent",
+        required=True,
+        type=str,
+        choices=['greedy', 'single', 'fm'],
+        help="name of the agent"
     )
     return parser.parse_args()
 
@@ -110,8 +90,14 @@ if __name__ == "__main__":
         device=device,
     )
     # initialize agent
-    # agent = SingleMovementAgent(action="right")
-    agent = GreedyMovementAgent()
+    if args.agent == "single":
+        agent = SingleMovementAgent(action="right")
+    elif args.agent == "greedy":
+        agent = GreedyMovementAgent(cfg=cfg)
+    elif args.agent == "fm":
+        agent = FeatureMatchingAgent(cfg=cfg)
+    else:
+        raise ValueError
 
     images = []
 
@@ -122,7 +108,7 @@ if __name__ == "__main__":
     images.append(render['pers'])
 
     for i in tqdm(range(num_steps)):
-        action = agent.act()
+        action = agent.act(obs)
         obs = env.step(action)
         pers = env.render()['pers']
         images.append(pers)
@@ -136,11 +122,11 @@ if __name__ == "__main__":
                 json.dump(stats, f, indent=2)
 
             # NEED TO RESET!
-            env.reset()
+            obs = env.reset()
             render = env.render()
             images.append(render['target'])
             images.append(render['pers'])
             agent.reset()
 
-    save_path = os.path.join('./results/env', 'test_env.mp4')
+    save_path = os.path.join('./results/env', f'{args.agent}_env.mp4')
     save_images_as_video(images, save_path)
