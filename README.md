@@ -34,7 +34,7 @@ CUDA_VISIBLE_DEVICES=1, python findview_baselines/run_ppo.py --config configs/ru
 Resume Training:
 
 ```Bash
-
+CUDA_VISIBLE_DEVICES=0, python findview_baselines/run_ppo.py --config configs/run_3.py --mode train --options train.resume=True
 ```
 
 Tensorboard:
