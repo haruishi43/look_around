@@ -2,12 +2,9 @@
 
 import random
 import time
-
-from LookAround.FindView.dataset.episode import Episode
-from typing import Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional, Union
 
 from gym import spaces
-from LookAround.config import Config
 import numpy as np
 import torch
 
@@ -17,106 +14,73 @@ from LookAround.FindView.metric import (
     path_efficiency,
 )
 
+from LookAround.config import Config
 from LookAround.core.spaces import ActionSpace, EmptySpace
-from LookAround.FindView.sim import FindViewSim
+from LookAround.FindView.sim import FindViewSim, Tensor
 from LookAround.FindView.actions import FindViewActions
 from LookAround.FindView.rotation_tracker import RotationTracker
-from LookAround.FindView.dataset import make_dataset
+from LookAround.FindView.dataset import Episode, make_dataset
 from LookAround.FindView.dataset.static_dataset import StaticDataset, StaticIterator
 from LookAround.FindView.dataset.dynamic_dataset import DynamicDataset, DynamicGenerator
-from LookAround.FindView.dataset.sampling import DifficultySampler, Sampler
 
 
 class FindViewEnv(object):
 
-    number_of_episodes: Optional[int]
-
+    # Modules
     _dataset: Union[DynamicDataset, StaticDataset]
-    _sampler: Optional[Sampler]
     _episode_iterator: Union[DynamicGenerator, StaticIterator]
     _rot_tracker: RotationTracker
     _sim: FindViewSim
 
+    # Variables
     _current_episode: Optional[Episode]
+    _number_of_episodes: Optional[int]
     _max_episode_seconds: int
     _max_episode_steps: int
     _elapsed_steps: int
     _episode_start_time: Optional[float]
     _episode_over: bool
 
-    _random_generator: bool
-
     def __init__(
         self,
-        cfg: Config,
-        split='train',
-        filter_fn=None,
-        is_torch=True,
-        dtype=torch.float32,
-        device=torch.device('cpu'),
+        dataset: Union[DynamicDataset, StaticDataset],
+        episode_iterator: Union[DynamicGenerator, StaticIterator],
+        sim: FindViewSim,
     ) -> None:
+        """FindView Environment
+        """
 
-        self._cfg = cfg
+        assert sim.fov == dataset.fov
 
-        # initialize dataset
-        self._dataset = make_dataset(
-            cfg=self._cfg,
-            split=split,
-            filter_fn=filter_fn,
-        )
-        self._random_generator = False
-        if split == 'train':
-            self._random_generator = True
-            self._sampler = DifficultySampler(
-                difficulty='easy',  # difficulty...
-                fov=self._cfg.fov,
-                min_steps=self._cfg.min_steps,
-                max_steps=self._cfg.max_steps,
-                step_size=self._cfg.step_size,
-                threshold=self._cfg.pitch_threshold,
-                seed=self._cfg.seed,
-                num_tries=100000,  # num tries is pretty large
-            )
-            iter_options = self._cfg.episode_generator_kwargs
-            iter_options['seed'] = self._cfg.seed
-            self._episode_iterator = self._dataset.get_generator(
-                sampler=self._sampler,
-                **iter_options,
-            )
-            self.number_of_episodes = None
-        else:  # test, val, etc... (test_small, val_small, etc...)
-            self._sampler = None
-            iter_options = self._cfg.episode_iterator_kwargs
-            iter_options['seed'] = self._cfg.seed
-            self._episode_iterator = self._dataset.get_iterator(
-                **iter_options,
-            )
-            self.number_of_episodes = len(self._dataset.episodes)
+        # FIXME: originally, I only wanted `dataset` and `sim` as the input,
+        # but `episode_iterator` had to be there too since `episode_iterator`
+        # can't be initialized without arguments
+        self._dataset = dataset
+        self._episode_iterator = episode_iterator
+        self._sim = sim
 
-        # initialize simulator
-        self._sim = FindViewSim(
-            **self._cfg.sim,
-        )
-        self._sim.inititialize_loader(
-            is_torch=is_torch,
-            dtype=dtype,
-            device=device,
-        )
+        if isinstance(self._dataset, StaticDataset):
+            self._number_of_episodes = len(self._dataset.episodes)
+        elif isinstance(self._dataset, DynamicDataset):
+            self._number_of_episodes = None
+        else:
+            raise ValueError("input dataset is not supported")
 
         # initialize rotation tracker
         self._rot_tracker = RotationTracker(
-            inc=self._cfg.step_size,
-            pitch_threshold=self._cfg.pitch_threshold,
+            inc=self._dataset.step_size,
+            pitch_threshold=self._dataset.pitch_threshold,
         )
 
-        # gym spaces here?
+        # gym spaces
         self.action_space = ActionSpace(
             {
                 action_name: EmptySpace()
                 for action_name in FindViewActions.all
             }
         )
-        if is_torch:
+        dtype = self._sim.dtype
+        if self._sim.is_torch:
             self.observation_space = spaces.Dict(
                 {
                     "pers": spaces.Box(
@@ -124,8 +88,8 @@ class FindViewEnv(object):
                         high=torch.finfo(dtype).max,
                         shape=(
                             3,
-                            self._cfg.sim.height,
-                            self._cfg.sim.width,
+                            self._sim.height,
+                            self._sim.width,
                         ),
                     ),
                     "target": spaces.Box(
@@ -133,8 +97,8 @@ class FindViewEnv(object):
                         high=torch.finfo(dtype).max,
                         shape=(
                             3,
-                            self._cfg.sim.height,
-                            self._cfg.sim.width,
+                            self._sim.height,
+                            self._sim.width,
                         ),
                     ),
                 }
@@ -147,8 +111,8 @@ class FindViewEnv(object):
                         high=np.finfo(dtype).max,
                         shape=(
                             3,
-                            self._cfg.sim.height,
-                            self._cfg.sim.width,
+                            self._sim.height,
+                            self._sim.width,
                         ),
                     ),
                     "target": spaces.Box(
@@ -156,20 +120,62 @@ class FindViewEnv(object):
                         high=np.finfo(dtype).max,
                         shape=(
                             3,
-                            self._cfg.sim.height,
-                            self._cfg.sim.width,
+                            self._sim.height,
+                            self._sim.width,
                         ),
                     ),
                 }
             )
 
-        # initialize stuff
-        self._max_episode_seconds = self._cfg.max_seconds
-        self._max_episode_steps = self._cfg.max_steps
+        # initialize other variables
+        self._max_episode_seconds = self._dataset.max_seconds
+        self._max_episode_steps = self._dataset.max_steps
         self._elapsed_steps = 0
         self._episode_start_time: Optional[float] = None
         self._episode_over = False
         self._called_stop = False
+
+    @classmethod
+    def from_config(
+        cls,
+        cfg: Config,
+        split: str,
+        filter_fn=None,
+        dtype: Union[np.dtype, torch.dtype] = torch.float32,
+        device: torch.device = torch.device('cpu'),
+    ):
+        """Initialization from Config
+        """
+
+        # Initialize dataset
+        dataset = make_dataset(
+            cfg=cfg,
+            split=split,
+            filter_fn=filter_fn,
+        )
+
+        # Initialize episode iterator
+        # FIXME: this part is kinda messy
+        if split in ('train'):
+            iter_options = cfg.episode_generator_kwargs
+            iter_options['seed'] = cfg.seed
+            episode_iterator = dataset.get_generator(**iter_options)
+        elif split in ('val', 'test'):
+            iter_options = cfg.episode_iterator_kwargs
+            iter_options['seed'] = cfg.seed
+            episode_iterator = dataset.get_iterator(**iter_options)
+        else:
+            raise ValueError(f"got {split} as split which is unsupported")
+
+        # Initialize simulator
+        sim = FindViewSim.from_config(cfg)
+        sim.inititialize_loader(dtype=dtype, device=device)
+
+        return cls(
+            dataset=dataset,
+            episode_iterator=episode_iterator,
+            sim=sim,
+        )
 
     @property
     def current_episode(self) -> Episode:
@@ -178,8 +184,12 @@ class FindViewEnv(object):
 
     @property
     def episodes(self) -> List[Episode]:
-        assert not self._random_generator
+        assert isinstance(self._dataset, StaticDataset)
         return self._dataset.episodes
+
+    @property
+    def number_of_episodes(self) -> Optional[int]:
+        return self._number_of_episodes
 
     @property
     def sim(self) -> FindViewSim:
@@ -201,6 +211,7 @@ class FindViewEnv(object):
         return time.time() - self._episode_start_time
 
     def get_info(self) -> dict:
+        # FIXME: do we really need this much info?
         return {
             "episode_id": self._current_episode.episode_id,
             "img_name": self._current_episode.img_name,
@@ -210,15 +221,18 @@ class FindViewEnv(object):
             "difficulty": self._current_episode.difficulty,
             "initial_rotation": self._current_episode.initial_rotation,
             "target_rotation": self._current_episode.target_rotation,
-            "current_rotation": self._rot_tracker.rot,
+            "current_rotation": self._rot_tracker.current_rotation,
             "steps_for_shortest_path": self._current_episode.steps_for_shortest_path,
             "elapsed_steps": self._elapsed_steps,
             "called_stop": self._called_stop,
         }
 
-    def get_metrics(self):
+    def get_metrics(self) -> Dict[str, Any]:
         """NOTE: should return dict of metrics for reward calculation, etc...
         """
+
+        # FIXME: Only put the calculations needed by Benchmark and RLEnv
+        # for RLEnv, do their own calculation by extending
 
         # NOTE: get basic info (mainly from episode and env)
         info = self.get_info()
@@ -238,7 +252,7 @@ class FindViewEnv(object):
         # Distances to target
         distances = distance_to_target(
             target_rotation=self._current_episode.target_rotation,
-            current_rotation=self._rot_tracker.rot,
+            current_rotation=self._rot_tracker.current_rotation,
         )
         distances_dict = dict(
             l1_distance_to_target=distances['l1_distance_to_target'],
@@ -287,25 +301,26 @@ class FindViewEnv(object):
         self,
         pers,
         target,
-    ) -> dict:
+    ) -> Dict[str, Tensor]:
         obs = {
             "pers": pers,
             "target": target,
         }
         return obs
 
-    def reset(self) -> None:
+    def reset(self) -> Dict[str, Tensor]:
 
         self._reset_stats()
 
         # FIXME: what to do when iterator is finished and `reset` is called?
         self._current_episode = next(self._episode_iterator)
+        assert self._current_episode is not None, "ERR: called reset, but there are no more episodes in the iterator"
 
         initial_rotation = self._current_episode.initial_rotation
         target_rotation = self._current_episode.target_rotation
         episode_path = self._current_episode.path
 
-        self._rot_tracker.initialize(initial_rotation)
+        self._rot_tracker.reset(initial_rotation)
         pers, target = self._sim.reset(
             equi_path=episode_path,
             initial_rotation=initial_rotation,
@@ -343,11 +358,11 @@ class FindViewEnv(object):
             self._called_stop = True
             rot = None
         else:
-            rot = self._rot_tracker.convert(action)
+            rot = self._rot_tracker.move(action)
 
         return rot
 
-    def step_after(self):
+    def step_after(self) -> Dict[str, Tensor]:
         pers = self._sim.pers
         target = self._sim.target
 
@@ -360,7 +375,7 @@ class FindViewEnv(object):
 
         return obs
 
-    def step(self, action: Union[Dict[str, str], str]):
+    def step(self, action: Union[Dict[str, str], str]) -> Dict[str, Tensor]:
 
         assert self._episode_start_time is not None, \
             "Cannot call step before calling reset"
@@ -381,7 +396,7 @@ class FindViewEnv(object):
             pers = self._sim.pers
             self._called_stop = True
         else:
-            rot = self._rot_tracker.convert(action)
+            rot = self._rot_tracker.move(action)
             pers = self._sim.move(rot=rot)
 
         target = self._sim.target
@@ -400,7 +415,7 @@ class FindViewEnv(object):
         self.rst = random.Random(seed)
         self.np_rst = np.random.RandomState(seed)
 
-    def render(self):
+    def render(self) -> Dict[str, np.ndarray]:
         pers = self._sim.render_pers()
         target = self._sim.render_target()
         return {
@@ -409,12 +424,9 @@ class FindViewEnv(object):
         }
 
     def change_difficulty(self, difficulty: str) -> None:
-        # FIXME: need to implement for iterators
-        assert self._sampler is not None, \
-            "Sampler is None, maybe you're using an iterator?"
-        assert self._random_generator, \
-            "Not using a random generator"
-        self._sampler.set_difficulty(difficulty=difficulty)
+        assert isinstance(self._dataset, DynamicDataset) \
+            and isinstance(self._episode_iterator, DynamicGenerator)
+        self._episode_iterator.set_difficulty(difficulty=difficulty)
 
     def close(self) -> None:
         self._sim.close()
@@ -424,27 +436,3 @@ class FindViewEnv(object):
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         self.close()
-
-
-# FIXME: don't have the usecase for this...
-def make_env(
-    cfg: Config,
-    split: str,
-    filter_fn=None,
-    is_torch: bool = True,
-    dtype: Union[np.dtype, torch.dtype] = torch.float32,
-    device: torch.device = torch.device('cpu'),
-) -> FindViewEnv:
-    if is_torch:
-        assert dtype in (torch.float16, torch.float32, torch.float64)
-    else:
-        assert dtype in (np.float32, np.float64)
-    env = FindViewEnv(
-        cfg=cfg,
-        split=split,
-        filter_fn=filter_fn,
-        is_torch=is_torch,
-        dtype=dtype,
-        device=device,
-    )
-    return env

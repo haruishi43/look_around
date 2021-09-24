@@ -80,230 +80,20 @@ NOTE: Prior criteria: ASSUMPTIONS!
 """
 
 import argparse
-from functools import partial
 import json
 import os
-from os import PathLike
 import pickle
-import random
-from typing import Any, Dict, List
 
-import numpy as np
 from tqdm import tqdm
 
 from LookAround.config import Config
-from LookAround.FindView.dataset.sampling import (
-    base_condition,
-    easy_condition,
-    medium_condition,
-    hard_condition,
-    get_pitch_range,
-    get_yaw_range,
+from LookAround.FindView.dataset.sun360.helpers.create_dataset import (
+    seed,
+    gather_image_paths_in_category,
+    create_splits_for_category,
+    check_single_data_based_on_difficulty,
+    make_single_data_based_on_difficulty,
 )
-
-
-def seed(n: int = 0):
-    # Seed should be set to 0
-    random.seed(n)
-    np.random.seed(n)
-
-
-def gather_image_paths_in_category(
-    category_path: PathLike,
-    data_root: PathLike,
-) -> Dict[str, List[PathLike]]:
-    assert os.path.exists(category_path)
-
-    img_paths = {}
-
-    # make sure that we only get directories
-    subcats = [
-        c for c in os.listdir(category_path)
-        if os.path.isdir(os.path.join(category_path, c))
-    ]
-    # make a dictionary of paths for sub categories
-    subcat_paths = {n: os.path.join(category_path, n) for n in subcats}
-
-    for subcat_name, subcat_path in subcat_paths.items():
-        subcat_img_names = [i for i in os.listdir(subcat_path) if os.path.splitext(i)[-1] == ".jpg"]
-        subcat_img_paths = [os.path.relpath(os.path.join(subcat_path, i), data_root) for i in subcat_img_names]
-        assert len(subcat_img_paths) > 0, f"ERR: {subcat_name} has no images"
-        img_paths[subcat_name] = subcat_img_paths
-
-    return img_paths
-
-
-def create_splits_for_category(
-    img_paths: Dict[str, List[PathLike]],
-    split_ratios: List[float],
-) -> List[List[PathLike]]:
-    splits = [[] for _ in range(len(split_ratios))]
-    for _, subcat_img_paths in img_paths.items():
-        subcat_splits = make_splits(subcat_img_paths, split_ratios)
-
-        for i, split in enumerate(subcat_splits):
-            splits[i] += split
-
-    return splits
-
-
-def make_splits(
-    img_paths: List[PathLike],
-    split_ratios: List[float],
-) -> List[List[str]]:
-    # NOTE: shuffle images!
-    random.shuffle(img_paths)
-
-    tot = len(img_paths)
-    split_indices = []
-
-    index = 0
-    for r in split_ratios[:-1]:
-        index += round(r * tot)
-        split_indices.append(index)
-
-    return [list(arr) for arr in np.split(img_paths, split_indices)]
-
-
-def make_single_data_based_on_difficulty(
-    difficulty: str,
-    fov: float,
-    min_steps: int,
-    max_steps: int,
-    step_size: int,
-    threshold: int = 60,
-) -> Dict[str, Any]:
-
-    # FIXME: Optimize since it does take a bit of time...
-
-    # return initial and target rotations based on difficulty
-    pitches, prob = get_pitch_range(threshold=threshold, mu=0.0, sigma=0.3)
-    yaws = get_yaw_range()
-
-    base_cond = partial(base_condition, min_steps=min_steps, max_steps=max_steps, step_size=step_size)
-
-    cond = None
-    if difficulty == "easy":
-        cond = partial(easy_condition, fov=fov)
-    elif difficulty == "medium":
-        cond = partial(medium_condition, fov=fov)
-    elif difficulty == "hard":
-        cond = partial(hard_condition, fov=fov)
-    else:
-        raise ValueError(f"ERR: unknown difficulty {difficulty}")
-
-    assert cond is not None, "ERR something went horribly wrong here"
-
-    _count = 0  # FIXME: how to deal with criteria that's REALLY hard?
-    while True:
-        # sample rotations
-        init_pitch = int(np.random.choice(pitches, p=prob))
-        init_yaw = int(np.random.choice(yaws))
-
-        targ_pitch = int(np.random.choice(pitches, p=prob))
-        targ_yaw = int(np.random.choice(yaws))
-
-        if (
-            base_cond(init_pitch, init_yaw, targ_pitch, targ_yaw)
-            and cond(init_pitch, init_yaw, targ_pitch, targ_yaw)
-        ):
-            return {
-                "initial_rotation": {
-                    "roll": 0,
-                    "pitch": init_pitch,
-                    "yaw": init_yaw,
-                },
-                "target_rotation": {
-                    "roll": 0,
-                    "pitch": targ_pitch,
-                    "yaw": targ_yaw,
-                },
-                "difficulty": difficulty,
-                "steps_for_shortest_path": int(
-                    np.abs(init_pitch - targ_pitch) + np.abs(init_yaw - targ_yaw)
-                ),  # NOTE: includes `stop` action
-            }
-        _count += 1
-
-        if _count > 100000:
-            raise RuntimeError(
-                "Raised because it's hard sampling with condition, try making the condition easier"
-            )
-
-
-def check_single_data_based_on_difficulty(
-    initial_rotation: Dict[str, int],
-    target_rotation: Dict[str, int],
-    difficulty: str,
-    short_step: int,
-    min_steps: int,
-    max_steps: int,
-    step_size: int,
-) -> None:
-    # check input
-    for d in initial_rotation.values():
-        assert isinstance(d, int)
-    for d in target_rotation.values():
-        assert isinstance(d, int)
-
-    init_pitch = initial_rotation['pitch']
-    init_yaw = initial_rotation['yaw']
-    targ_pitch = target_rotation['pitch']
-    targ_yaw = target_rotation['yaw']
-
-    assert np.abs(init_pitch) <= 60, np.abs(targ_pitch) <= 60
-
-    # check basic condition
-    assert base_condition(
-        init_pitch,
-        init_yaw,
-        targ_pitch,
-        targ_yaw,
-        min_steps,
-        max_steps,
-        step_size,
-    )
-
-    # check difficulty condition
-    if difficulty == "easy":
-        ret = easy_condition(
-            init_pitch,
-            init_yaw,
-            targ_pitch,
-            targ_yaw,
-            fov,
-        )
-    elif difficulty == "medium":
-        ret = medium_condition(
-            init_pitch,
-            init_yaw,
-            targ_pitch,
-            targ_yaw,
-            fov,
-        )
-    elif difficulty == "hard":
-        ret = hard_condition(
-            init_pitch,
-            init_yaw,
-            targ_pitch,
-            targ_yaw,
-            fov,
-        )
-    else:
-        raise ValueError(f"{difficulty} is not supported")
-    assert ret, (
-        "ERR: failed check with ({init_pitch}, {init_yaw}) "
-        "({targ_pitch}, {targ_yaw}) for {difficulty}"
-    ).format(
-        init_pitch=init_pitch,
-        init_yaw=init_yaw,
-        targ_pitch=targ_pitch,
-        targ_yaw=targ_yaw,
-        difficulty=difficulty,
-    )
-
-    # NOTE: includes `stop` action
-    assert int(np.abs(init_pitch - targ_pitch) + np.abs(init_yaw - targ_yaw)) == short_step
 
 
 def parse_args():
@@ -340,9 +130,9 @@ if __name__ == "__main__":
     print(cfg.pretty_text)
 
     # params
-    sun360_root = os.path.join(cfg.data_root, cfg.dataset_name)
-    dataset_root = os.path.join(cfg.dataset_root, cfg.dataset_name, cfg.version, cfg.category)
-    split_ratios = cfg.split_ratios
+    sun360_root = os.path.join(cfg.data_root, cfg.dataset.name)
+    dataset_root = os.path.join(cfg.dataset_root, cfg.dataset.name, cfg.dataset.version, cfg.dataset.category)
+    split_ratios = cfg.dataset.split_ratios
 
     # check params
     seed(cfg.seed)  # set seed -> should be 0
@@ -363,15 +153,15 @@ if __name__ == "__main__":
     # Create Splits (if needed)
 
     if args.rebuild_splits or not all(os.path.exists(p) for p in split_paths.values()):
-        print(f">>> BUILDING SPLITS for {cfg.category}")
-        assert cfg.category in ["indoor", "outdoor"]  # not using `others`
+        print(f">>> BUILDING SPLITS for {cfg.dataset.category}")
+        assert cfg.dataset.category in ["indoor", "outdoor"]  # not using `others`
         category_paths = {
             "indoor": os.path.join(sun360_root, "indoor"),
             "outdoor": os.path.join(sun360_root, "outdoor"),
             "others": os.path.join(sun360_root, "others"),
         }
 
-        category_path = os.path.join(sun360_root, cfg.category)
+        category_path = os.path.join(sun360_root, cfg.dataset.category)
         assert os.path.exists(category_path)
 
         # get all image paths
@@ -413,9 +203,9 @@ if __name__ == "__main__":
 
     print("[train, val, test]", [len(s) for s in splits.values()])
 
-    # check if the imageexists
+    # check if the image exists
     for name, paths in splits.items():
-        print(f"checking {name}")
+        print(f"checking for images in {name}")
         for path in tqdm(paths):
             assert os.path.exists(os.path.join(sun360_root, path)), \
                 f"ERR: {path} doesn't exist! Did the dataset change?"
@@ -443,14 +233,17 @@ if __name__ == "__main__":
         use_splits = ['train'] + use_splits
 
     # params from config
-    fov = cfg.fov
-    threshold = cfg.pitch_threshold
-    num_easy = cfg.num_easy
-    num_medium = cfg.num_medium
-    num_hard = cfg.num_hard
-    min_steps = cfg.min_steps
-    max_steps = cfg.max_steps
-    step_size = cfg.step_size
+    fov = cfg.dataset.fov
+    threshold = cfg.dataset.pitch_threshold
+    num_easy = cfg.dataset.num_easy
+    num_medium = cfg.dataset.num_medium
+    num_hard = cfg.dataset.num_hard
+    min_steps = cfg.dataset.min_steps
+    max_steps = cfg.dataset.max_steps
+    step_size = cfg.dataset.step_size
+    mu = cfg.dataset.mu
+    sigma = cfg.dataset.sigma
+    sample_limit = cfg.dataset.sample_limit
 
     dataset_paths = {
         "train": os.path.join(dataset_root, "train.json"),
@@ -490,10 +283,12 @@ if __name__ == "__main__":
                     initial_rotation=initial_rotation,
                     target_rotation=target_rotation,
                     difficulty=difficulty,
+                    fov=fov,
                     short_step=short_step,
                     min_steps=min_steps,
                     max_steps=max_steps,
                     step_size=step_size,
+                    threshold=threshold,
                 )
 
             # TODO: check for same/similar episodes
@@ -545,6 +340,9 @@ if __name__ == "__main__":
                         max_steps=max_steps,
                         step_size=step_size,
                         threshold=threshold,
+                        mu=mu,
+                        sigma=sigma,
+                        sample_limit=sample_limit,
                     )
                     dataset.append({**{"episode_id": eps_id}, **base, **data})  # update dict
                     eps_id += 1
@@ -559,6 +357,9 @@ if __name__ == "__main__":
                         max_steps=max_steps,
                         step_size=step_size,
                         threshold=threshold,
+                        mu=mu,
+                        sigma=sigma,
+                        sample_limit=sample_limit,
                     )
                     dataset.append({**{"episode_id": eps_id}, **base, **data})  # update dict
                     eps_id += 1
@@ -573,6 +374,9 @@ if __name__ == "__main__":
                         max_steps=max_steps,
                         step_size=step_size,
                         threshold=threshold,
+                        mu=mu,
+                        sigma=sigma,
+                        sample_limit=sample_limit,
                     )
                     dataset.append({**{"episode_id": eps_id}, **base, **data})  # update dict
                     eps_id += 1

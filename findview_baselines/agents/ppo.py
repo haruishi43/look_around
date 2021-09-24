@@ -159,7 +159,7 @@ def main():
         required=True,
     )
     parser.add_argument(
-        "--ckpt-fn",
+        "--ckpt-filename",
         type=str,
     )
     parser.add_argument(
@@ -169,7 +169,7 @@ def main():
     )
     args = parser.parse_args()
     cfg = Config.fromfile(args.config)
-    agent = PPOAgent(cfg, ckpt_filename=args.ckpt_fn)
+    agent = PPOAgent(cfg, ckpt_filename=args.ckpt_filename)
     benchmark = FindViewBenchmark(
         cfg=cfg,
         device=agent.device,

@@ -39,7 +39,7 @@ from LookAround.config import Config
 from LookAround.FindView.dataset import Episode, PseudoEpisode, make_dataset
 from LookAround.FindView.env import FindViewEnv
 from LookAround.FindView.rl_env import FindViewRLEnv
-from LookAround.FindView.sim import batch_sample
+from LookAround.FindView.sim import deg2rad
 from LookAround.utils.visualizations import tile_images
 from LookAround.utils.pickle5_multiprocessing import ConnectionWrapper
 
@@ -608,7 +608,43 @@ class SlowVecEnv(object):
 
         # NOTE: really hacky way of batch sampling
         sims = [env.sim for env in self.envs]
-        batch_sample(sims, rots)
+
+        is_torch = sims[0].is_torch
+        none_idx = [i for i, rot in enumerate(rots) if rot is None]
+
+        rad_rots = [deg2rad(rot) for rot in rots if rot is not None]
+
+        batched_equi = []
+        for i, sim in enumerate(sims):
+            if i not in none_idx:
+                batched_equi.append(sim.equi)
+
+        if len(batched_equi) == 0:
+            return
+
+        if is_torch:
+            if len(batched_equi) == 1:
+                batched_equi = batched_equi[0].unsqueeze(0)
+            else:
+                batched_equi = torch.stack(batched_equi, dim=0)
+        else:
+            if len(batched_equi) == 1:
+                batched_equi = batched_equi[0][None, ...]
+            else:
+                batched_equi = np.stack(batched_equi, axis=0)
+
+        assert len(batched_equi.shape) == 4
+        batched_pers = sims[0].equi2pers(batched_equi, rots=rad_rots)
+        assert len(batched_pers.shape) == 4
+
+        count = 0
+        for i, sim in enumerate(sims):
+            # if `rot` was None, `sim` should keep the original `pers`
+            if i not in none_idx:
+                sim._pers = batched_pers[count]
+                count += 1
+
+        assert count == len(batched_pers)
 
         # make sure to get observations
         for env in self.envs:

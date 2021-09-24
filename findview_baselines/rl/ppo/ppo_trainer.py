@@ -14,10 +14,9 @@ from torch.optim.lr_scheduler import LambdaLR
 from LookAround.config import Config
 from LookAround.core import logger
 from LookAround.core.improc import post_process_for_render_torch
-from LookAround.FindView import ThreadedVecEnv, FindViewEnv, FindViewRLEnv
+from LookAround.FindView import ThreadedVecEnv, FindViewRLEnv
 from LookAround.utils.visualizations import renders_to_image
 
-# FIXME: move this to findview_baselines?
 from LookAround.FindView.vec_env import construct_envs, construct_test_envs
 
 from findview_baselines.common.rollout_storage import RolloutStorage
@@ -181,7 +180,7 @@ class PPOTrainer:
     @staticmethod
     def _pause_envs(
         envs_to_pause: List[int],
-        envs: Union[ThreadedVecEnv, FindViewRLEnv, FindViewEnv],
+        envs: ThreadedVecEnv,
         test_recurrent_hidden_states: torch.Tensor,
         not_done_masks: torch.Tensor,
         current_episode_reward: torch.Tensor,
@@ -189,7 +188,7 @@ class PPOTrainer:
         batch: Dict[str, torch.Tensor],
         rgb_frames: Union[List[List[Any]], List[List[np.ndarray]]],
     ) -> Tuple[
-        Union[ThreadedVecEnv, FindViewRLEnv, FindViewEnv],
+        ThreadedVecEnv,
         torch.Tensor,
         torch.Tensor,
         torch.Tensor,
@@ -265,6 +264,7 @@ class PPOTrainer:
             dtype = torch.float32
         else:
             dtype = np.float32
+
         self.envs = construct_envs(
             env_cls=FindViewRLEnv,
             cfg=cfg,

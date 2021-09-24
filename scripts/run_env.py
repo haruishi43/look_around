@@ -18,7 +18,7 @@ from tqdm import tqdm
 
 from LookAround.config import Config
 from LookAround.core.agent import Agent
-from LookAround.FindView.env import FindViewActions, make_env
+from LookAround.FindView.env import FindViewActions, FindViewEnv
 from LookAround.utils.visualizations import save_images_as_video
 
 from findview_baselines.agents.greedy import GreedyMovementAgent
@@ -81,11 +81,10 @@ if __name__ == "__main__":
     filter_by_names = partial(filter_episodes_by_img_names, names=img_names)
 
     # initialize env
-    env = make_env(
+    env = FindViewEnv.from_config(
         cfg=cfg,
         split=split,
         filter_fn=filter_by_names,
-        is_torch=is_torch,
         dtype=dtype,
         device=device,
     )

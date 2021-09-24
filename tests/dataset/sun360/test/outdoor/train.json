@@ -1,0 +1,50 @@
+[
+    {
+        "img_name": "pano_aaxndenychllll",
+        "path": "outdoor/mountain/pano_aaxndenychllll.jpg",
+        "label": "outdoor",
+        "sub_label": "mountain"
+    },
+    {
+        "img_name": "pano_aayxnqgrqahhyn",
+        "path": "outdoor/mountain/pano_aayxnqgrqahhyn.jpg",
+        "label": "outdoor",
+        "sub_label": "mountain"
+    },
+    {
+        "img_name": "pano_aacjatknxlibxu",
+        "path": "outdoor/forest/pano_aacjatknxlibxu.jpg",
+        "label": "outdoor",
+        "sub_label": "forest"
+    },
+    {
+        "img_name": "pano_aaanenoyptsptr",
+        "path": "outdoor/forest/pano_aaanenoyptsptr.jpg",
+        "label": "outdoor",
+        "sub_label": "forest"
+    },
+    {
+        "img_name": "pano_aabvslkmdfpopc",
+        "path": "outdoor/park/pano_aabvslkmdfpopc.jpg",
+        "label": "outdoor",
+        "sub_label": "park"
+    },
+    {
+        "img_name": "pano_aaajdynxlypbde",
+        "path": "outdoor/park/pano_aaajdynxlypbde.jpg",
+        "label": "outdoor",
+        "sub_label": "park"
+    },
+    {
+        "img_name": "pano_aaaazxxvgsfelb",
+        "path": "outdoor/beach/pano_aaaazxxvgsfelb.jpg",
+        "label": "outdoor",
+        "sub_label": "beach"
+    },
+    {
+        "img_name": "pano_aaaessxzjnvypv",
+        "path": "outdoor/beach/pano_aaaessxzjnvypv.jpg",
+        "label": "outdoor",
+        "sub_label": "beach"
+    }
+]

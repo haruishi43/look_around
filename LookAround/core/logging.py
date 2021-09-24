@@ -1,5 +1,9 @@
 #!/usr/bin/env python3
 
+"""Reference:
+https://github.com/facebookresearch/habitat-lab/blob/master/habitat/core/logging.py
+"""
+
 import logging
 
 

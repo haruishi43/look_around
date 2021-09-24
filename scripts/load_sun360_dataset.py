@@ -42,7 +42,7 @@ def parse_args():
         "--config",
         required=True,
         type=str,
-        help="config file for creating dataset"
+        help="config file for the dataset"
     )
     return parser.parse_args()
 

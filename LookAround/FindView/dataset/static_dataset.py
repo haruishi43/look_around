@@ -1,18 +1,5 @@
 #!/usr/bin/env python3
 
-"""Static Dataset
-
-Purpose:
-- Dataset is in charge of creating `iterable`s
-- Each item in the `iterable` is an instance of `Episode`
--
-
-Why use `Generic` and `TypeVar`?
-- We want `Dataset` to be able to use various `Episode`s
-- Meaning any subclass of `Episode` is allowed for `Dataset
-
-"""
-
 from copy import copy, deepcopy
 import os
 import json
@@ -35,45 +22,131 @@ T = TypeVar("T", bound=Episode)
 
 
 class StaticDataset(Generic[T]):
-    """Static Dataset
 
-    Pre-defined in the way that the Dataset (episodes) are already
-    created and made into a `.json` file with ALL attributes (of the
-    `Episode`) filled out.
-
-    - This class is mainly used to get an iterator (Val, Test)
-    - Sometimes, it might be useful for Training when we want less
-      time for sampling new dataset in `DynamicDataset`
-
-    """
     episodes: List[T]
+
+    _fov: float
+    _min_steps: int
+    _max_steps: int
+    _step_size: int
+    _max_seconds: int
+    _seed: int
 
     def __init__(
         self,
-        cfg: Config,
-        split: str,
+        data_dir: os.PathLike,
+        dataset_json_path: os.PathLike,
+        fov: float,
+        min_steps: int = 10,
+        max_steps: int = 5000,
+        step_size: int = 1,
+        pitch_threshold: int = 60,
+        max_seconds: int = 10000000,
+        seed: int = 0,
     ) -> None:
+        """Static Dataset
 
-        # NOTE: only using `Config` for initializing `episodes`
-        # initialize episodes
-        self.episodes = []
+        params:
+        - data_dir (PathLike): data root `data`
+        - dataset_json_path (PathLike): json file of the dataset
+        - fov (float)
+        - min_steps (int)
+        - max_steps (int)
+        - step_size (int)
+        - max_seconds (int)
+        - pitch_threshold (int)
+        - seed (int)
 
-        # NOTE: `split` should be `val` or `test` (sometimes `train`)
-        dataset_json_path = cfg.dataset_json_path.format(
-            root=cfg.dataset_root,
-            name=cfg.dataset_name,
-            version=cfg.version,
-            category=cfg.category,
-            split=split,
-        )
-        data_dir = os.path.join(cfg.data_root, cfg.dataset_name)
+        Pre-defined in the way that the Dataset (episodes) are already
+        created and made into a `.json` file with ALL attributes (of the
+        `Episode`) filled out.
+
+        - This class is mainly used to get an iterator (Val, Test)
+        - Sometimes, it might be useful for Training when we want less
+        time for sampling new dataset in `DynamicDataset`
+
+        """
+
         assert os.path.exists(dataset_json_path), \
             f"ERR: {dataset_json_path} doesn't exist"
         assert os.path.exists(data_dir), \
             f"ERR: {data_dir} doesn't exist"
 
+        self.episodes = []
+
+        # Keep parameters
+        # this is needed by the simulator and env
+        self._fov = fov
+        self._min_steps = min_steps
+        self._max_steps = max_steps
+        self._step_size = step_size
+        self._max_seconds = max_seconds
+        self._pitch_threshold = pitch_threshold
+        self._seed = seed
+
         with open(dataset_json_path, "r") as f:
-            self.from_json(f.read(), data_dir=data_dir)
+            self.episodes_from_json(f.read(), data_dir=data_dir)
+
+    @classmethod
+    def from_config(cls, cfg: Config, split: str = "test"):
+        """Initialize StaticDataset using Config
+
+        params:
+        - cfg (Config)
+        - split (str): split referes to the json file name
+        """
+
+        # FIXME: should `split` be in config?
+        data_dir = os.path.join(cfg.data_root, cfg.dataset.name)
+        dataset_json_path = cfg.dataset.json_path.format(
+            root=cfg.dataset_root,
+            name=cfg.dataset.name,
+            version=cfg.dataset.version,
+            category=cfg.dataset.category,
+            split=split,
+        )
+
+        return cls(
+            data_dir=data_dir,
+            dataset_json_path=dataset_json_path,
+            fov=cfg.dataset.fov,
+            min_steps=cfg.dataset.min_steps,
+            max_steps=cfg.dataset.max_steps,
+            step_size=cfg.dataset.step_size,
+            pitch_threshold=cfg.dataset.pitch_threshold,
+            max_seconds=cfg.dataset.max_seconds,
+            seed=cfg.seed,  # NOTE: seed not `cfg.dataset`
+        )
+
+    @property
+    def fov(self) -> float:
+        assert self._fov is not None
+        return self._fov
+
+    @property
+    def min_steps(self) -> int:
+        assert self._min_steps is not None
+        return self._min_steps
+
+    @property
+    def max_steps(self) -> int:
+        assert self._max_steps is not None
+        return self._max_steps
+
+    @property
+    def step_size(self) -> int:
+        assert self._step_size is not None
+        return self._step_size
+
+    @property
+    def max_seconds(self) -> int:
+        assert self._max_seconds is not None
+        return self._max_seconds
+
+    @property
+    def pitch_threshold(self) -> int:
+        assert self._pitch_threshold is not None
+        return self._pitch_threshold
 
     def __len__(self) -> int:
         return len(self.episodes)
@@ -84,7 +157,7 @@ class StaticDataset(Generic[T]):
     def get_sub_labels(self) -> List[str]:
         return list(set([e.sub_label for e in self.episodes]))
 
-    def from_json(
+    def episodes_from_json(
         self,
         json_str: str,
         data_dir: os.PathLike,
@@ -108,7 +181,10 @@ class StaticDataset(Generic[T]):
         self,
         **kwargs,
     ) -> "StaticIterator":
-        return StaticIterator(self.episodes, **kwargs)
+        return StaticIterator(
+            self.episodes,
+            **kwargs,
+        )
 
     def filter_dataset(self, filter_fn: Callable[[T], bool]) -> "StaticDataset":
         new_episodes = []
@@ -117,7 +193,7 @@ class StaticDataset(Generic[T]):
                 new_episodes.append(episode)
         assert len(new_episodes) > 0, \
             "ERR: filtered all episodes; no episode for dataset"
-        new_dataset = copy(self)
+        new_dataset = copy(self)  # copies all attributes
         new_dataset.episodes = new_episodes
         return new_dataset
 
