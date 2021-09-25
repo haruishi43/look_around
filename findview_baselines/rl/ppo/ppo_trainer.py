@@ -17,7 +17,7 @@ from LookAround.core.improc import post_process_for_render_torch
 from LookAround.FindView import ThreadedVecEnv, FindViewRLEnv
 from LookAround.utils.visualizations import renders_to_image
 
-from LookAround.FindView.vec_env import construct_envs, construct_test_envs
+from LookAround.FindView.vec_env import construct_envs
 
 from findview_baselines.common.rollout_storage import RolloutStorage
 from findview_baselines.common.tensorboard_utils import TensorboardWriter
@@ -266,10 +266,9 @@ class PPOTrainer:
             dtype = np.float32
 
         self.envs = construct_envs(
-            env_cls=FindViewRLEnv,
             cfg=cfg,
             split=split,
-            is_torch=split_cfg.is_torch,
+            is_rlenv=True,
             dtype=dtype,
             device=torch.device(split_cfg.device),
             vec_type="threaded",
@@ -278,7 +277,6 @@ class PPOTrainer:
     def _init_test_envs(
         self,
         split: str,
-        difficulties: List[str] = ["easy"],
         cfg: Optional[Config] = None,
     ) -> None:
         if cfg is None:
@@ -290,12 +288,10 @@ class PPOTrainer:
             dtype = torch.float32
         else:
             dtype = np.float32
-        self.envs = construct_test_envs(
-            env_cls=FindViewRLEnv,
+        self.envs = construct_envs(
             cfg=cfg,
             split=split,
-            difficulties=difficulties,
-            is_torch=split_cfg.is_torch,
+            is_rlenv=True,
             dtype=dtype,
             device=torch.device(split_cfg.device),
             vec_type="threaded",

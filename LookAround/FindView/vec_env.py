@@ -776,10 +776,9 @@ def seed(seed: int):
 
 
 def construct_envs(
-    env_cls: Union[FindViewEnv, FindViewRLEnv],
     cfg: Config,
     split: str,
-    is_torch: bool = True,
+    is_rlenv: bool = True,
     dtype: Union[np.dtype, torch.dtype] = torch.float32,
     device: torch.device = torch.device('cpu'),
     vec_type: str = "threaded",
@@ -827,98 +826,30 @@ def construct_envs(
 
         kwargs = dict(
             cfg=_cfg,
-            env_cls=env_cls,
             filter_fn=partial(filter_by_name, names=img_name_splits[i]),
             split=split,
             rank=i,
-            is_torch=is_torch,
             dtype=dtype,
             device=device,
         )
         env_fn_kwargs.append(kwargs)
 
     if vec_type == "mp":
-        # FIXME: why is this so slow???
-        # equilib???
+        # FIXME: Very slow. Torch using multi-thread?
         envs = MPVecEnv(
-            make_env_fn=make_env_fn,
+            make_env_fn=make_rl_env_fn if is_rlenv else make_env_fn,
             env_fn_kwargs=env_fn_kwargs,
         )
     elif vec_type == "slow":
         # NOTE: `slow` is actually faster than multiprocessing
         envs = SlowVecEnv(
-            make_env_fn=make_env_fn,
+            make_env_fn=make_rl_env_fn if is_rlenv else make_env_fn,
             env_fn_kwargs=env_fn_kwargs,
         )
     elif vec_type == "threaded":
         # NOTE: this is the fastest so far...
         envs = ThreadedVecEnv(
-            make_env_fn=make_env_fn,
-            env_fn_kwargs=env_fn_kwargs,
-        )
-    else:
-        raise ValueError(f"ERR: {vec_type} not supported")
-    return envs
-
-
-def construct_test_envs(
-    env_cls: Union[FindViewEnv, FindViewRLEnv],
-    cfg: Config,
-    split: str,
-    difficulties: List[str] = ["easy"],
-    is_torch: bool = True,
-    dtype: Union[np.dtype, torch.dtype] = torch.float32,
-    device: torch.device = torch.device('cpu'),
-    vec_type: str = "threaded",
-) -> Union[SlowVecEnv, MPVecEnv, ThreadedVecEnv]:
-
-    num_envs = cfg.num_envs
-
-    assert split == "test"
-
-    env_fn_kwargs = []
-    for i in range(num_envs):
-
-        _cfg = Config(deepcopy(cfg))  # make sure to clone
-        _cfg.seed = _cfg.seed + i  # iterator and sampler depends on this
-
-        # print(">>>", i)
-        # print(_cfg.pretty_text)
-        # print(len(img_name_splits[i]), len(img_names))
-
-        # FIXME: maybe change how the devices are allocated
-        # if there are multiple devices (cuda), it would be
-        # nice to somehow split the devices evenly
-
-        kwargs = dict(
-            cfg=_cfg,
-            env_cls=env_cls,
-            filter_fn=partial(filter_by_difficulty, difficulties=difficulties),
-            split=split,
-            rank=i,
-            is_torch=is_torch,
-            dtype=dtype,
-            device=device,
-        )
-        env_fn_kwargs.append(kwargs)
-
-    if vec_type == "mp":
-        # FIXME: why is this so slow???
-        # equilib???
-        envs = MPVecEnv(
-            make_env_fn=make_env_fn,
-            env_fn_kwargs=env_fn_kwargs,
-        )
-    elif vec_type == "slow":
-        # NOTE: `slow` is actually faster than multiprocessing
-        envs = SlowVecEnv(
-            make_env_fn=make_env_fn,
-            env_fn_kwargs=env_fn_kwargs,
-        )
-    elif vec_type == "threaded":
-        # NOTE: this is the fastest so far...
-        envs = ThreadedVecEnv(
-            make_env_fn=make_env_fn,
+            make_env_fn=make_rl_env_fn if is_rlenv else make_env_fn,
             env_fn_kwargs=env_fn_kwargs,
         )
     else:
