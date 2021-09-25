@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-from typing import Optional, Union
+from typing import Callable, Optional, Union
 
 import gym
 import numpy as np
@@ -27,7 +27,7 @@ class FindViewRLEnv(gym.Env):
         self,
         cfg: Config,
         split: str,
-        filter_fn=None,
+        filter_fn: Optional[Callable[..., bool]] = None,
         dtype: Union[np.dtype, torch.dtype] = torch.float32,
         device: torch.device = torch.device('cpu'),
     ) -> None:
@@ -57,7 +57,6 @@ class FindViewRLEnv(gym.Env):
         self._min_steps = dataset.min_steps
         self._max_steps = dataset.max_steps
 
-        self.number_of_episodes = self._env.number_of_episodes
         self.observation_space = self._env.observation_space
         self.action_space = self._env.action_space
 
@@ -75,7 +74,13 @@ class FindViewRLEnv(gym.Env):
     def current_episode(self) -> Episode:
         return self._env.current_episode
 
-    def _reset_metrics(self):
+    @property
+    def number_of_episodes(self) -> Optional[int]:
+        return self._env.number_of_episodes
+
+    def _reset_metrics(self) -> None:
+        # NOTE: it's a `gym` thing, don't really need to implement
+        # return (-np.inf, np.inf)
         raise NotImplementedError
 
     def reset(self):
@@ -86,7 +91,7 @@ class FindViewRLEnv(gym.Env):
     def get_reward_range(self):
         raise NotImplementedError
 
-    def get_reward(self, observations):
+    def get_reward(self, observations) -> float:
         raise NotImplementedError
 
     def get_done(self, observations) -> bool:
@@ -171,15 +176,13 @@ class BasicFindviewRLEnv(FindViewRLEnv):
         self._prev_dist = None
 
     def get_reward_range(self):
-        # NOTE: it's a `gym` thing, don't really need to implement
-        # return (-np.inf, np.inf)
         # FIXME: better range calculation
         return (
             self._max_steps * self._slack_reward - (120 + 180),
             self._min_steps * self._slack_reward + self._success_reward,
         )
 
-    def _reset_metrics(self):
+    def _reset_metrics(self) -> None:
         self._prev_dist = self._env.get_metrics()['l1_distance_to_target']
 
     def _end_rewards(self, measures):
@@ -219,7 +222,7 @@ class BasicFindviewRLEnv(FindViewRLEnv):
         reward_same_view = -num_same_rots
         return reward_same_view
 
-    def get_reward(self, observations):
+    def get_reward(self, observations) -> float:
         # FIXME: make a good reward function here
         measures = self._env.get_metrics()
         curr_dist = measures['l1_distance_to_target']
@@ -239,27 +242,3 @@ class BasicFindviewRLEnv(FindViewRLEnv):
         reward = reward_slack + reward_dist + reward_success
 
         return reward
-
-
-# FIXME: don't have the usecase for this...
-def make_rl_env(
-    cfg: Config,
-    split: str,
-    filter_fn=None,
-    is_torch: bool = True,
-    dtype: Union[np.dtype, torch.dtype] = torch.float32,
-    device: torch.device = torch.device('cpu'),
-) -> FindViewRLEnv:
-    if is_torch:
-        assert dtype in (torch.float16, torch.float32, torch.float64)
-    else:
-        assert dtype in (np.float32, np.float64)
-    env = FindViewRLEnv(
-        cfg=cfg,
-        split=split,
-        filter_fn=filter_fn,
-        is_torch=is_torch,
-        dtype=dtype,
-        device=device,
-    )
-    return env

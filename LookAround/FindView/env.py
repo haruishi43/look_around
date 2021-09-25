@@ -2,7 +2,7 @@
 
 import random
 import time
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Callable, Dict, List, Optional, Union
 
 from gym import spaces
 import numpy as np
@@ -140,7 +140,7 @@ class FindViewEnv(object):
         cls,
         cfg: Config,
         split: str,
-        filter_fn=None,
+        filter_fn: Optional[Callable[..., bool]] = None,
         dtype: Union[np.dtype, torch.dtype] = torch.float32,
         device: torch.device = torch.device('cpu'),
     ):

@@ -1,5 +1,5 @@
 _base_ = [
-    "./test_env.py"
+    "./env_1.py"
 ]
 rl_env = dict(
     name="Basic",

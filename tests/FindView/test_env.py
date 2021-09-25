@@ -7,7 +7,7 @@ from LookAround.FindView.env import FindViewEnv
 
 
 def test_env():
-    cfg = Config.fromfile("tests/configs/test_env.py")
+    cfg = Config.fromfile("tests/configs/env_1.py")
     print(cfg.pretty_text)
 
     env = FindViewEnv.from_config(
@@ -28,7 +28,7 @@ def test_env():
 
 
 def test_env_2():
-    cfg = Config.fromfile("tests/configs/test_env.py")
+    cfg = Config.fromfile("tests/configs/env_1.py")
     print(cfg.pretty_text)
 
     # check for termination
@@ -52,7 +52,7 @@ def test_env_2():
 
 
 def test_env_3():
-    cfg = Config.fromfile("tests/configs/test_env.py")
+    cfg = Config.fromfile("tests/configs/env_1.py")
     print(cfg.pretty_text)
 
     env = FindViewEnv.from_config(

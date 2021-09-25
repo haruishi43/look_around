@@ -2,7 +2,8 @@
 
 """Naive Vectorized Environment for RL
 
-exploit equi2pers's batch sampling
+Reference:
+https://github.com/facebookresearch/habitat-lab/blob/master/habitat/core/vector_env.py
 
 """
 
@@ -38,7 +39,7 @@ from torch import multiprocessing as mp  # type:ignore
 from LookAround.config import Config
 from LookAround.FindView.dataset import Episode, PseudoEpisode, make_dataset
 from LookAround.FindView.env import FindViewEnv
-from LookAround.FindView.rl_env import FindViewRLEnv
+from LookAround.FindView.rl_env import FindViewRLEnv, RLEnvRegistry
 from LookAround.FindView.sim import deg2rad
 from LookAround.utils.visualizations import tile_images
 from LookAround.utils.pickle5_multiprocessing import ConnectionWrapper
@@ -60,7 +61,7 @@ OBSERVATION_SPACE_NAME = "observation_space"
 
 @attr.s(auto_attribs=True, slots=True)
 class _ReadWrapper:
-    r"""Convenience wrapper to track if a connection to a worker process
+    """Convenience wrapper to track if a connection to a worker process
     should have something to read.
     """
     read_fn: Callable[[], Any]
@@ -81,7 +82,7 @@ class _ReadWrapper:
 
 @attr.s(auto_attribs=True, slots=True)
 class _WriteWrapper:
-    r"""Convenience wrapper to track if a connection to a worker process
+    """Convenience wrapper to track if a connection to a worker process
     can be written to safely.  In other words, checks to make sure the
     result returned from the last write was read.
     """
@@ -404,7 +405,7 @@ class MPVecEnv(object):
         self._paused.append((index, read_fn, write_fn, worker))
 
     def resume_all(self) -> None:
-        r"""Resumes any paused envs."""
+        """Resumes any paused envs."""
         for index, read_fn, write_fn, worker in reversed(self._paused):
             self._connection_read_fns.insert(index, read_fn)
             self._connection_write_fns.insert(index, write_fn)
@@ -731,26 +732,41 @@ def filter_by_difficulty(
 
 def make_env_fn(
     cfg: Config,
-    env_cls: Union[FindViewEnv, FindViewRLEnv],
-    filter_fn,
+    filter_fn: Callable[..., bool],
     split: str,
     rank: int,
-    is_torch: bool = True,
     dtype: Union[np.dtype, torch.dtype] = torch.float32,
     device: torch.device = torch.device('cpu'),
-) -> Union[FindViewEnv, FindViewRLEnv]:
-
-    env = env_cls(
+) -> FindViewEnv:
+    env: FindViewEnv = FindViewEnv.from_config(
         cfg=cfg,
         split=split,
         filter_fn=filter_fn,
-        is_torch=is_torch,
         dtype=dtype,
         device=device,
     )
     env.seed(rank)
-
     return env
+
+
+def make_rl_env_fn(
+    cfg: Config,
+    filter_fn: Callable[..., bool],
+    split: str,
+    rank: int,
+    dtype: Union[np.dtype, torch.dtype] = torch.float32,
+    device: torch.device = torch.device('cpu'),
+) -> FindViewRLEnv:
+    rlenv: FindViewRLEnv = RLEnvRegistry.build(
+        cfg.rl_env.name,
+        cfg=cfg,
+        filter_fn=filter_fn,
+        split=split,
+        dtype=dtype,
+        device=device,
+    )
+    rlenv.seed(rank)
+    return rlenv
 
 
 def seed(seed: int):

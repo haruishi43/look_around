@@ -7,7 +7,7 @@ from LookAround.FindView.rl_env import FindViewRLEnv, RLEnvRegistry
 
 
 def test_rlenv():
-    cfg = Config.fromfile("tests/configs/test_rl_env.py")
+    cfg = Config.fromfile("tests/configs/rl_env_1.py")
     print(cfg.pretty_text)
 
     num_steps = 4000

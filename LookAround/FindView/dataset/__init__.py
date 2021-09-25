@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
 
+from typing import Callable, Optional, Union
+
 from LookAround.config import Config
 from LookAround.FindView.dataset.dynamic_dataset import DynamicDataset
 from LookAround.FindView.dataset.static_dataset import StaticDataset
@@ -12,7 +14,11 @@ __all__ = [
 ]
 
 
-def make_dataset(cfg: Config, split: str, filter_fn=None):
+def make_dataset(
+    cfg: Config,
+    split: str,
+    filter_fn: Optional[Callable[..., bool]] = None,
+) -> Union[DynamicDataset, StaticDataset]:
     """Simple function to create dataset from config
 
     params:
