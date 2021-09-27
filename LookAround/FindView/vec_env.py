@@ -188,8 +188,10 @@ class MPVecEnv(object):
                         )
                     elif isinstance(env, FindViewEnv):  # type: ignore
                         observations = env.step(**data)
-                        if auto_reset_done and env.episode_over:
-                            observations = env.reset()
+                        # NOTE: don't restart since `episode_over` also gets reset
+                        # FIXME: get `dones` if `auto_reset` is True?
+                        # if auto_reset_done and env.episode_over:
+                        #     observations = env.reset()
                         connection_write_fn(observations)
                     else:
                         raise NotImplementedError
@@ -545,7 +547,7 @@ class ThreadedVecEnv(MPVecEnv):
         return read_fns, write_fns
 
 
-class SlowVecEnv(object):
+class EquilibVecEnv(object):
 
     envs: List[Union[FindViewEnv, FindViewEnv]]
     observation_spaces: List[spaces.Dict]
@@ -649,14 +651,20 @@ class SlowVecEnv(object):
 
         # make sure to get observations
         for env in self.envs:
-            observation, reward, done, info = env.step_after()
+            if isinstance(env, FindViewRLEnv):
+                observation, reward, done, info = env.step_after()
 
-            if done and self._auto_reset_done:
-                observation = env.reset()
+                if done and self._auto_reset_done:
+                    observation = env.reset()
 
-            batch_ret.append(
-                (observation, reward, done, info)
-            )
+                batch_ret.append(
+                    (observation, reward, done, info)
+                )
+            elif isinstance(env, FindViewEnv):
+                obs = env.step_after()
+                batch_ret.append(obs)
+
+                # NOTE: we don't `auto_reset` for Env
 
         # Serial method
         # NOTE: pretty slow
@@ -782,7 +790,7 @@ def construct_envs(
     dtype: Union[np.dtype, torch.dtype] = torch.float32,
     device: torch.device = torch.device('cpu'),
     vec_type: str = "threaded",
-) -> Union[SlowVecEnv, MPVecEnv, ThreadedVecEnv]:
+) -> Union[EquilibVecEnv, MPVecEnv, ThreadedVecEnv]:
 
     # NOTE: make sure to seed first so that we get consistant tests
     seed(cfg.seed)
@@ -840,9 +848,9 @@ def construct_envs(
             make_env_fn=make_rl_env_fn if is_rlenv else make_env_fn,
             env_fn_kwargs=env_fn_kwargs,
         )
-    elif vec_type == "slow":
+    elif vec_type == "equilib":
         # NOTE: `slow` is actually faster than multiprocessing
-        envs = SlowVecEnv(
+        envs = EquilibVecEnv(
             make_env_fn=make_rl_env_fn if is_rlenv else make_env_fn,
             env_fn_kwargs=env_fn_kwargs,
         )

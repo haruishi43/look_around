@@ -1,6 +1,5 @@
 _base_ = [
-    './_base_/datasets/sun360_alpha_indoor.py',
-    './_base_/findview_sim.py',
+    './rl_envs/basic.py',
     './findview_agents/feature_matching.py'
 ]
 results_root = "./results"

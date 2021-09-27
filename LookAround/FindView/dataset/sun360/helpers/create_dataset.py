@@ -18,12 +18,6 @@ from LookAround.FindView.dataset.sampling import (
 )
 
 
-def seed(n: int = 0):
-    # Seed should be set to 0
-    random.seed(n)
-    np.random.seed(n)
-
-
 def gather_image_paths_in_category(
     category_path: PathLike,
     data_root: PathLike,

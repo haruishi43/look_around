@@ -3,44 +3,31 @@
 """Run `Env`
 
 Before building parallel environments, we need to test the basic environments
-
 """
 
 import argparse
 from functools import partial
 import json
 import os
-import random
 from typing import List
 
 import torch
 from tqdm import tqdm
 
 from LookAround.config import Config
-from LookAround.core.agent import Agent
-from LookAround.FindView.env import FindViewActions, FindViewEnv
+from LookAround.utils.random import seed
+from LookAround.FindView.env import FindViewEnv
 from LookAround.utils.visualizations import save_images_as_video
 
+from findview_baselines.agents.single_movement import SingleMovementAgent
 from findview_baselines.agents.greedy import GreedyMovementAgent
 from findview_baselines.agents.feature_matching import FeatureMatchingAgent
 
-random.seed(0)
+seed(0)
 
 
 def filter_episodes_by_img_names(episode, names: List[str]) -> bool:
     return episode.img_name in names
-
-
-class SingleMovementAgent(Agent):
-    def __init__(self, action: str = "right") -> None:
-        assert action in FindViewActions.all
-        self.action = action
-
-    def act(self, observation):
-        return self.action
-
-    def reset(self):
-        ...
 
 
 def parse_args():
@@ -54,7 +41,7 @@ def parse_args():
         "--agent",
         required=True,
         type=str,
-        choices=['greedy', 'single', 'fm'],
+        choices=['single', 'greedy', 'fm'],
         help="name of the agent"
     )
     return parser.parse_args()
@@ -64,13 +51,12 @@ if __name__ == "__main__":
     args = parse_args()
     config_path = args.config
     cfg = Config.fromfile(config_path)
-    cfg.max_steps = 2000
+    cfg.dataset.max_steps = 2000
     print(">>> Config:")
     print(cfg.pretty_text)
 
     # params:
     split = 'test'
-    is_torch = True
     dtype = torch.float32
     device = torch.device('cpu')
     num_steps = 5000
@@ -90,11 +76,11 @@ if __name__ == "__main__":
     )
     # initialize agent
     if args.agent == "single":
-        agent = SingleMovementAgent(action="right")
+        agent = SingleMovementAgent.from_config(cfg)
     elif args.agent == "greedy":
-        agent = GreedyMovementAgent(cfg=cfg)
+        agent = GreedyMovementAgent.from_config(cfg)
     elif args.agent == "fm":
-        agent = FeatureMatchingAgent(cfg=cfg)
+        agent = FeatureMatchingAgent.from_config(cfg)
     else:
         raise ValueError
 

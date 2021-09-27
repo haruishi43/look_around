@@ -1,4 +1,4 @@
 _base_ = [
-    "./env_1.py",
+    "./rl_env_1.py",
 ]
 num_envs = 4

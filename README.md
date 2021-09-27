@@ -19,7 +19,7 @@ pip install -r requirements.txt
 ### Make Dataset
 
 ```Bash
-python scripts/make_sun360_dataset.py --config configs/_base_/datasets/sun360_alpha_indoor.py
+python tools/make_findview_sun360_dataset.py --config configs/_base_/datasets/sun360_alpha_indoor.py
 ```
 
 ## Training
@@ -66,7 +66,7 @@ CUDA_VISIBLE_DEVICES=0, python findview_baselines/agents/ppo.py --config configs
 ### Print config
 
 ```Bash
-python scripts/print_config.py <config>
+python tools/print_config.py <config>
 ```
 
 ### Run the environment interactively or some agent/policy

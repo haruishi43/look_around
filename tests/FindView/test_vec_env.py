@@ -1,7 +1,12 @@
 #!/usr/bin/env python3
 
-import json
-import os
+"""
+TODO:
+- [x] Test Threaded
+- [ ] Test Multiprocessing
+- [ ] Test EquilibVecEnv
+"""
+
 import random
 
 # import numpy as np
@@ -10,9 +15,7 @@ from tqdm import tqdm
 
 from LookAround.config import Config
 from LookAround.FindView.env import FindViewActions
-from LookAround.FindView.rl_env import FindViewRLEnv
 from LookAround.FindView.vec_env import construct_envs
-from LookAround.utils.visualizations import save_images_as_video
 
 
 class SingleMovementAgent(object):
@@ -63,18 +66,15 @@ def test_vec_env():
 
     # params:
     vec_type = "threaded"
-    env_cls = FindViewRLEnv
     split = 'train'
-    is_torch = True
     dtype = torch.float32
     device = torch.device('cpu')
     num_steps = 500
 
     envs = construct_envs(
-        env_cls=env_cls,
         cfg=cfg,
         split=split,
-        is_torch=is_torch,
+        is_rlenv=False,
         dtype=dtype,
         device=device,
         vec_type=vec_type,
@@ -84,40 +84,63 @@ def test_vec_env():
 
     assert envs.num_envs == cfg.num_envs
 
-    images = []
+    # reset env
+    _ = envs.reset()
+
+    for _ in tqdm(range(num_steps)):
+
+        actions = [agent.act() for agent in agents]
+
+        _ = envs.step(actions)
+        dones = envs.episode_over()
+
+        for i, done in enumerate(dones):
+            if done:
+                print(f"Loading next episode for {i}")
+                # NOTE: Env needs to be reset
+                envs.reset_at(i)
+                agents[i].reset()
+
+
+def test_rl_vec_env():
+    cfg = Config.fromfile("tests/configs/vec_rl_env_1.py")
+    print(cfg.pretty_text)
+
+    # params:
+    vec_type = "threaded"
+    split = 'train'
+    dtype = torch.float32
+    device = torch.device('cpu')
+    num_steps = 500
+
+    envs = construct_envs(
+        cfg=cfg,
+        split=split,
+        is_rlenv=True,
+        dtype=dtype,
+        device=device,
+        vec_type=vec_type,
+    )
+
+    agents = [GreedyMovementAgent() for _ in range(cfg.num_envs)]
+
+    assert envs.num_envs == cfg.num_envs
 
     # reset env
-    print("reset!")
-    obs = envs.reset()
-    print(len(obs), obs[0].keys())
-    render = envs.render()
-    # images.append(render['target'])
-    images.append(render['pers'])
-    episodes = envs.current_episodes()
+    _ = envs.reset()
 
-    for step in tqdm(range(num_steps)):
+    for _ in tqdm(range(num_steps)):
 
         actions = [agent.act() for agent in agents]
 
         outputs = envs.step(actions)
-        obs, rewards, dones, infos = [list(x) for x in zip(*outputs)]
-        # print(rewards)
-        # print(dones)
-        pers = envs.render()['pers']
-        # target = envs.render()['target']
-        images.append(pers)
+        _, _, dones, infos = [list(x) for x in zip(*outputs)]
 
         for i, done in enumerate(dones):
             if done:
                 if actions[i] == "stop":
                     print(f"{i} called stop")
                     assert infos[i]['called_stop']
+
                 print(f"Loading next episode for {i}")
-                save_path = os.path.join('./results/vecrlenv', f"{i}_{infos[i]['img_name']}.json")
-                with open(save_path, 'w') as f:
-                    json.dump(infos[i], f, indent=2)
-
                 agents[i].reset()
-
-    save_path = os.path.join('./results/vecrlenv', 'test.mp4')
-    save_images_as_video(images, save_path)

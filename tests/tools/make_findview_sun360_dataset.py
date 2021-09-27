@@ -1,81 +1,6 @@
 #!/usr/bin/env python3
 
-"""Simple script to create dataset
-
-- Test data should be static
-- I think training data can be random, but we can create a training set just in case
-
-First, I think we divide the dataset (SUN360) into 3 sets:
-- Train
-- Validation
-- Test
-
-I think we should use validation to check if the agent is not overfitting the training set
-
-SUN360 scenes:
-- Main scenes: indoor, outdoor, other
-- Sub scenes: only for indoor and outdoor
-
-NOTE: What we need for our dataset:
-Val and Test
-- episode_id
-- img_name
-- path
-- label (scene)
-- sub_label (sub scene)
-- initial_rotation
-- target_rotation
-- difficulty
-- steps_for_shortest_path (hints for training)
-Train
-- img_name
-- path
-- label (scene)
-- sub_label (sub scene)
-
-Difficulties:
-- easy (target is near initial rot; can see in FOV)
-- medium (a little bit far; can see a little in FOV)
-- hard (farther; can't see in FOV)
-
-NOTE: I think `difficulties` are used in scheduling to make it so that the agent can gradually
-understand the task
-
-NOTE: Prior criteria: ASSUMPTIONS!
-- Need to make sure that the agent can reach the target
-- Set yaw and pitch movements to increments of 1 degree (integers!)
-- Using integers saves space too
-- We also need to set the threshold of the upper and lower bound to pitch direction
-- Since the FOV is usually 90 degrees, if you tilt 45 degrees, you can see the pole
-- Maybe set the threshold to 60?
-- Pitch should be normal distribution
-
-# How...
-
-## Create splits
-
-- Save as pickle file for now
-
-## How to sample:
-
-### Test and validation sets
-
-- We can't have varying validation and test dataset since even if we set the seed,
-  there are no guarantees that the dataset will be the same
-- It is better to save the test and validation datasets for reproducability
-
-1. Set hyper parameters (save to txt file or something so I don't forget)
-2. Get all images
-3. Make a list of dictionaries (each dictionary is a dataset)
-4. Dump to json!
-
-### Training Set
-
-- Training set would be huge to save and load (set seed and load dynamically)
-- Perhaps create training set on-the-fly...
-- Performance issues with sampling init and targ rotations
-- Speed of data loading (creation)
-- Memory usage of allocating tremendous amounts of training data
+"""Script to make test dataset
 
 """
 
@@ -87,8 +12,8 @@ import pickle
 from tqdm import tqdm
 
 from LookAround.config import Config
+from LookAround.utils.random import seed
 from LookAround.FindView.dataset.sun360.helpers.create_dataset import (
-    seed,
     gather_image_paths_in_category,
     create_splits_for_category,
     check_single_data_based_on_difficulty,
@@ -100,7 +25,6 @@ def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "--config",
-        required=True,
         type=str,
         help="config file for creating dataset"
     )

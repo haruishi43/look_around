@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-"""Script to make test dataset
+"""Simple script for creating SUN360 Datset for FindView
 
 """
 
@@ -12,8 +12,8 @@ import pickle
 from tqdm import tqdm
 
 from LookAround.config import Config
+from LookAround.utils.random import seed
 from LookAround.FindView.dataset.sun360.helpers.create_dataset import (
-    seed,
     gather_image_paths_in_category,
     create_splits_for_category,
     check_single_data_based_on_difficulty,
@@ -25,6 +25,7 @@ def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "--config",
+        required=True,
         type=str,
         help="config file for creating dataset"
     )
@@ -59,14 +60,14 @@ if __name__ == "__main__":
     split_ratios = cfg.dataset.split_ratios
 
     # check params
-    seed(cfg.seed)  # set seed -> should be 0
+    seed(cfg.seed)  # NOTE: should be 0
     assert sum(split_ratios) == 1.0
     assert os.path.exists(sun360_root)
     assert os.path.exists(dataset_root)
 
     # splits paths
     # NOTE: using pickle just because it's easier for now
-    # if we want to read what are in the .data files, that might
+    # if we want to read what are in the `.data` files, that might
     # be a problem for now
     split_paths = {
         "train": os.path.join(dataset_root, "train.data"),
@@ -74,7 +75,7 @@ if __name__ == "__main__":
         "test": os.path.join(dataset_root, "test.data"),
     }
 
-    # Create Splits (if needed)
+    # 1. Create Splits (if needed)
 
     if args.rebuild_splits or not all(os.path.exists(p) for p in split_paths.values()):
         print(f">>> BUILDING SPLITS for {cfg.dataset.category}")
@@ -114,12 +115,12 @@ if __name__ == "__main__":
             with open(save_path, 'wb') as f:
                 pickle.dump(values, f)
 
-        print("saved")
+        print("saved splits data file")
 
-    # Create Datasets
+    # 2. Create Datasets
 
     # read splits from path
-    print("reading data...")
+    print("reading splits data files...")
     splits = {}
     for name, path in tqdm(split_paths.items()):
         with open(path, 'rb') as f:

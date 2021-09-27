@@ -46,6 +46,7 @@ class FindViewEnv(object):
         dataset: Union[DynamicDataset, StaticDataset],
         episode_iterator: Union[DynamicGenerator, StaticIterator],
         sim: FindViewSim,
+        seed: Optional[int] = None,
     ) -> None:
         """FindView Environment
         """
@@ -135,6 +136,9 @@ class FindViewEnv(object):
         self._episode_over = False
         self._called_stop = False
 
+        if seed is not None and isinstance(seed, int):
+            self.seed(seed)
+
     @classmethod
     def from_config(
         cls,
@@ -175,6 +179,7 @@ class FindViewEnv(object):
             dataset=dataset,
             episode_iterator=episode_iterator,
             sim=sim,
+            seed=cfg.seed,
         )
 
     @property
@@ -299,8 +304,8 @@ class FindViewEnv(object):
 
     def _make_base_obs(
         self,
-        pers,
-        target,
+        pers: Tensor,
+        target: Tensor,
     ) -> Dict[str, Tensor]:
         obs = {
             "pers": pers,
