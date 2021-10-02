@@ -14,11 +14,13 @@ TensorIndexType = Union[int, slice, Tuple[Union[int, slice], ...]]
 
 class TensorDict(Dict[str, Union["TensorDict", torch.Tensor]]):
     """A dictionary of tensors that can be indexed like a tensor or like a dictionary.
-    .. code:: py
-        t = TensorDict(a=torch.randn(2, 2), b=TensorDict(c=torch.randn(3, 3)))
-        print(t)
-        print(t[0, 0])
-        print(t["a"])
+
+    ```
+    t = TensorDict(a=torch.randn(2, 2), b=TensorDict(c=torch.randn(3, 3)))
+    print(t)
+    print(t[0, 0])
+    print(t["a"])
+    ```
     """
 
     @classmethod

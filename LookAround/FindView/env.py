@@ -26,13 +26,17 @@ from LookAround.FindView.dataset.dynamic_dataset import DynamicDataset, DynamicG
 
 class FindViewEnv(object):
 
+    # Properties
+    action_space: ActionSpace
+    observation_space: spaces.Dict
+
     # Modules
     _dataset: Union[DynamicDataset, StaticDataset]
     _episode_iterator: Union[DynamicGenerator, StaticIterator]
     _rot_tracker: RotationTracker
     _sim: FindViewSim
 
-    # Variables
+    # Hidden Properties
     _current_episode: Optional[Episode]
     _number_of_episodes: Optional[int]
     _max_episode_seconds: int
@@ -82,6 +86,7 @@ class FindViewEnv(object):
         )
         dtype = self._sim.dtype
         if self._sim.is_torch:
+            # in habitat they are known as `sensors`
             self.observation_space = spaces.Dict(
                 {
                     "pers": spaces.Box(

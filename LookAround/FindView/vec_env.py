@@ -37,6 +37,7 @@ import torch
 from torch import multiprocessing as mp  # type:ignore
 
 from LookAround.config import Config
+from LookAround.core.logging import logger
 from LookAround.FindView.dataset import Episode, PseudoEpisode, make_dataset
 from LookAround.FindView.env import FindViewEnv
 from LookAround.FindView.rl_env import FindViewRLEnv, RLEnvRegistry
@@ -99,15 +100,66 @@ class _WriteWrapper:
         self.read_wrapper.is_waiting = True
 
 
-class MPVecEnv(object):
+class VecEnv(object):
 
-    observation_spaces: List[spaces.Dict]
+    # Properties
     action_spaces: List[spaces.Dict]
+    observation_spaces: List[spaces.Dict]
+    number_of_episodes: Optional[int]
 
-    _workers: List[Union[mp.Process, Thread]]
-    _mp_ctx: BaseContext
+    # Hidden Properties
     _num_envs: int
     _auto_reset_done: bool
+
+    @property
+    def num_envs(self) -> int:
+        raise NotImplementedError
+
+    def current_episodes(self) -> List[Episode]:
+        raise NotImplementedError
+
+    def episode_over(self) -> List[bool]:
+        raise NotImplementedError
+
+    def get_metrics(self) -> List[Any]:
+        raise NotImplementedError
+
+    def reset(self) -> None:
+        raise NotImplementedError
+
+    def reset_at(self, index):
+        raise NotImplementedError
+
+    def step(self, actions) -> List[Any]:
+        raise NotImplementedError
+
+    def step_at(self, index, action):
+        raise NotImplementedError
+
+    def async_step_at(self, index, action) -> None:
+        raise NotImplementedError
+
+    def wait_step_at(self, index) -> List[Any]:
+        raise NotImplementedError
+
+    def pause_at(self, index):
+        raise NotImplementedError
+
+    def resume_all(self):
+        raise NotImplementedError
+
+    def close(self) -> None:
+        raise NotImplementedError
+
+    def render(self):
+        raise NotImplementedError
+
+
+class MPVecEnv(VecEnv):
+
+    # Hidden Properties
+    _workers: List[Union[mp.Process, Thread]]
+    _mp_ctx: BaseContext
     _connection_read_fns: List[_ReadWrapper]
     _connection_write_fns: List[_WriteWrapper]
 
@@ -223,8 +275,7 @@ class MPVecEnv(object):
                 command, data = connection_read_fn()
 
         except KeyboardInterrupt:
-            # logger.info("Worker KeyboardInterrupt")
-            print("Worker KeyboardInterrupt")
+            logger.info("Worker KeyboardInterrupt")
         finally:
             if child_pipe is not None:
                 child_pipe.close()
@@ -308,65 +359,69 @@ class MPVecEnv(object):
             results.append(read_fn())
         return results
 
-    def reset_at(self, index_env: int):
+    def reset_at(self, index: int):
         """Reset in the index_env environment in the vector.
         :param index_env: index of the environment to be reset
         :return: list containing the output of reset method of indexed env.
         """
-        self._connection_write_fns[index_env]((RESET_COMMAND, None))
-        results = [self._connection_read_fns[index_env]()]
+        self._connection_write_fns[index]((RESET_COMMAND, None))
+        results = [self._connection_read_fns[index]()]
         return results
 
     def async_step_at(
-        self, index_env: int, action: Union[int, str, Dict[str, Any]]
+        self,
+        index: int,
+        action: Union[int, str, Dict[str, Any]],
     ) -> None:
         # Backward compatibility
         if isinstance(action, (int, np.integer, str)):
             action = {"action": {"action": action}}
 
         self._warn_cuda_tensors(action)
-        self._connection_write_fns[index_env]((STEP_COMMAND, action))
+        self._connection_write_fns[index]((STEP_COMMAND, action))
 
-    def wait_step_at(self, index_env: int) -> Any:
-        return self._connection_read_fns[index_env]()
+    def wait_step_at(self, index: int) -> Any:
+        return self._connection_read_fns[index]()
 
-    def step_at(self, index_env: int, action: Union[int, str, Dict[str, Any]]):
-        """Step in the index_env environment in the vector.
-        :param index_env: index of the environment to be stepped into
+    def step_at(self, index: int, action: Union[int, str, Dict[str, Any]]):
+        """Step in the index environment in the vector.
+        :param index: index of the environment to be stepped into
         :param action: action to be taken
         :return: list containing the output of step method of indexed env.
         """
-        self.async_step_at(index_env, action)
-        return self.wait_step_at(index_env)
+        self.async_step_at(index, action)
+        return self.wait_step_at(index)
 
     def async_step(
-        self, data: Sequence[Union[int, str, Dict[str, Any]]]
+        self,
+        actions: Sequence[Union[int, str, Dict[str, Any]]],
     ) -> None:
         """Asynchronously step in the environments.
-        :param data: list of size _num_envs containing keyword arguments to
-            pass to :ref:`step` method for each Environment. For example,
-            :py:`[{"action": "TURN_LEFT", "action_args": {...}}, ...]`.
+        :param actions: list of size _num_envs containing keyword arguments to
+            pass to `step` method for each Environment. For example,
+            `[{"action": "TURN_LEFT", "action_args": {...}}, ...]`.
         """
 
-        for index_env, act in enumerate(data):
-            self.async_step_at(index_env, act)
+        for index, action in enumerate(actions):
+            self.async_step_at(index, action)
 
     def wait_step(self) -> List[Any]:
-        r"""Wait until all the asynchronized environments have synchronized."""
+        """Wait until all the asynchronized environments have synchronized."""
         return [
-            self.wait_step_at(index_env) for index_env in range(self.num_envs)
+            self.wait_step_at(i) for i in range(self.num_envs)
         ]
 
     def step(
-        self, data: Sequence[Union[int, str, Dict[str, Any]]]
+        self,
+        actions: Sequence[Union[int, str, Dict[str, Any]]],
     ) -> List[Any]:
         """Perform actions in the vectorized environments.
-        :param data: list of size _num_envs containing keyword arguments to
-            pass to :ref:`step` method for each Environment. For example,
-            :py:`[{"action": "TURN_LEFT", "action_args": {...}}, ...]`.
+        :param actions: list of size _num_envs containing keyword arguments to
+            pass to `step` method for each Environment. For example,
+            `[{"action": "TURN_LEFT", "action_args": {...}}, ...]`.
         :return: list of outputs from the step method of envs.
         """
-        self.async_step(data)
+        self.async_step(actions)
         return self.wait_step()
 
     def close(self) -> None:
@@ -499,10 +554,10 @@ class MPVecEnv(object):
 
 
 class ThreadedVecEnv(MPVecEnv):
-    """Provides same functionality as :ref:`VectorEnv`, the only difference
+    """Provides same functionality as `VecEnv`, the only difference
     is it runs in a multi-thread setup inside a single process.
-    The :ref:`VectorEnv` runs in a multi-proc setup. This makes it much easier
-    to debug when using :ref:`VectorEnv` because you can actually put break
+    The `VecEnv` runs in a multi-proc setup. This makes it much easier
+    to debug when using `VecEnv` because you can actually put break
     points in the environment methods. It should not be used for best
     performance.
     """
@@ -547,13 +602,10 @@ class ThreadedVecEnv(MPVecEnv):
         return read_fns, write_fns
 
 
-class EquilibVecEnv(object):
+class EquilibVecEnv(VecEnv):
 
+    # Properties
     envs: List[Union[FindViewEnv, FindViewEnv]]
-    observation_spaces: List[spaces.Dict]
-    action_spaces: List[spaces.Dict]
-
-    _auto_reset_done: bool
 
     def __init__(
         self,
@@ -594,8 +646,8 @@ class EquilibVecEnv(object):
             batch_obs.append(env.reset())
         return batch_obs
 
-    def reset_at(self, i):
-        obs = self.envs[i].reset()
+    def reset_at(self, index: int):
+        obs = self.envs[index].reset()
         return obs
 
     def step(self, actions: List[str]):
@@ -680,8 +732,14 @@ class EquilibVecEnv(object):
 
         return batch_ret
 
-    def step_at(self, i, action: str):
-        return self.envs[i].step(action)
+    def async_step_at(self, index, action) -> None:
+        raise NotImplementedError
+
+    def wait_step_at(self, index) -> List[Any]:
+        raise NotImplementedError
+
+    def step_at(self, index: int, action: str):
+        return self.envs[index].step(action)
 
     def pause_at(self, index: int) -> None:
         env = self.envs.pop(index)
@@ -777,7 +835,7 @@ def make_rl_env_fn(
     return rlenv
 
 
-def seed(seed: int):
+def seed(seed: int) -> None:
     # this sets a global random state
     random.seed(seed)
     np.random.seed(seed)
@@ -849,13 +907,13 @@ def construct_envs(
             env_fn_kwargs=env_fn_kwargs,
         )
     elif vec_type == "equilib":
-        # NOTE: `slow` is actually faster than multiprocessing
+        # NOTE: faster than multiprocessing
         envs = EquilibVecEnv(
             make_env_fn=make_rl_env_fn if is_rlenv else make_env_fn,
             env_fn_kwargs=env_fn_kwargs,
         )
     elif vec_type == "threaded":
-        # NOTE: this is the fastest so far...
+        # NOTE: fastest by far
         envs = ThreadedVecEnv(
             make_env_fn=make_rl_env_fn if is_rlenv else make_env_fn,
             env_fn_kwargs=env_fn_kwargs,

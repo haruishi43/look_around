@@ -21,6 +21,7 @@ __all__ = [
 
 class FindViewRLEnv(gym.Env):
 
+    # Hidden Properties
     _env: FindViewEnv
 
     def __init__(
@@ -153,6 +154,7 @@ RLEnvRegistry = Registry('rlenvs', build_func=build_func)
 
 @RLEnvRegistry.register_module(name='Basic')
 class BasicFindviewRLEnv(FindViewRLEnv):
+
     def __init__(
         self,
         cfg: Config,
@@ -175,7 +177,7 @@ class BasicFindviewRLEnv(FindViewRLEnv):
         # metrics to follow
         self._prev_dist = None
 
-    def get_reward_range(self):
+    def get_reward_range(self) -> tuple:
         # FIXME: better range calculation
         return (
             self._max_steps * self._slack_reward - (120 + 180),

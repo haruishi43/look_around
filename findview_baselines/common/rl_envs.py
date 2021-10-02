@@ -3,10 +3,13 @@
 import numpy as np
 
 from LookAround.config import Config
-from LookAround.FindView.rl_env import FindViewRLEnv
+from LookAround.FindView.rl_env import FindViewRLEnv, RLEnvRegistry
 
 
+@RLEnvRegistry.register_module(name="Env1")
 class FindViewRLEnv1(FindViewRLEnv):
+
+    # FIXME: same as Basic for now
 
     def __init__(self, cfg: Config, **kwargs) -> None:
 
@@ -19,13 +22,14 @@ class FindViewRLEnv1(FindViewRLEnv):
         super().__init__(cfg=cfg, **kwargs)
 
     def get_reward_range(self):
-        # NOTE: it's a `gym` thing, don't really need to implement
-        # return (-np.inf, np.inf)
         # FIXME: better range calculation
         return (
             self._max_steps * self._slack_reward - (120 + 180),
             self._min_steps * self._slack_reward + self._success_reward,
         )
+
+    def _reset_metrics(self) -> None:
+        self._prev_dist = self._env.get_metrics()['l1_distance_to_target']
 
     def _end_rewards(self, measures):
 

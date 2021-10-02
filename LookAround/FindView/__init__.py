@@ -6,9 +6,7 @@ from .sim import FindViewSim
 from .rl_env import FindViewRLEnv, RLEnvRegistry
 from .rotation_tracker import RotationTracker
 from .vec_env import (
-    EquilibVecEnv,
-    MPVecEnv,
-    ThreadedVecEnv,
+    VecEnv,
     construct_envs,
 )
 
@@ -19,8 +17,6 @@ __all__ = [
     "FindViewRLEnv",
     "RLEnvRegistry",
     "RotationTracker",
-    "EquilibVecEnv",
-    "MPVecEnv",
-    "ThreadedVecEnv",
+    "VecEnv",
     "construct_envs",
 ]
