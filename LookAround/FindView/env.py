@@ -433,10 +433,10 @@ class FindViewEnv(object):
             "target": target,
         }
 
-    def change_difficulty(self, difficulty: str) -> None:
+    def change_difficulty(self, difficulty: str, bounded: bool) -> None:
         assert isinstance(self._dataset, DynamicDataset) \
             and isinstance(self._episode_iterator, DynamicGenerator)
-        self._episode_iterator.set_difficulty(difficulty=difficulty)
+        self._episode_iterator.set_difficulty(difficulty=difficulty, bounded=bounded)
 
     def close(self) -> None:
         self._sim.close()

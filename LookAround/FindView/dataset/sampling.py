@@ -136,11 +136,13 @@ def hard_condition(
 
 class DifficultySampler(Sampler):
 
-    difficulties = ('easy', 'medium', 'hard')
+    # Properties
+    AVAIL_DIFF = ('easy', 'medium', 'hard')
 
     def __init__(
         self,
         difficulty: str,
+        bounded: bool,
         fov: float,
         min_steps: int,
         max_steps: int,
@@ -155,6 +157,7 @@ class DifficultySampler(Sampler):
 
         params:
         - difficulty (str)
+        - bounded (bool)
         - fov (float)
         - min_steps (int)
         - max_steps (int)
@@ -166,7 +169,7 @@ class DifficultySampler(Sampler):
         - num_tries (int)
         """
 
-        self.set_difficulty(difficulty)
+        self.set_difficulty(difficulty=difficulty, bounded=bounded)
         self.fov = fov
         self.min_steps = min_steps
         self.max_steps = max_steps,
@@ -257,17 +260,30 @@ class DifficultySampler(Sampler):
 
         return kwargs
 
-    def get_difficulty(self):
-        if self.difficulty == 'medium':
-            return self.rst.choice(('easy', 'medium'))
-        elif self.difficulty == 'hard':
-            return self.rst.choice(('easy', 'medium', 'hard'))
-        else:
-            return 'easy'
+    def get_difficulty(self) -> str:
+        if len(self.difficulties) == 1:
+            return self.difficulties[0]
+        return self.rst.choice(self.difficulties)
 
-    def set_difficulty(self, difficulty: str):
-        assert difficulty in self.difficulties
-        self.difficulty = difficulty
+    def set_difficulty(self, difficulty: str, bounded: bool) -> None:
+        assert isinstance(difficulty, str)
+        assert difficulty in self.AVAIL_DIFF, \
+            f"ERR: {difficulty} is not in {self.AVAIL_DIFF}"
+
+        if bounded:
+            difficulties = (difficulty,)
+        else:
+            if difficulty == "easy":
+                difficulties = (difficulty,)
+            elif difficulty == "medium":
+                difficulties = ('easy', 'medium')
+            elif difficulty == "hard":
+                difficulties = ('easy', 'medium', 'hard')
+
+        for diff in difficulties:
+            assert diff in self.AVAIL_DIFF
+
+        self.difficulties = difficulties
 
     def seed(self, seed: int) -> None:
         self.rst = np.random.RandomState(seed)

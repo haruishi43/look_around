@@ -127,6 +127,9 @@ class FindViewRLEnv(gym.Env):
     def render(self) -> np.ndarray:
         return self._env.render()
 
+    def change_difficulty(self, difficulty: str, bounded: bool) -> None:
+        self._env.change_difficulty(difficulty=difficulty, bounded=bounded)
+
     def close(self) -> None:
         self._env.close()
 

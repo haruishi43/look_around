@@ -11,20 +11,3 @@ video_dir = "{results_root}/videos/run_{run_id}"
 tb_dir = "{tb_root}/run_{run_id}"
 log_file = "{log_root}/{split}_run_{run_id}.log"
 verbose = True
-train = dict(
-    device=0,
-    is_torch=True,
-    resume=False,
-)
-val = dict(
-    device=0,
-    is_torch=True,
-    episode_count=-1,
-)
-test = dict(
-    device=0,
-    is_torch=True,
-    ckpt_path="",
-    use_ckpt_cfg=True,
-    episode_count=20,
-)

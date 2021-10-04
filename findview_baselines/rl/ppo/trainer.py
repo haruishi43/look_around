@@ -1,30 +1,22 @@
 #!/usr/bin/env python3
 
-from copy import deepcopy
 import time
 from collections import defaultdict, deque
-from typing import Any, Dict, List, Optional
+from typing import Dict, Optional
 
-import numpy as np
 import torch
-import tqdm
+
 from torch.optim.lr_scheduler import LambdaLR
 
 from LookAround.config import Config
 from LookAround.core import logger
-from LookAround.core.improc import post_process_for_render_torch
-from LookAround.utils.visualizations import renders_to_image
-
-from LookAround.FindView.vec_env import construct_envs
 
 from findview_baselines.common.base_trainer import BaseRLTrainer
 from findview_baselines.common.rollout_storage import RolloutStorage
 from findview_baselines.common.tensorboard_utils import TensorboardWriter
-
 from findview_baselines.utils.common import (
     ObservationBatchingCache,
     batch_obs,
-    generate_video,
     get_last_checkpoint_folder,
 )
 
@@ -45,10 +37,9 @@ class PPOTrainer(BaseRLTrainer):
         assert cfg is not None, "ERR: needs config file to initialize trainer"
         super().__init__(cfg=cfg)
 
-        # Initialize properties to None
+        # Initialize properties
         self.actor_critic = None
         self.agent = None
-
         self._obs_batching_cache = ObservationBatchingCache()
 
     def _setup_actor_critic_agent(self) -> None:
@@ -60,6 +51,7 @@ class PPOTrainer(BaseRLTrainer):
         if torch.cuda.is_available():
             torch.backends.cudnn.deterministic = True  # type: ignore
 
+        # FIXME: better to use registry for customization?
         self.actor_critic = FindViewBaselinePolicy(
             observation_space=self.obs_space,
             action_space=self.policy_action_space,
@@ -69,52 +61,6 @@ class PPOTrainer(BaseRLTrainer):
         self.agent = PPO(
             actor_critic=self.actor_critic,
             **self.cfg.ppo,
-        )
-
-    def _init_envs(
-        self,
-        split: str,
-        cfg: Optional[Config] = None,
-    ) -> None:
-        if cfg is None:
-            cfg = Config(deepcopy(self.cfg))
-        split_cfg = getattr(cfg, split)
-        assert split_cfg is not None
-        if split_cfg.is_torch:
-            dtype = torch.float32
-        else:
-            dtype = np.float32
-
-        self.envs = construct_envs(
-            cfg=cfg,
-            split=split,
-            is_rlenv=True,
-            dtype=dtype,
-            device=torch.device(split_cfg.device),
-            vec_type="threaded",
-        )
-
-    def _init_test_envs(
-        self,
-        split: str,
-        cfg: Optional[Config] = None,
-    ) -> None:
-        if cfg is None:
-            cfg = Config(deepcopy(self.cfg))
-        assert split == "test"  # FIXME: for now...
-        split_cfg = getattr(cfg, split)
-        assert split_cfg is not None
-        if split_cfg.is_torch:
-            dtype = torch.float32
-        else:
-            dtype = np.float32
-        self.envs = construct_envs(
-            cfg=cfg,
-            split=split,
-            is_rlenv=True,
-            dtype=dtype,
-            device=torch.device(split_cfg.device),
-            vec_type="threaded",
         )
 
     def _collect_rollout_step(self):
@@ -302,7 +248,7 @@ class PPOTrainer(BaseRLTrainer):
         )
 
         # log stats
-        if self.num_updates_done % self.cfg.log_interval == 0:
+        if self.num_updates_done % self._base_cfg.log_interval == 0:
             # FIXME: fps log increases every step
             logger.info(
                 "update: {}\tfps: {:.3f}\t".format(
@@ -337,20 +283,21 @@ class PPOTrainer(BaseRLTrainer):
         """Main method for training PPO.
         """
 
+        ppo_cfg = self.cfg.ppo
+
         logger.add_filehandler(
-            self.cfg.log_file.format(
+            self._base_cfg.log_file.format(
                 split="train",
                 log_root=self.cfg.log_root,
-                run_id=self.cfg.run_id,
+                run_id=self._base_cfg.run_id,
             )
         )
 
-        self._init_envs(split="train")
+        self._init_rlenvs(split="train")
 
         action_shape = None
         discrete_actions = True
 
-        ppo_cfg = self.cfg.ppo
         if torch.cuda.is_available():
             self.device = torch.device("cuda", self.cfg.train.device)
             torch.cuda.set_device(self.device)
@@ -493,6 +440,10 @@ class PPOTrainer(BaseRLTrainer):
                 # logging
                 self._training_log(writer, losses, prev_time)
 
+                # TODO: validate
+
+                # TODO: update episode scheduler
+
                 # checkpoint model
                 if self.should_checkpoint():
                     extra_state = dict(
@@ -520,271 +471,3 @@ class PPOTrainer(BaseRLTrainer):
                     count_checkpoints += 1
 
             self.envs.close()
-
-    def _eval_checkpoint(
-        self,
-        checkpoint_path: str,
-        writer: TensorboardWriter,
-        checkpoint_index: int = 0,
-    ) -> None:
-        """Evaluates a single checkpoint.
-        Args:
-            checkpoint_path: path of checkpoint
-            writer: tensorboard writer object for logging to tensorboard
-            checkpoint_index: index of cur checkpoint for logging
-        """
-        # Map location CPU is almost always better than mapping to a CUDA device.
-        ckpt_dict = self.load_checkpoint(checkpoint_path, map_location="cpu")
-
-        if self.cfg.test.use_ckpt_cfg:
-            loaded_cfg = ckpt_dict["cfg"]
-        else:
-            loaded_cfg = deepcopy(self.cfg)
-
-        self.cfg.policy = loaded_cfg.policy
-        self.cfg.ppo = loaded_cfg.ppo
-
-        # if self.cfg.verbose:
-        #     logger.info(self.cfg.pretty_text)
-
-        # initialize the envs
-        self._init_test_envs(
-            split="test",
-            difficulties=["easy"],
-            cfg=self.cfg,
-        )
-
-        action_shape = (1,)
-        action_type = torch.long
-
-        self._setup_actor_critic_agent()
-
-        self.agent.load_state_dict(ckpt_dict["state_dict"])
-        self.actor_critic = self.agent.actor_critic
-
-        observations = self.envs.reset()
-        batch = batch_obs(
-            observations,
-            device=self.device,
-            cache=self._obs_batching_cache,
-        )
-
-        current_episode_reward = torch.zeros((self.envs.num_envs, 1), device="cpu")
-
-        test_recurrent_hidden_states = torch.zeros(
-            (
-                self.envs.num_envs,
-                self.actor_critic.net.num_recurrent_layers,
-                self.cfg.ppo.hidden_size,
-            ),
-            device=self.device,
-        )
-        prev_actions = torch.zeros(
-            (
-                self.envs.num_envs,
-                *action_shape,
-            ),
-            device=self.device,
-            dtype=action_type,
-        )
-        not_done_masks = torch.zeros(
-            (
-                self.envs.num_envs,
-                1,
-            ),
-            device=self.device,
-            dtype=torch.bool,
-        )
-        stats_episodes: Dict[
-            Any, Any
-        ] = {}  # dict of dicts that stores stats per episode
-
-        rgb_frames = [
-            [] for _ in range(self.envs.num_envs)
-        ]  # type: List[List[np.ndarray]]
-
-        # Add initial frames
-        if len(self.cfg.video_option) > 0:
-            for i in range(self.envs.num_envs):
-                frame = renders_to_image(
-                    {
-                        k: post_process_for_render_torch(v[i], to_bgr=False)
-                        for k, v in batch.items()
-                    },
-                )
-                rgb_frames[i].append(frame)
-
-        # get the number of episodes to test
-        number_of_eval_episodes = self.cfg.test.episode_count
-
-        # some checks for `number_of_eval_episodes`
-        if number_of_eval_episodes == -1:
-            number_of_eval_episodes = sum(self.envs.number_of_episodes)
-        else:
-            total_num_eps = sum(self.envs.number_of_episodes)
-            if total_num_eps < number_of_eval_episodes:
-                logger.warn(
-                    f"Config specified {number_of_eval_episodes} eval episodes"
-                    ", dataset only has {total_num_eps}."
-                )
-                logger.warn(f"Evaluating with {total_num_eps} instead.")
-                number_of_eval_episodes = total_num_eps
-
-        pbar = tqdm.tqdm(total=number_of_eval_episodes)
-        self.actor_critic.eval()
-        while (
-            len(stats_episodes) < number_of_eval_episodes
-            and self.envs.num_envs > 0
-        ):
-            current_episodes = self.envs.current_episodes()
-
-            with torch.no_grad():
-                (
-                    _,
-                    actions,
-                    _,
-                    test_recurrent_hidden_states,
-                ) = self.actor_critic.act(
-                    batch,
-                    test_recurrent_hidden_states,
-                    prev_actions,
-                    not_done_masks,
-                    deterministic=False,
-                )
-
-                prev_actions.copy_(actions)  # type: ignore
-            # NB: Move actions to CPU.  If CUDA tensors are
-            # sent in to env.step(), that will create CUDA contexts
-            # in the subprocesses.
-            # For backwards compatibility, we also call .item() to convert to
-            # an int
-            step_data = [a.item() for a in actions.to(device="cpu")]
-
-            outputs = self.envs.step(step_data)
-
-            observations, rewards_l, dones, infos = [
-                list(x) for x in zip(*outputs)
-            ]
-            batch = batch_obs(
-                observations,
-                device=self.device,
-                cache=self._obs_batching_cache,
-            )
-
-            not_done_masks = torch.tensor(
-                [[not done] for done in dones],
-                dtype=torch.bool,
-                device="cpu",
-            )
-
-            rewards = torch.tensor(
-                rewards_l, dtype=torch.float, device="cpu"
-            ).unsqueeze(1)
-            current_episode_reward += rewards
-            next_episodes = self.envs.current_episodes()
-            envs_to_pause = []
-            n_envs = self.envs.num_envs
-            for i in range(n_envs):
-                if (
-                    next_episodes[i].img_name,
-                    next_episodes[i].episode_id,
-                ) in stats_episodes:
-                    envs_to_pause.append(i)
-
-                # episode ended
-                if not not_done_masks[i].item():
-                    pbar.update()
-
-                    episode_stats = {}
-                    episode_stats["reward"] = current_episode_reward[i].item()
-                    episode_stats.update(
-                        self._extract_scalars_from_info(infos[i])
-                    )
-                    current_episode_reward[i] = 0
-                    # use img_name + episode_id as unique id for storing stats
-                    stats_episodes[
-                        (
-                            current_episodes[i].img_name,
-                            current_episodes[i].episode_id,
-                        )
-                    ] = episode_stats
-
-                    if len(self.cfg.video_option) > 0:
-                        generate_video(
-                            video_option=self.cfg.video_option,
-                            video_dir=self.video_dir,
-                            images=rgb_frames[i],
-                            episode_id=current_episodes[i].episode_id,
-                            checkpoint_idx=checkpoint_index,
-                            metrics=self._extract_scalars_from_info(infos[i]),
-                            tb_writer=writer,
-                        )
-
-                        # add first frame
-                        rgb_frames[i] = [
-                            renders_to_image(
-                                {
-                                    k: post_process_for_render_torch(v[i], to_bgr=False)
-                                    for k, v in batch.items()
-                                },
-                            )
-                        ]
-
-                # episode continues
-                elif len(self.cfg.video_option) > 0:
-                    frame = renders_to_image(
-                        {
-                            k: post_process_for_render_torch(v[i], to_bgr=False)
-                            for k, v in batch.items()
-                        },
-                    )
-                    rgb_frames[i].append(frame)
-
-            not_done_masks = not_done_masks.to(device=self.device)
-            (
-                self.envs,
-                test_recurrent_hidden_states,
-                not_done_masks,
-                current_episode_reward,
-                prev_actions,
-                batch,
-                rgb_frames,
-            ) = self._pause_envs(
-                envs_to_pause,
-                self.envs,
-                test_recurrent_hidden_states,
-                not_done_masks,
-                current_episode_reward,
-                prev_actions,
-                batch,
-                rgb_frames,
-            )
-
-        pbar.update()  # debug
-
-        num_episodes = len(stats_episodes)
-        aggregated_stats = {}
-        for stat_key in next(iter(stats_episodes.values())).keys():
-            aggregated_stats[stat_key] = (
-                sum(v[stat_key] for v in stats_episodes.values())
-                / num_episodes
-            )
-
-        for k, v in aggregated_stats.items():
-            logger.info(f"Average episode {k}: {v:.4f}")
-
-        step_id = checkpoint_index
-        if "extra_state" in ckpt_dict and "step" in ckpt_dict["extra_state"]:
-            step_id = ckpt_dict["extra_state"]["step"]
-
-        writer.add_scalars(
-            "test_reward",
-            {"average reward": aggregated_stats["reward"]},
-            step_id,
-        )
-
-        metrics = {k: v for k, v in aggregated_stats.items() if k != "reward"}
-        if len(metrics) > 0:
-            writer.add_scalars("test_metrics", metrics, step_id)
-
-        self.envs.close()

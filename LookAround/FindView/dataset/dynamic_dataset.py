@@ -38,6 +38,8 @@ class DynamicDataset(Generic[T]):
         data_dir: os.PathLike,
         dataset_json_path: os.PathLike,
         fov: float,
+        difficulty: str = "easy",
+        bounded: bool = False,
         min_steps: int = 10,
         max_steps: int = 5000,
         step_size: int = 1,
@@ -87,7 +89,8 @@ class DynamicDataset(Generic[T]):
         # currently there are no need since DifficultySampler is the only
         # type of sampler
         self.sampler = DifficultySampler(
-            difficulty="easy",  # NOTE: default difficulty is temporary easy
+            difficulty=difficulty,
+            bounded=bounded,
             fov=self._fov,
             min_steps=self._min_steps,
             max_steps=self._max_steps,
@@ -124,6 +127,8 @@ class DynamicDataset(Generic[T]):
             data_dir=data_dir,
             dataset_json_path=dataset_json_path,
             fov=cfg.dataset.fov,
+            difficulty=cfg.dataset.difficulty,
+            bounded=cfg.dataset.bounded,
             min_steps=cfg.dataset.min_steps,
             max_steps=cfg.dataset.max_steps,
             step_size=cfg.dataset.step_size,
@@ -277,11 +282,6 @@ class DynamicGenerator(Iterator):
             self._repeated += 1
         return pseudo
 
-    def set_difficulty(self, difficulty: str):
+    def set_difficulty(self, difficulty: str, bounded: bool):
         """Set Difficulty inside the sampler"""
-
-        # FIXME: the difficulties are somewhat confusing
-        # - easy -> easy
-        # - medium -> easy and medium
-        # - hard -> easy, medium, and hard
-        self.sampler.set_difficulty(difficulty=difficulty)
+        self.sampler.set_difficulty(difficulty=difficulty, bounded=bounded)

@@ -51,6 +51,7 @@ RESET_COMMAND = "reset"
 RENDER_COMMAND = "render"
 CLOSE_COMMAND = "close"
 CALL_COMMAND = "call"
+CHANGE_DIFFICULTY_COMMAND = "change_difficulty"
 
 EPISODE_OVER_NAME = "episode_over"
 GET_METRICS_NAME = "get_metrics"
@@ -154,6 +155,9 @@ class VecEnv(object):
     def render(self):
         raise NotImplementedError
 
+    def change_difficulty(self, difficulty: str, bounded: bool) -> None:
+        raise NotImplementedError
+
 
 class MPVecEnv(VecEnv):
 
@@ -254,6 +258,9 @@ class MPVecEnv(VecEnv):
 
                 elif command == RENDER_COMMAND:
                     connection_write_fn(env.render(*data[0], **data[1]))
+
+                elif command == CHANGE_DIFFICULTY_COMMAND:
+                    env.change_difficulty(**data)
 
                 elif command == CALL_COMMAND:
                     function_name, function_args = data
@@ -516,7 +523,7 @@ class MPVecEnv(VecEnv):
 
     def render(
         self, *args, **kwargs,
-    ) -> Union[np.ndarray, None]:
+    ) -> Union[Dict[str, np.ndarray], None]:
         """Render observations from all environments in a tiled image."""
         for write_fn in self._connection_write_fns:
             write_fn((RENDER_COMMAND, (args, kwargs)))
@@ -529,6 +536,19 @@ class MPVecEnv(VecEnv):
             "pers": pers,
             "target": target
         }
+
+    def change_difficulty(
+        self,
+        difficulty: str,
+        bounded: bool,
+    ) -> None:
+        for write_fn in self._connection_write_fns:
+            write_fn(
+                (
+                    CHANGE_DIFFICULTY_COMMAND,
+                    dict(difficulty=difficulty, bounded=bounded)
+                )
+            )
 
     @property
     def _valid_start_methods(self) -> Set[str]:
@@ -761,6 +781,10 @@ class EquilibVecEnv(VecEnv):
             'target': target_tile,
         }
 
+    def change_difficulty(self, difficulty: str, bounded: bool) -> None:
+        for env in self.envs:
+            env.change_difficulty(difficulty=difficulty, bounded=bounded)
+
     def close(self) -> None:
         for env in self.envs:
             env.close()
@@ -848,8 +872,14 @@ def construct_envs(
     dtype: Union[np.dtype, torch.dtype] = torch.float32,
     device: torch.device = torch.device('cpu'),
     vec_type: str = "threaded",
-) -> Union[EquilibVecEnv, MPVecEnv, ThreadedVecEnv]:
+) -> VecEnv:
+    """Basic initialization of vectorized environments
 
+    It splits the dataset into smaller dataset for each enviornment by first
+    splitting the dataset by `img_name`.
+    """
+
+    # 1. preprocessing
     # NOTE: make sure to seed first so that we get consistant tests
     seed(cfg.seed)
 
@@ -857,8 +887,6 @@ def construct_envs(
 
     # get all dataset
     dataset = make_dataset(cfg=cfg, split=split)
-
-    # FIXME: maybe use sub_labels too?
     img_names = dataset.get_img_names()
 
     if len(img_names) > 0:
@@ -876,6 +904,7 @@ def construct_envs(
 
     assert sum(map(len, img_name_splits)) == len(img_names)
 
+    # 2. create initialization arguments for each environment
     env_fn_kwargs = []
     for i in range(num_envs):
 
@@ -900,6 +929,7 @@ def construct_envs(
         )
         env_fn_kwargs.append(kwargs)
 
+    # 3. initialize the vectorized environment
     if vec_type == "mp":
         # FIXME: Very slow. Torch using multi-thread?
         envs = MPVecEnv(
@@ -920,4 +950,5 @@ def construct_envs(
         )
     else:
         raise ValueError(f"ERR: {vec_type} not supported")
+
     return envs

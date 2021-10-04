@@ -1,0 +1,34 @@
+base_trainer = dict(
+    num_envs=8,
+    num_updates=3000,
+    num_ckpts=-1,
+    ckpt_interval=500,
+    total_num_steps=-1.0,
+    log_interval=10,
+    video_option=["disk"],
+    ckpt_dir="{results_root}/checkpoints/run_{run_id}",
+    video_dir="{results_root}/videos/run_{run_id}",
+    tb_dir="{tb_root}/run_{run_id}",
+    log_file="{log_root}/{split}_run_{run_id}.log",
+    verbose=True,
+)
+train = dict(
+    device=0,
+    dtype="torch.float32",
+    vec_type="threaded",
+    resume=False,
+)
+val = dict(
+    device=0,
+    dtype="torch.float32",
+    vec_type="threaded",
+    episode_count=-1,
+)
+test = dict(
+    device=0,
+    dtype="torch.float32",
+    vec_type="threaded",
+    ckpt_path="",
+    use_ckpt_cfg=True,
+    episode_count=20,
+)

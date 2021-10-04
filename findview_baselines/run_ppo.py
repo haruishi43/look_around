@@ -4,7 +4,7 @@ import argparse
 
 from LookAround.config import Config, DictAction
 
-from findview_baselines.rl.ppo.ppo_trainer import PPOTrainer
+from findview_baselines.rl.ppo.trainer import PPOTrainer
 
 
 def main():
@@ -18,7 +18,7 @@ def main():
     parser.add_argument(
         "--mode",
         type=str,
-        choices=['train', 'test'],
+        choices=['train', 'eval'],
         required=True,
     )
     parser.add_argument(
@@ -48,8 +48,8 @@ def run_exp(
 
     if mode == "train":
         trainer.train()
-    elif mode == "test":
-        trainer.test()
+    elif mode == "eval":
+        trainer.eval()
 
 
 if __name__ == "__main__":
