@@ -2,26 +2,33 @@
 
 import time
 from collections import defaultdict, deque
-from typing import Dict, Optional
+import os
+from typing import Any, Dict, Optional
 
 import torch
-
 from torch.optim.lr_scheduler import LambdaLR
+try:
+    from mycv import symlink
+except ImportError:
+    from mmcv import symlink
 
 from LookAround.config import Config
 from LookAround.core import logger
 
-from findview_baselines.common.base_trainer import BaseRLTrainer
-from findview_baselines.common.rollout_storage import RolloutStorage
-from findview_baselines.common.tensorboard_utils import TensorboardWriter
+from findview_baselines.common import (
+    BaseRLTrainer,
+    TensorboardWriter,
+    RolloutStorage,
+)
+from findview_baselines.common.scheduler import DifficultyScheduler
+from findview_baselines.rl.ppo import PPO, Policy
+from findview_baselines.rl.ppo.validator import PPOValidator
+from findview_baselines.rl.ppo.policy import FindViewBaselinePolicy
 from findview_baselines.utils.common import (
     ObservationBatchingCache,
     batch_obs,
     get_last_checkpoint_folder,
 )
-
-from findview_baselines.rl.ppo import PPO, Policy
-from findview_baselines.rl.ppo.policy import FindViewBaselinePolicy
 
 
 class PPOTrainer(BaseRLTrainer):
@@ -99,7 +106,7 @@ class PPOTrainer(BaseRLTrainer):
         t_update_stats = time.time()
 
         batch = batch_obs(
-            obersvations=observations,
+            observations=observations,
             device=self.device,
             cache=self._obs_batching_cache,
         )
@@ -258,6 +265,7 @@ class PPOTrainer(BaseRLTrainer):
                 )
             )
 
+            # log basic
             logger.info(
                 "update: {}\tenv-time: {:.3f}s\tpth-time: {:.3f}s\t"
                 "frames: {}".format(
@@ -268,6 +276,7 @@ class PPOTrainer(BaseRLTrainer):
                 )
             )
 
+            # log all deltas
             logger.info(
                 "Average window size: {}  {}".format(
                     len(self.window_episode_stats["count"]),
@@ -376,7 +385,7 @@ class PPOTrainer(BaseRLTrainer):
             else:
                 lr_scheduler.load_state_dict(lr_sched_state)
 
-            extra_state = ckpt_dict.get("extra_state")
+            extra_state: Dict[str, Any] = ckpt_dict.get("extra_state")
             if extra_state is None:
                 logger.warn(f'{ckpt_path} has no `extra_state`; may impact stats')
             else:
@@ -402,18 +411,28 @@ class PPOTrainer(BaseRLTrainer):
 
             logger.info(f"resuming from {ckpt_path} starting with {self.num_steps_done} steps")
 
+        # account keep stuff
+        validator = PPOValidator(cfg=self.cfg)
+        difficulty_scheduler = DifficultyScheduler(
+            initial_difficulty=self.cfg.scheduler.initial_difficulty,
+            update_interval=self.cfg.scheduler.update_interval,
+            num_updates_done=self.num_updates_done,
+            bounded=self.cfg.dataset.bounded,
+        )
+        checkpoint_distances = []
+
         with TensorboardWriter(self.tb_dir, flush_secs=self.flush_secs) as writer:
             while not self.is_done():
+
+                # clip decay
                 if ppo_cfg.use_linear_clip_decay:
                     self.agent.clip_param = ppo_cfg.clip_param * (
                         1 - self.percent_done()
                     )
 
-                # NOTE: set agent to eval for gathering rollouts
+                # gather rollouts
                 self.agent.eval()
                 count_steps_delta = 0
-
-                # gather rollouts
                 for _ in range(self.rollouts.num_steps):
                     count_steps_delta += self._collect_rollout_step()
 
@@ -424,6 +443,7 @@ class PPOTrainer(BaseRLTrainer):
                     dist_entropy,
                 ) = self._update_agent()
 
+                # step learning rate
                 if ppo_cfg.use_linear_lr_decay:
                     lr_scheduler.step()  # type: ignore
 
@@ -438,14 +458,31 @@ class PPOTrainer(BaseRLTrainer):
                 )
 
                 # logging
+                # FIXME: need to log the current difficulties of the episodes
                 self._training_log(writer, losses, prev_time)
-
-                # TODO: validate
-
-                # TODO: update episode scheduler
 
                 # checkpoint model
                 if self.should_checkpoint():
+
+                    # validate
+                    # FIXME: difficulty changes so `is_best` is not reliable...
+                    distance = validator.eval_from_trainer(
+                        agent=self.agent,
+                        writer=writer,
+                        step_id=self.num_steps_done,
+                        difficulty=difficulty_scheduler.current_difficulty,
+                        bounded=difficulty_scheduler.bounded,
+                    )
+
+                    # compare againt all checkpoints
+                    is_best = False
+                    if len(checkpoint_distances) > 0:
+                        best_distance = min(checkpoint_distances)
+                        is_best = distance < best_distance
+                    else:
+                        is_best = True
+                    checkpoint_distances.append(distance)
+
                     extra_state = dict(
                         env_time=self.env_time,
                         pth_time=self.pth_time,
@@ -469,5 +506,21 @@ class PPOTrainer(BaseRLTrainer):
                         extra_state=extra_state,
                     )
                     count_checkpoints += 1
+
+                    # link the best to ckpt.best.pth
+                    # FIXME: need to add 'difficulty-aware' checkpoint mechanism
+                    if is_best:
+                        symlink(
+                            os.path.join(self.ckpt_dir, f"ckpt.{count_checkpoints}.pth"),
+                            os.path.join(self.ckpt_dir, "ckpt.best.pth"),
+                        )
+
+                # update difficulty scheduler
+                # FIXME: update difficulty scheduler based on metrics
+                # FIXME: put this inside `if self.should_checkpoint()` loop?
+                difficulty_scheduler.update(
+                    envs=self.envs,
+                    num_updates_done=self.num_updates_done,
+                )
 
             self.envs.close()

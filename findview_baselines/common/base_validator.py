@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
 
 from collections import defaultdict
+from copy import deepcopy
 import os
 from os import PathLike
-from typing import Any, Dict, List, Tuple, Union
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 import numpy as np
 import torch
@@ -14,6 +15,7 @@ from LookAround.core import logger
 from LookAround.FindView.vec_env import VecEnv
 
 from findview_baselines.common.tensorboard_utils import TensorboardWriter
+from findview_baselines.common.rl_envs import construct_envs_for_validation
 from findview_baselines.utils.common import (
     get_checkpoint_id,
     poll_checkpoint_folder,
@@ -24,6 +26,7 @@ class BaseValidator(object):
 
     # Properties
     cfg: Config
+    video_option: List[str]
 
     # Hidden Properties
     _flush_secs: int
@@ -35,8 +38,10 @@ class BaseValidator(object):
 
         # Initialize properties
         self.cfg = cfg
+        self.video_option = self.cfg.base_trainer.video_option
 
         # Initialize hidden properties
+        self._base_cfg = self.cfg.base_trainer  # FIXME: change this to validation cfg
         self._flush_secs = 30
 
     @property
@@ -59,8 +64,8 @@ class BaseValidator(object):
     def video_dir(self) -> PathLike:
         raise NotImplementedError
 
-    def __call__(self, agent: nn.Module):
-        raise NotImplementedError
+    def __call__(self, **kwargs):
+        raise self.eval_from_trainer(**kwargs)
 
     def eval(self) -> None:
         """Main method of trainer evaluation. Calls _eval_checkpoint() that
@@ -115,12 +120,29 @@ class BaseValidator(object):
                         checkpoint_index=prev_ckpt_ind,
                     )
 
+    def eval_from_trainer(
+        self,
+        agent: nn.Module,
+        writer: Optional[TensorboardWriter],
+        step_id: int,
+    ):
+        raise NotImplementedError
+
     def _eval_checkpoint(
         self,
         checkpoint_path: str,
         writer: TensorboardWriter,
         checkpoint_index: int = 0,
     ) -> None:
+        raise NotImplementedError
+
+    def _eval_single(
+        self,
+        agent: nn.Module,
+        envs: VecEnv,
+        writer: Optional[TensorboardWriter],
+        step_id: int,
+    ):
         raise NotImplementedError
 
     def load_checkpoint(
@@ -144,14 +166,68 @@ class BaseRLValidator(BaseValidator):
 
     # Properties
     device: torch.device
-    video_option: List[str]
 
     def __init__(self, cfg: Config) -> None:
-        super().__init__()
+        super().__init__(cfg=cfg)
 
-        # initialize properties
-        self.cfg = cfg
-        self.video_option = self.cfg.base_trainer.video_option
+    def _init_rlenvs(
+        self,
+        split: str,
+        cfg: Config,
+        difficulty: str,
+        bounded: bool,
+    ) -> VecEnv:
+        cfg = Config(deepcopy(self.cfg))
+        split_cfg = getattr(cfg, split)
+        assert split_cfg is not None
+
+        if split_cfg.dtype == "torch.float32":
+            dtype = torch.float32
+        elif split_cfg.dtype == "torch.float64":
+            dtype = torch.float64
+        else:
+            raise ValueError()
+
+        return construct_envs_for_validation(
+            cfg=cfg,
+            split=split,
+            is_rlenv=True,
+            dtype=dtype,
+            device=torch.device(split_cfg.device),
+            vec_type=split_cfg.vec_type,
+            difficulty=difficulty,
+            bounded=bounded,
+        )
+
+    @property
+    def ckpt_dir(self) -> PathLike:
+        ckpt_dir = self._base_cfg.ckpt_dir.format(
+            results_root=self.cfg.results_root,
+            run_id=str(self._base_cfg.run_id),
+        )
+        if not os.path.exists(ckpt_dir):
+            os.makedirs(ckpt_dir, exist_ok=True)
+        return ckpt_dir
+
+    @property
+    def tb_dir(self) -> PathLike:
+        tb_dir = self._base_cfg.tb_dir.format(
+            tb_root=self.cfg.tb_root,
+            run_id=str(self._base_cfg.run_id),
+        )
+        if not os.path.exists(tb_dir):
+            os.makedirs(tb_dir, exist_ok=True)
+        return tb_dir
+
+    @property
+    def video_dir(self) -> PathLike:
+        video_dir = self._base_cfg.video_dir.format(
+            results_root=self.cfg.results_root,
+            run_id=str(self._base_cfg.run_id),
+        )
+        if not os.path.exists(video_dir):
+            os.makedirs(video_dir, exist_ok=True)
+        return video_dir
 
     @staticmethod
     def _pause_envs(

@@ -8,6 +8,7 @@ import argparse
 import json
 import os
 import pickle
+import random
 
 from tqdm import tqdm
 
@@ -38,6 +39,10 @@ def parse_args():
     )
     parser.add_argument(
         "--static-train",
+        action="store_true",
+    )
+    parser.add_argument(
+        "--no-shuffle",
         action="store_true",
     )
     return parser.parse_args()
@@ -305,6 +310,10 @@ if __name__ == "__main__":
                     dataset.append({**{"episode_id": eps_id}, **base, **data})  # update dict
                     eps_id += 1
 
+            if not args.no_shuffle:
+                print("shuffling")
+                random.shuffle(dataset)
+
             # dump to json
             # json_dataset = json.dumps(dataset, indent=4)  # turns to string
             with open(save_path, "w") as f:
@@ -342,6 +351,10 @@ if __name__ == "__main__":
                     "sub_label": sub_category,
                 }
                 dataset.append(base)
+
+            if not args.no_shuffle:
+                print("shuffling")
+                random.shuffle(dataset)
 
             with open(save_path, "w") as f:
                 json.dump(dataset, f, indent=4)

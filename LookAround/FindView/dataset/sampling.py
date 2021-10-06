@@ -137,7 +137,8 @@ def hard_condition(
 class DifficultySampler(Sampler):
 
     # Properties
-    AVAIL_DIFF = ('easy', 'medium', 'hard')
+    AVAIL_DIFF: Tuple[str] = ('easy', 'medium', 'hard')
+    difficulties: Tuple[str]
 
     def __init__(
         self,

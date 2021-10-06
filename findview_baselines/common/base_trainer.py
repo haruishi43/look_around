@@ -11,7 +11,6 @@ import numpy as np
 import torch
 
 from LookAround.config import Config
-
 from LookAround.core.spaces import ActionSpace
 from LookAround.FindView.vec_env import VecEnv, construct_envs
 
@@ -246,22 +245,29 @@ class BaseRLTrainer(BaseTrainer):
 
     def _init_rlenvs(
         self,
-        split: str,
+        split: str = "train",
         cfg: Optional[Config] = None,
     ) -> None:
         if cfg is None:
             cfg = Config(deepcopy(self.cfg))
         split_cfg = getattr(cfg, split)
         assert split_cfg is not None
+
+        if split_cfg.dtype == "torch.float32":
+            dtype = torch.float32
+        elif split_cfg.dtype == "torch.float64":
+            dtype = torch.float64
+        else:
+            raise ValueError()
+
         self.envs = construct_envs(
             cfg=cfg,
             split=split,
             is_rlenv=True,
-            dtype=exec(split_cfg.dtype),  # FIXME: potentially insecure
+            dtype=dtype,
             device=torch.device(split_cfg.device),
             vec_type=split_cfg.vec_type,
         )
-        # FIXME: change difficulties
 
     METRICS_BLACKLIST = [
         "episode_id",

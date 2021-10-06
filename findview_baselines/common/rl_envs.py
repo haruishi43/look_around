@@ -1,9 +1,148 @@
 #!/usr/bin/env python3
 
+from copy import deepcopy
+from functools import partial
+import random
+from typing import List, Optional, Union
+
 import numpy as np
+import torch
 
 from LookAround.config import Config
+from LookAround.FindView.dataset import Episode, make_dataset
 from LookAround.FindView.rl_env import FindViewRLEnv, RLEnvRegistry
+from LookAround.FindView.vec_env import (
+    EquilibVecEnv,
+    MPVecEnv,
+    ThreadedVecEnv,
+    VecEnv,
+    filter_by_difficulty,
+    filter_by_name,
+    make_env_fn,
+    make_rl_env_fn,
+)
+
+
+def joint_filter_fn(
+    episode: Episode,
+    names: List[str],
+    difficulties: List[str],
+) -> bool:
+    return filter_by_difficulty(episode, difficulties) and filter_by_name(episode, names)
+
+
+def construct_envs_for_validation(
+    cfg: Config,
+    split: str,
+    is_rlenv: bool = True,
+    dtype: Union[np.dtype, torch.dtype] = torch.float32,
+    device: torch.device = torch.device('cpu'),
+    vec_type: str = "threaded",
+    difficulty: Optional[str] = None,
+    bounded: Optional[bool] = None,
+) -> VecEnv:
+    """Basic initialization of vectorized environments
+
+    It splits the dataset into smaller dataset for each enviornment by first
+    splitting the dataset by `img_name`.
+    """
+
+    # 1. preprocessing
+    # NOTE: make sure to seed first so that we get consistant tests
+    random.seed(cfg.seed)
+    np.random.seed(cfg.seed)
+
+    num_envs = cfg.base_trainer.num_envs
+
+    # get all dataset
+    assert split in ("val", "test")
+    dataset = make_dataset(cfg=cfg, split=split)
+    img_names = dataset.get_img_names()
+
+    if len(img_names) > 0:
+        # NOTE: uses global random state
+        random.shuffle(img_names)
+
+        assert len(img_names) >= num_envs, (
+            "reduce the number of environments as there "
+            "aren't enough diversity in images"
+        )
+
+    img_name_splits = [[] for _ in range(num_envs)]
+    for idx, img_name in enumerate(img_names):
+        img_name_splits[idx % len(img_name_splits)].append(img_name)
+
+    assert sum(map(len, img_name_splits)) == len(img_names)
+
+    if difficulty is None:
+        difficulty = cfg.dataset.difficulty
+    if bounded is None:
+        bounded = cfg.dataset.bounded
+    if bounded:
+        difficulties = (difficulty,)
+    else:
+        if difficulty == "easy":
+            difficulties = (difficulty,)
+        elif difficulty == "medium":
+            difficulties = ("easy", "medium")
+        elif difficulty == "hard":
+            difficulties = ("easy", "medium", "hard")
+
+    for diff in difficulties:
+        assert diff in ("easy", "medium", "hard")
+
+    # 2. create initialization arguments for each environment
+    env_fn_kwargs = []
+    for i in range(num_envs):
+
+        _cfg = Config(deepcopy(cfg))  # make sure to clone
+        _cfg.seed = _cfg.seed + i  # iterator and sampler depends on this
+
+        # print(">>>", i)
+        # print(_cfg.pretty_text)
+        # print(len(img_name_splits[i]), len(img_names))
+
+        # FIXME: maybe change how the devices are allocated
+        # if there are multiple devices (cuda), it would be
+        # nice to somehow split the devices evenly
+
+        kwargs = dict(
+            cfg=_cfg,
+            filter_fn=partial(  # NOTE: filter by both difficulty and names
+                joint_filter_fn,
+                names=img_name_splits[i],
+                difficulties=difficulties,
+            ),
+            split=split,
+            rank=i,
+            dtype=dtype,
+            device=device,
+        )
+        env_fn_kwargs.append(kwargs)
+
+    # 3. initialize the vectorized environment
+    if vec_type == "mp":
+        # FIXME: Very slow. Torch using multi-thread?
+        envs = MPVecEnv(
+            make_env_fn=make_rl_env_fn if is_rlenv else make_env_fn,
+            env_fn_kwargs=env_fn_kwargs,
+        )
+    elif vec_type == "equilib":
+        # NOTE: faster than multiprocessing
+        envs = EquilibVecEnv(
+            make_env_fn=make_rl_env_fn if is_rlenv else make_env_fn,
+            env_fn_kwargs=env_fn_kwargs,
+        )
+    elif vec_type == "threaded":
+        # NOTE: fastest by far
+        envs = ThreadedVecEnv(
+            make_env_fn=make_rl_env_fn if is_rlenv else make_env_fn,
+            env_fn_kwargs=env_fn_kwargs,
+        )
+    else:
+        raise ValueError(f"ERR: {vec_type} not supported")
+
+    return envs
 
 
 @RLEnvRegistry.register_module(name="Env1")

@@ -10,11 +10,11 @@ import tqdm
 from LookAround.config import Config
 from LookAround.core import logger
 from LookAround.core.improc import post_process_for_render_torch
-from LookAround.FindView.vec_env import VecEnv, construct_envs
+from LookAround.FindView.vec_env import VecEnv
 from LookAround.utils.visualizations import renders_to_image
 
-from findview_baselines.common.base_validator import BaseRLValidator
 from findview_baselines.common.tensorboard_utils import TensorboardWriter
+from findview_baselines.common.base_validator import BaseRLValidator
 from findview_baselines.rl.ppo.ppo import PPO
 from findview_baselines.rl.ppo.policy import FindViewBaselinePolicy
 from findview_baselines.utils.common import (
@@ -30,25 +30,39 @@ class PPOValidator(BaseRLValidator):
         assert cfg is not None, "ERR: needs config file to initialize validator"
         super().__init__(cfg=cfg)
 
-    def _init_rlenvs(
+    def eval_from_trainer(
         self,
-        split: str,
-        cfg: Optional[Config] = None,
-    ) -> VecEnv:
-        if cfg is None:
-            cfg = Config(deepcopy(self.cfg))
-        split_cfg = getattr(cfg, split)
-        assert split_cfg is not None
-        envs = construct_envs(
-            cfg=cfg,
-            split=split,
-            is_rlenv=True,
-            dtype=exec(split_cfg.dtype),  # FIXME: potentially insecure
-            device=torch.device(split_cfg.device),
-            vec_type=split_cfg.vec_type,
+        agent: PPO,
+        writer: Optional[TensorboardWriter],
+        step_id: int,
+        difficulty: str,
+        bounded: bool,
+    ):
+        envs = self._init_rlenvs(
+            split="val",
+            cfg=self.cfg,
+            difficulty=difficulty,
+            bounded=bounded,
         )
-        # FIXME: change difficulties
-        return envs
+
+        if torch.cuda.is_available():
+            self.device = torch.device("cuda", self.cfg.val.device)
+            torch.cuda.set_device(self.device)
+        else:
+            self.device = torch.device("cpu")
+
+        # FIXME: when the agent is on a different device during validation
+        agent.actor_critic.to(self.device)
+        agent.actor_critic.eval()
+
+        # FIXME: return some metrics for scheduling decisions
+        return self._eval_single(
+            agent=agent,
+            envs=envs,
+            writer=writer,
+            step_id=step_id,
+            num_eval_episodes=self.cfg.val.num_eval_episodes,
+        )
 
     def _eval_checkpoint(
         self,
@@ -80,6 +94,8 @@ class PPOValidator(BaseRLValidator):
         envs = self._init_rlenvs(
             split="test",
             cfg=self.cfg,
+            difficulty=self.cfg.test.difficulty,
+            bounded=self.cfg.test.bounded,
         )
 
         if torch.cuda.is_available():
@@ -101,6 +117,7 @@ class PPOValidator(BaseRLValidator):
             **self.cfg.policy,
         )
         actor_critic.to(self.device)
+        actor_critic.eval()
         agent = PPO(
             actor_critic=actor_critic,
             **self.cfg.ppo,
@@ -108,41 +125,27 @@ class PPOValidator(BaseRLValidator):
         agent.load_state_dict(ckpt_dict["state_dict"])
 
         step_id = checkpoint_index
-        if "extra_state" in ckpt_dict and "step" in ckpt_dict["extra_state"]:
-            step_id = ckpt_dict["extra_state"]["step"]
+        if "extra_state" in ckpt_dict and "num_step_done" in ckpt_dict["extra_state"]:
+            step_id = ckpt_dict["extra_state"]["num_step_done"]
 
-        self._eval_single(agent, envs, writer=writer, step_id=step_id)
-
-    def eval_from_trainer(
-        self,
-        agent: PPO,
-        writer: Optional[TensorboardWriter],
-        step_id: int,
-    ):
-        envs = self._init_rlenvs(
-            split="val",
-            cfg=self.cfg,
+        self._eval_single(
+            agent=agent,
+            envs=envs,
+            writer=writer,
+            step_id=step_id,
+            num_eval_episodes=self.cfg.test.num_eval_episodes,
         )
-
-        if torch.cuda.is_available():
-            self.device = torch.device("cuda", self.cfg.val.device)
-            torch.cuda.set_device(self.device)
-        else:
-            self.device = torch.device("cpu")
-
-        # FIXME: when the agent is on a different device during validation
-        agent.actor_critic.to(self.device)
-
-        self._eval_single(agent, envs, writer=writer, step_id=step_id)
 
     def _eval_single(
         self,
-        agent: PPO,
+        agent: PPO,  # FIXME: policy might be better
         envs: VecEnv,
         writer: Optional[TensorboardWriter],
         step_id: int,
+        num_eval_episodes: int,
     ):
 
+        # isolate actor_critic
         actor_critic = agent.actor_critic
 
         action_shape = (1,)
@@ -202,8 +205,7 @@ class PPOValidator(BaseRLValidator):
                 rgb_frames[i].append(frame)
 
         # get the number of episodes to test
-        # FIXME: how many for validation???
-        number_of_eval_episodes = self.cfg.test.episode_count
+        number_of_eval_episodes = num_eval_episodes
 
         # some checks for `number_of_eval_episodes`
         if number_of_eval_episodes == -1:
@@ -219,10 +221,6 @@ class PPOValidator(BaseRLValidator):
                 number_of_eval_episodes = total_num_eps
 
         pbar = tqdm.tqdm(total=number_of_eval_episodes)
-
-        # no backprop
-        actor_critic.eval()
-
         while (
             len(stats_episodes) < number_of_eval_episodes
             and envs.num_envs > 0
@@ -377,4 +375,19 @@ class PPOValidator(BaseRLValidator):
 
         envs.close()
 
-        # FIXME: return metrics
+        # FIXME: debug
+        # print(aggregated_stats)
+        # >>> out: {
+        #   'reward':,
+        #   'elapsed_steps':,
+        #   'called_stop':,
+        #   'l1_distance_to_target':,
+        #   'l2_distance_to_target':,
+        #   'num_same_view':,
+        #   'efficiency':,
+        # }
+
+        # NOTE: for now use l1 distance
+        metric = aggregated_stats['l1_distance_to_target']
+
+        return metric

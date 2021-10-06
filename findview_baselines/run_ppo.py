@@ -5,6 +5,7 @@ import argparse
 from LookAround.config import Config, DictAction
 
 from findview_baselines.rl.ppo.trainer import PPOTrainer
+from findview_baselines.rl.ppo.validator import PPOValidator
 
 
 def main():
@@ -44,12 +45,12 @@ def run_exp(
     print(">>> Config:")
     print(cfg.pretty_text)
 
-    trainer = PPOTrainer(cfg=cfg)
-
     if mode == "train":
+        trainer = PPOTrainer(cfg=cfg)
         trainer.train()
     elif mode == "eval":
-        trainer.eval()
+        validator = PPOValidator(cfg=cfg)
+        validator.eval()
 
 
 if __name__ == "__main__":

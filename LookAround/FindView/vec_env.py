@@ -260,7 +260,7 @@ class MPVecEnv(VecEnv):
                     connection_write_fn(env.render(*data[0], **data[1]))
 
                 elif command == CHANGE_DIFFICULTY_COMMAND:
-                    env.change_difficulty(**data)
+                    connection_write_fn(env.change_difficulty(**data))
 
                 elif command == CALL_COMMAND:
                     function_name, function_args = data
@@ -549,6 +549,8 @@ class MPVecEnv(VecEnv):
                     dict(difficulty=difficulty, bounded=bounded)
                 )
             )
+        # FIXME: need to read
+        _ = [read_fn() for read_fn in self._connection_read_fns]
 
     @property
     def _valid_start_methods(self) -> Set[str]:
@@ -799,6 +801,8 @@ class EquilibVecEnv(VecEnv):
         self.close()
 
 
+# filters for making datasets
+
 def filter_by_name(
     episode: Union[Episode, PseudoEpisode],
     names: List[str],
@@ -819,6 +823,8 @@ def filter_by_difficulty(
 ) -> bool:
     return episode.difficulty in difficulties
 
+
+# env/rlenv initialization function
 
 def make_env_fn(
     cfg: Config,
@@ -847,6 +853,10 @@ def make_rl_env_fn(
     dtype: Union[np.dtype, torch.dtype] = torch.float32,
     device: torch.device = torch.device('cpu'),
 ) -> FindViewRLEnv:
+
+    # FIXME: play around with this value for threaded and multiprocessing
+    # Lower threads the better
+    torch.set_num_threads(1)  # NOTE: this is needed for multiprocessing?
     rlenv: FindViewRLEnv = RLEnvRegistry.build(
         cfg.rl_env.name,
         cfg=cfg,
@@ -859,11 +869,7 @@ def make_rl_env_fn(
     return rlenv
 
 
-def seed(seed: int) -> None:
-    # this sets a global random state
-    random.seed(seed)
-    np.random.seed(seed)
-
+# function to construct vectorized envs
 
 def construct_envs(
     cfg: Config,
@@ -881,9 +887,10 @@ def construct_envs(
 
     # 1. preprocessing
     # NOTE: make sure to seed first so that we get consistant tests
-    seed(cfg.seed)
+    random.seed(cfg.seed)
+    np.random.seed(cfg.seed)
 
-    num_envs = cfg.num_envs
+    num_envs = cfg.base_trainer.num_envs
 
     # get all dataset
     dataset = make_dataset(cfg=cfg, split=split)
