@@ -7,7 +7,7 @@ from torch import Tensor
 from torch import nn as nn
 from torch import optim as optim
 
-from findview_baselines.common.rollout_storage import RolloutStorage
+from findview_baselines.common import RolloutStorage
 from findview_baselines.rl.ppo.policy import Policy
 
 EPS_PPO = 1e-5
@@ -72,7 +72,7 @@ class PPO(nn.Module):
         action_loss_epoch = 0.0
         dist_entropy_epoch = 0.0
 
-        for _e in range(self.ppo_epoch):
+        for _ in range(self.ppo_epoch):
             data_generator = rollouts.recurrent_generator(
                 advantages, self.num_mini_batch
             )
@@ -148,7 +148,7 @@ class PPO(nn.Module):
     def _evaluate_actions(
         self, observations, rnn_hidden_states, prev_actions, masks, action
     ):
-        r"""Internal method that calls Policy.evaluate_actions.  This is used instead of calling
+        """Internal method that calls Policy.evaluate_actions.  This is used instead of calling
         that directly so that that call can be overrided with inheritance
         """
         return self.actor_critic.evaluate_actions(

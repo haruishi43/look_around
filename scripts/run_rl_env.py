@@ -8,38 +8,25 @@ import argparse
 from functools import partial
 import json
 import os
-import random
 from typing import List
 
 import torch
 from tqdm import tqdm
 
 from LookAround.config import Config
-from LookAround.core.agent import Agent
-from LookAround.FindView.env import FindViewActions
-from LookAround.FindView.rl_env import make_rl_env
+from LookAround.utils.random import seed
+from LookAround.FindView import RLEnvRegistry
 from LookAround.utils.visualizations import save_images_as_video
 
+from findview_baselines.agents.single_movement import SingleMovementAgent
 from findview_baselines.agents.greedy import GreedyMovementAgent
 from findview_baselines.agents.feature_matching import FeatureMatchingAgent
 
-random.seed(0)
+seed(0)
 
 
 def filter_episodes_by_img_names(episode, names: List[str]) -> bool:
     return episode.img_name in names
-
-
-class SingleMovementAgent(Agent):
-    def __init__(self, action: str = "right") -> None:
-        assert action in FindViewActions.all
-        self.action = action
-
-    def act(self, observations):
-        return self.action
-
-    def reset(self):
-        ...
 
 
 def parse_args():
@@ -53,7 +40,7 @@ def parse_args():
         "--agent",
         required=True,
         type=str,
-        choices=['greedy', 'single', 'fm'],
+        choices=['single', 'greedy', 'fm'],
         help="name of the agent"
     )
     return parser.parse_args()
@@ -68,8 +55,7 @@ if __name__ == "__main__":
     print(cfg.pretty_text)
 
     # params:
-    split = 'train'
-    is_torch = True
+    split = 'test'
     dtype = torch.float32
     device = torch.device('cpu')
     num_steps = 5000
@@ -79,22 +65,22 @@ if __name__ == "__main__":
     # setup filter func
     filter_by_names = partial(filter_episodes_by_img_names, names=img_names)
 
-    rlenv = make_rl_env(
+    rlenv = RLEnvRegistry.build(
+        cfg.rl_env.name,
         cfg=cfg,
         split=split,
-        # filter_fn=filter_by_names,
-        is_torch=is_torch,
+        filter_fn=filter_by_names,
         dtype=dtype,
         device=device,
     )
 
     # initialize agent
     if args.agent == "single":
-        agent = SingleMovementAgent(action="right")
+        agent = SingleMovementAgent.from_config(cfg=cfg)
     elif args.agent == "greedy":
-        agent = GreedyMovementAgent(cfg=cfg)
+        agent = GreedyMovementAgent.from_config(cfg=cfg)
     elif args.agent == "fm":
-        agent = FeatureMatchingAgent(cfg=cfg)
+        agent = FeatureMatchingAgent.from_config(cfg=cfg)
     else:
         raise ValueError
 

@@ -2,7 +2,8 @@
 
 """Naive Vectorized Environment for RL
 
-exploit equi2pers's batch sampling
+Reference:
+https://github.com/facebookresearch/habitat-lab/blob/master/habitat/core/vector_env.py
 
 """
 
@@ -36,10 +37,11 @@ import torch
 from torch import multiprocessing as mp  # type:ignore
 
 from LookAround.config import Config
+from LookAround.core.logging import logger
 from LookAround.FindView.dataset import Episode, PseudoEpisode, make_dataset
 from LookAround.FindView.env import FindViewEnv
-from LookAround.FindView.rl_env import FindViewRLEnv
-from LookAround.FindView.sim import batch_sample
+from LookAround.FindView.rl_env import FindViewRLEnv, RLEnvRegistry
+from LookAround.FindView.sim import deg2rad
 from LookAround.utils.visualizations import tile_images
 from LookAround.utils.pickle5_multiprocessing import ConnectionWrapper
 
@@ -49,6 +51,7 @@ RESET_COMMAND = "reset"
 RENDER_COMMAND = "render"
 CLOSE_COMMAND = "close"
 CALL_COMMAND = "call"
+CHANGE_DIFFICULTY_COMMAND = "change_difficulty"
 
 EPISODE_OVER_NAME = "episode_over"
 GET_METRICS_NAME = "get_metrics"
@@ -60,7 +63,7 @@ OBSERVATION_SPACE_NAME = "observation_space"
 
 @attr.s(auto_attribs=True, slots=True)
 class _ReadWrapper:
-    r"""Convenience wrapper to track if a connection to a worker process
+    """Convenience wrapper to track if a connection to a worker process
     should have something to read.
     """
     read_fn: Callable[[], Any]
@@ -81,7 +84,7 @@ class _ReadWrapper:
 
 @attr.s(auto_attribs=True, slots=True)
 class _WriteWrapper:
-    r"""Convenience wrapper to track if a connection to a worker process
+    """Convenience wrapper to track if a connection to a worker process
     can be written to safely.  In other words, checks to make sure the
     result returned from the last write was read.
     """
@@ -98,15 +101,69 @@ class _WriteWrapper:
         self.read_wrapper.is_waiting = True
 
 
-class MPVecEnv(object):
+class VecEnv(object):
 
-    observation_spaces: List[spaces.Dict]
+    # Properties
     action_spaces: List[spaces.Dict]
+    observation_spaces: List[spaces.Dict]
+    number_of_episodes: Optional[int]
 
-    _workers: List[Union[mp.Process, Thread]]
-    _mp_ctx: BaseContext
+    # Hidden Properties
     _num_envs: int
     _auto_reset_done: bool
+
+    @property
+    def num_envs(self) -> int:
+        raise NotImplementedError
+
+    def current_episodes(self) -> List[Episode]:
+        raise NotImplementedError
+
+    def episode_over(self) -> List[bool]:
+        raise NotImplementedError
+
+    def get_metrics(self) -> List[Any]:
+        raise NotImplementedError
+
+    def reset(self) -> None:
+        raise NotImplementedError
+
+    def reset_at(self, index):
+        raise NotImplementedError
+
+    def step(self, actions) -> List[Any]:
+        raise NotImplementedError
+
+    def step_at(self, index, action):
+        raise NotImplementedError
+
+    def async_step_at(self, index, action) -> None:
+        raise NotImplementedError
+
+    def wait_step_at(self, index) -> List[Any]:
+        raise NotImplementedError
+
+    def pause_at(self, index):
+        raise NotImplementedError
+
+    def resume_all(self):
+        raise NotImplementedError
+
+    def close(self) -> None:
+        raise NotImplementedError
+
+    def render(self):
+        raise NotImplementedError
+
+    def change_difficulty(self, difficulty: str, bounded: bool) -> None:
+        raise NotImplementedError
+
+
+class MPVecEnv(VecEnv):
+
+    # Hidden Properties
+    _workers: List[Union[mp.Process, Thread]]
+    _mp_ctx: BaseContext
     _connection_read_fns: List[_ReadWrapper]
     _connection_write_fns: List[_WriteWrapper]
 
@@ -187,8 +244,10 @@ class MPVecEnv(object):
                         )
                     elif isinstance(env, FindViewEnv):  # type: ignore
                         observations = env.step(**data)
-                        if auto_reset_done and env.episode_over:
-                            observations = env.reset()
+                        # NOTE: don't restart since `episode_over` also gets reset
+                        # FIXME: get `dones` if `auto_reset` is True?
+                        # if auto_reset_done and env.episode_over:
+                        #     observations = env.reset()
                         connection_write_fn(observations)
                     else:
                         raise NotImplementedError
@@ -199,6 +258,9 @@ class MPVecEnv(object):
 
                 elif command == RENDER_COMMAND:
                     connection_write_fn(env.render(*data[0], **data[1]))
+
+                elif command == CHANGE_DIFFICULTY_COMMAND:
+                    connection_write_fn(env.change_difficulty(**data))
 
                 elif command == CALL_COMMAND:
                     function_name, function_args = data
@@ -220,8 +282,7 @@ class MPVecEnv(object):
                 command, data = connection_read_fn()
 
         except KeyboardInterrupt:
-            # logger.info("Worker KeyboardInterrupt")
-            print("Worker KeyboardInterrupt")
+            logger.info("Worker KeyboardInterrupt")
         finally:
             if child_pipe is not None:
                 child_pipe.close()
@@ -305,65 +366,69 @@ class MPVecEnv(object):
             results.append(read_fn())
         return results
 
-    def reset_at(self, index_env: int):
+    def reset_at(self, index: int):
         """Reset in the index_env environment in the vector.
         :param index_env: index of the environment to be reset
         :return: list containing the output of reset method of indexed env.
         """
-        self._connection_write_fns[index_env]((RESET_COMMAND, None))
-        results = [self._connection_read_fns[index_env]()]
+        self._connection_write_fns[index]((RESET_COMMAND, None))
+        results = [self._connection_read_fns[index]()]
         return results
 
     def async_step_at(
-        self, index_env: int, action: Union[int, str, Dict[str, Any]]
+        self,
+        index: int,
+        action: Union[int, str, Dict[str, Any]],
     ) -> None:
         # Backward compatibility
         if isinstance(action, (int, np.integer, str)):
             action = {"action": {"action": action}}
 
         self._warn_cuda_tensors(action)
-        self._connection_write_fns[index_env]((STEP_COMMAND, action))
+        self._connection_write_fns[index]((STEP_COMMAND, action))
 
-    def wait_step_at(self, index_env: int) -> Any:
-        return self._connection_read_fns[index_env]()
+    def wait_step_at(self, index: int) -> Any:
+        return self._connection_read_fns[index]()
 
-    def step_at(self, index_env: int, action: Union[int, str, Dict[str, Any]]):
-        """Step in the index_env environment in the vector.
-        :param index_env: index of the environment to be stepped into
+    def step_at(self, index: int, action: Union[int, str, Dict[str, Any]]):
+        """Step in the index environment in the vector.
+        :param index: index of the environment to be stepped into
         :param action: action to be taken
         :return: list containing the output of step method of indexed env.
         """
-        self.async_step_at(index_env, action)
-        return self.wait_step_at(index_env)
+        self.async_step_at(index, action)
+        return self.wait_step_at(index)
 
     def async_step(
-        self, data: Sequence[Union[int, str, Dict[str, Any]]]
+        self,
+        actions: Sequence[Union[int, str, Dict[str, Any]]],
     ) -> None:
         """Asynchronously step in the environments.
-        :param data: list of size _num_envs containing keyword arguments to
-            pass to :ref:`step` method for each Environment. For example,
-            :py:`[{"action": "TURN_LEFT", "action_args": {...}}, ...]`.
+        :param actions: list of size _num_envs containing keyword arguments to
+            pass to `step` method for each Environment. For example,
+            `[{"action": "TURN_LEFT", "action_args": {...}}, ...]`.
         """
 
-        for index_env, act in enumerate(data):
-            self.async_step_at(index_env, act)
+        for index, action in enumerate(actions):
+            self.async_step_at(index, action)
 
     def wait_step(self) -> List[Any]:
-        r"""Wait until all the asynchronized environments have synchronized."""
+        """Wait until all the asynchronized environments have synchronized."""
         return [
-            self.wait_step_at(index_env) for index_env in range(self.num_envs)
+            self.wait_step_at(i) for i in range(self.num_envs)
         ]
 
     def step(
-        self, data: Sequence[Union[int, str, Dict[str, Any]]]
+        self,
+        actions: Sequence[Union[int, str, Dict[str, Any]]],
     ) -> List[Any]:
         """Perform actions in the vectorized environments.
-        :param data: list of size _num_envs containing keyword arguments to
-            pass to :ref:`step` method for each Environment. For example,
-            :py:`[{"action": "TURN_LEFT", "action_args": {...}}, ...]`.
+        :param actions: list of size _num_envs containing keyword arguments to
+            pass to `step` method for each Environment. For example,
+            `[{"action": "TURN_LEFT", "action_args": {...}}, ...]`.
         :return: list of outputs from the step method of envs.
         """
-        self.async_step(data)
+        self.async_step(actions)
         return self.wait_step()
 
     def close(self) -> None:
@@ -404,7 +469,7 @@ class MPVecEnv(object):
         self._paused.append((index, read_fn, write_fn, worker))
 
     def resume_all(self) -> None:
-        r"""Resumes any paused envs."""
+        """Resumes any paused envs."""
         for index, read_fn, write_fn, worker in reversed(self._paused):
             self._connection_read_fns.insert(index, read_fn)
             self._connection_write_fns.insert(index, write_fn)
@@ -458,7 +523,7 @@ class MPVecEnv(object):
 
     def render(
         self, *args, **kwargs,
-    ) -> Union[np.ndarray, None]:
+    ) -> Union[Dict[str, np.ndarray], None]:
         """Render observations from all environments in a tiled image."""
         for write_fn in self._connection_write_fns:
             write_fn((RENDER_COMMAND, (args, kwargs)))
@@ -471,6 +536,21 @@ class MPVecEnv(object):
             "pers": pers,
             "target": target
         }
+
+    def change_difficulty(
+        self,
+        difficulty: str,
+        bounded: bool,
+    ) -> None:
+        for write_fn in self._connection_write_fns:
+            write_fn(
+                (
+                    CHANGE_DIFFICULTY_COMMAND,
+                    dict(difficulty=difficulty, bounded=bounded)
+                )
+            )
+        # FIXME: need to read
+        _ = [read_fn() for read_fn in self._connection_read_fns]
 
     @property
     def _valid_start_methods(self) -> Set[str]:
@@ -496,10 +576,10 @@ class MPVecEnv(object):
 
 
 class ThreadedVecEnv(MPVecEnv):
-    """Provides same functionality as :ref:`VectorEnv`, the only difference
+    """Provides same functionality as `VecEnv`, the only difference
     is it runs in a multi-thread setup inside a single process.
-    The :ref:`VectorEnv` runs in a multi-proc setup. This makes it much easier
-    to debug when using :ref:`VectorEnv` because you can actually put break
+    The `VecEnv` runs in a multi-proc setup. This makes it much easier
+    to debug when using `VecEnv` because you can actually put break
     points in the environment methods. It should not be used for best
     performance.
     """
@@ -544,13 +624,10 @@ class ThreadedVecEnv(MPVecEnv):
         return read_fns, write_fns
 
 
-class SlowVecEnv(object):
+class EquilibVecEnv(VecEnv):
 
+    # Properties
     envs: List[Union[FindViewEnv, FindViewEnv]]
-    observation_spaces: List[spaces.Dict]
-    action_spaces: List[spaces.Dict]
-
-    _auto_reset_done: bool
 
     def __init__(
         self,
@@ -591,8 +668,8 @@ class SlowVecEnv(object):
             batch_obs.append(env.reset())
         return batch_obs
 
-    def reset_at(self, i):
-        obs = self.envs[i].reset()
+    def reset_at(self, index: int):
+        obs = self.envs[index].reset()
         return obs
 
     def step(self, actions: List[str]):
@@ -608,18 +685,60 @@ class SlowVecEnv(object):
 
         # NOTE: really hacky way of batch sampling
         sims = [env.sim for env in self.envs]
-        batch_sample(sims, rots)
+
+        is_torch = sims[0].is_torch
+        none_idx = [i for i, rot in enumerate(rots) if rot is None]
+
+        rad_rots = [deg2rad(rot) for rot in rots if rot is not None]
+
+        batched_equi = []
+        for i, sim in enumerate(sims):
+            if i not in none_idx:
+                batched_equi.append(sim.equi)
+
+        if len(batched_equi) == 0:
+            return
+
+        if is_torch:
+            if len(batched_equi) == 1:
+                batched_equi = batched_equi[0].unsqueeze(0)
+            else:
+                batched_equi = torch.stack(batched_equi, dim=0)
+        else:
+            if len(batched_equi) == 1:
+                batched_equi = batched_equi[0][None, ...]
+            else:
+                batched_equi = np.stack(batched_equi, axis=0)
+
+        assert len(batched_equi.shape) == 4
+        batched_pers = sims[0].equi2pers(batched_equi, rots=rad_rots)
+        assert len(batched_pers.shape) == 4
+
+        count = 0
+        for i, sim in enumerate(sims):
+            # if `rot` was None, `sim` should keep the original `pers`
+            if i not in none_idx:
+                sim._pers = batched_pers[count]
+                count += 1
+
+        assert count == len(batched_pers)
 
         # make sure to get observations
         for env in self.envs:
-            observation, reward, done, info = env.step_after()
+            if isinstance(env, FindViewRLEnv):
+                observation, reward, done, info = env.step_after()
 
-            if done and self._auto_reset_done:
-                observation = env.reset()
+                if done and self._auto_reset_done:
+                    observation = env.reset()
 
-            batch_ret.append(
-                (observation, reward, done, info)
-            )
+                batch_ret.append(
+                    (observation, reward, done, info)
+                )
+            elif isinstance(env, FindViewEnv):
+                obs = env.step_after()
+                batch_ret.append(obs)
+
+                # NOTE: we don't `auto_reset` for Env
 
         # Serial method
         # NOTE: pretty slow
@@ -635,8 +754,14 @@ class SlowVecEnv(object):
 
         return batch_ret
 
-    def step_at(self, i, action: str):
-        return self.envs[i].step(action)
+    def async_step_at(self, index, action) -> None:
+        raise NotImplementedError
+
+    def wait_step_at(self, index) -> List[Any]:
+        raise NotImplementedError
+
+    def step_at(self, index: int, action: str):
+        return self.envs[index].step(action)
 
     def pause_at(self, index: int) -> None:
         env = self.envs.pop(index)
@@ -658,6 +783,10 @@ class SlowVecEnv(object):
             'target': target_tile,
         }
 
+    def change_difficulty(self, difficulty: str, bounded: bool) -> None:
+        for env in self.envs:
+            env.change_difficulty(difficulty=difficulty, bounded=bounded)
+
     def close(self) -> None:
         for env in self.envs:
             env.close()
@@ -671,6 +800,8 @@ class SlowVecEnv(object):
     def __exit__(self, exc_type, exc_val, exc_tb):
         self.close()
 
+
+# filters for making datasets
 
 def filter_by_name(
     episode: Union[Episode, PseudoEpisode],
@@ -693,55 +824,76 @@ def filter_by_difficulty(
     return episode.difficulty in difficulties
 
 
+# env/rlenv initialization function
+
 def make_env_fn(
     cfg: Config,
-    env_cls: Union[FindViewEnv, FindViewRLEnv],
-    filter_fn,
+    filter_fn: Callable[..., bool],
     split: str,
     rank: int,
-    is_torch: bool = True,
     dtype: Union[np.dtype, torch.dtype] = torch.float32,
     device: torch.device = torch.device('cpu'),
-) -> Union[FindViewEnv, FindViewRLEnv]:
-
-    env = env_cls(
+) -> FindViewEnv:
+    env: FindViewEnv = FindViewEnv.from_config(
         cfg=cfg,
         split=split,
         filter_fn=filter_fn,
-        is_torch=is_torch,
         dtype=dtype,
         device=device,
     )
     env.seed(rank)
-
     return env
 
 
-def seed(seed: int):
-    # this sets a global random state
-    random.seed(seed)
-    np.random.seed(seed)
+def make_rl_env_fn(
+    cfg: Config,
+    filter_fn: Callable[..., bool],
+    split: str,
+    rank: int,
+    dtype: Union[np.dtype, torch.dtype] = torch.float32,
+    device: torch.device = torch.device('cpu'),
+) -> FindViewRLEnv:
 
+    # FIXME: play around with this value for threaded and multiprocessing
+    # Lower threads the better
+    torch.set_num_threads(1)  # NOTE: this is needed for multiprocessing?
+    rlenv: FindViewRLEnv = RLEnvRegistry.build(
+        cfg.rl_env.name,
+        cfg=cfg,
+        filter_fn=filter_fn,
+        split=split,
+        dtype=dtype,
+        device=device,
+    )
+    rlenv.seed(rank)
+    return rlenv
+
+
+# function to construct vectorized envs
 
 def construct_envs(
-    env_cls: Union[FindViewEnv, FindViewRLEnv],
     cfg: Config,
     split: str,
-    is_torch: bool = True,
+    is_rlenv: bool = True,
     dtype: Union[np.dtype, torch.dtype] = torch.float32,
     device: torch.device = torch.device('cpu'),
     vec_type: str = "threaded",
-) -> Union[SlowVecEnv, MPVecEnv, ThreadedVecEnv]:
+) -> VecEnv:
+    """Basic initialization of vectorized environments
 
+    It splits the dataset into smaller dataset for each enviornment by first
+    splitting the dataset by `img_name`.
+    """
+
+    # 1. preprocessing
     # NOTE: make sure to seed first so that we get consistant tests
-    seed(cfg.seed)
+    random.seed(cfg.seed)
+    np.random.seed(cfg.seed)
 
-    num_envs = cfg.num_envs
+    num_envs = cfg.base_trainer.num_envs
 
     # get all dataset
     dataset = make_dataset(cfg=cfg, split=split)
-
-    # FIXME: maybe use sub_labels too?
     img_names = dataset.get_img_names()
 
     if len(img_names) > 0:
@@ -759,6 +911,7 @@ def construct_envs(
 
     assert sum(map(len, img_name_splits)) == len(img_names)
 
+    # 2. create initialization arguments for each environment
     env_fn_kwargs = []
     for i in range(num_envs):
 
@@ -775,100 +928,34 @@ def construct_envs(
 
         kwargs = dict(
             cfg=_cfg,
-            env_cls=env_cls,
             filter_fn=partial(filter_by_name, names=img_name_splits[i]),
             split=split,
             rank=i,
-            is_torch=is_torch,
             dtype=dtype,
             device=device,
         )
         env_fn_kwargs.append(kwargs)
 
+    # 3. initialize the vectorized environment
     if vec_type == "mp":
-        # FIXME: why is this so slow???
-        # equilib???
+        # FIXME: Very slow. Torch using multi-thread?
         envs = MPVecEnv(
-            make_env_fn=make_env_fn,
+            make_env_fn=make_rl_env_fn if is_rlenv else make_env_fn,
             env_fn_kwargs=env_fn_kwargs,
         )
-    elif vec_type == "slow":
-        # NOTE: `slow` is actually faster than multiprocessing
-        envs = SlowVecEnv(
-            make_env_fn=make_env_fn,
+    elif vec_type == "equilib":
+        # NOTE: faster than multiprocessing
+        envs = EquilibVecEnv(
+            make_env_fn=make_rl_env_fn if is_rlenv else make_env_fn,
             env_fn_kwargs=env_fn_kwargs,
         )
     elif vec_type == "threaded":
-        # NOTE: this is the fastest so far...
+        # NOTE: fastest by far
         envs = ThreadedVecEnv(
-            make_env_fn=make_env_fn,
+            make_env_fn=make_rl_env_fn if is_rlenv else make_env_fn,
             env_fn_kwargs=env_fn_kwargs,
         )
     else:
         raise ValueError(f"ERR: {vec_type} not supported")
-    return envs
 
-
-def construct_test_envs(
-    env_cls: Union[FindViewEnv, FindViewRLEnv],
-    cfg: Config,
-    split: str,
-    difficulties: List[str] = ["easy"],
-    is_torch: bool = True,
-    dtype: Union[np.dtype, torch.dtype] = torch.float32,
-    device: torch.device = torch.device('cpu'),
-    vec_type: str = "threaded",
-) -> Union[SlowVecEnv, MPVecEnv, ThreadedVecEnv]:
-
-    num_envs = cfg.num_envs
-
-    assert split == "test"
-
-    env_fn_kwargs = []
-    for i in range(num_envs):
-
-        _cfg = Config(deepcopy(cfg))  # make sure to clone
-        _cfg.seed = _cfg.seed + i  # iterator and sampler depends on this
-
-        # print(">>>", i)
-        # print(_cfg.pretty_text)
-        # print(len(img_name_splits[i]), len(img_names))
-
-        # FIXME: maybe change how the devices are allocated
-        # if there are multiple devices (cuda), it would be
-        # nice to somehow split the devices evenly
-
-        kwargs = dict(
-            cfg=_cfg,
-            env_cls=env_cls,
-            filter_fn=partial(filter_by_difficulty, difficulties=difficulties),
-            split=split,
-            rank=i,
-            is_torch=is_torch,
-            dtype=dtype,
-            device=device,
-        )
-        env_fn_kwargs.append(kwargs)
-
-    if vec_type == "mp":
-        # FIXME: why is this so slow???
-        # equilib???
-        envs = MPVecEnv(
-            make_env_fn=make_env_fn,
-            env_fn_kwargs=env_fn_kwargs,
-        )
-    elif vec_type == "slow":
-        # NOTE: `slow` is actually faster than multiprocessing
-        envs = SlowVecEnv(
-            make_env_fn=make_env_fn,
-            env_fn_kwargs=env_fn_kwargs,
-        )
-    elif vec_type == "threaded":
-        # NOTE: this is the fastest so far...
-        envs = ThreadedVecEnv(
-            make_env_fn=make_env_fn,
-            env_fn_kwargs=env_fn_kwargs,
-        )
-    else:
-        raise ValueError(f"ERR: {vec_type} not supported")
     return envs

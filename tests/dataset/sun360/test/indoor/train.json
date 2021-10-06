@@ -1,0 +1,50 @@
+[
+    {
+        "img_name": "pano_aaetajxrlgcufc",
+        "path": "indoor/office/pano_aaetajxrlgcufc.jpg",
+        "label": "indoor",
+        "sub_label": "office"
+    },
+    {
+        "img_name": "pano_aadkasasjllizj",
+        "path": "indoor/office/pano_aadkasasjllizj.jpg",
+        "label": "indoor",
+        "sub_label": "office"
+    },
+    {
+        "img_name": "pano_aabrsshujmskyq",
+        "path": "indoor/bedroom/pano_aabrsshujmskyq.jpg",
+        "label": "indoor",
+        "sub_label": "bedroom"
+    },
+    {
+        "img_name": "pano_aabmrqxszhzijj",
+        "path": "indoor/bedroom/pano_aabmrqxszhzijj.jpg",
+        "label": "indoor",
+        "sub_label": "bedroom"
+    },
+    {
+        "img_name": "pano_aavccelvxecxpg",
+        "path": "indoor/greenhouse/pano_aavccelvxecxpg.jpg",
+        "label": "indoor",
+        "sub_label": "greenhouse"
+    },
+    {
+        "img_name": "pano_aashruozjcwbxo",
+        "path": "indoor/greenhouse/pano_aashruozjcwbxo.jpg",
+        "label": "indoor",
+        "sub_label": "greenhouse"
+    },
+    {
+        "img_name": "pano_aabtemlmesogqb",
+        "path": "indoor/museum/pano_aabtemlmesogqb.jpg",
+        "label": "indoor",
+        "sub_label": "museum"
+    },
+    {
+        "img_name": "pano_aaaapkoyhqmkdh",
+        "path": "indoor/museum/pano_aaaapkoyhqmkdh.jpg",
+        "label": "indoor",
+        "sub_label": "museum"
+    }
+]

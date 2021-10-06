@@ -29,15 +29,16 @@ class FindViewBenchmark:
         device: torch.device = torch.device('cpu'),
     ) -> None:
 
+        # FIXME: benchmark should have it's own configs
+
         # FIXME: change how we pass arguments
         # - for rl agents, we mostly want gpu and torch.float32 environment
         # - for baselines, we might want numpy environment
         # - we will also want to change how we set the filter
-        self._env = FindViewEnv(
+        self._env = FindViewEnv.from_config(
             cfg=cfg,
-            split='test',
+            split="test",
             filter_fn=partial(filter_by_difficulty, difficulties=['easy']),
-            is_torch=True,
             dtype=torch.float32,
             device=device,
         )

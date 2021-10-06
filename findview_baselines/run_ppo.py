@@ -4,7 +4,8 @@ import argparse
 
 from LookAround.config import Config, DictAction
 
-from findview_baselines.rl.ppo.ppo_trainer import PPOTrainer
+from findview_baselines.rl.ppo.trainer import PPOTrainer
+from findview_baselines.rl.ppo.validator import PPOValidator
 
 
 def main():
@@ -18,7 +19,7 @@ def main():
     parser.add_argument(
         "--mode",
         type=str,
-        choices=['train', 'test'],
+        choices=['train', 'eval'],
         required=True,
     )
     parser.add_argument(
@@ -44,12 +45,12 @@ def run_exp(
     print(">>> Config:")
     print(cfg.pretty_text)
 
-    trainer = PPOTrainer(cfg=cfg)
-
     if mode == "train":
+        trainer = PPOTrainer(cfg=cfg)
         trainer.train()
-    elif mode == "test":
-        trainer.test()
+    elif mode == "eval":
+        validator = PPOValidator(cfg=cfg)
+        validator.eval()
 
 
 if __name__ == "__main__":

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 import warnings
-from typing import Optional, Tuple
+from typing import Any, Optional, Tuple
 
 import numpy as np
 import torch
@@ -12,47 +12,20 @@ from findview_baselines.common.tensor_dict import TensorDict
 class RolloutStorage:
     """Class for storing rollout information for RL trainers."""
 
+    _num_envs: int
+    _num_steps: int
+
     def __init__(
         self,
-        numsteps,
-        num_envs,
+        num_steps: int,
+        num_envs: int,
         observation_space,
-        action_space,
-        recurrent_hidden_state_size,
-        num_recurrent_layers=1,
+        action_space: Optional[Any],
+        recurrent_hidden_state_size: int,
+        num_recurrent_layers: int = 1,
         action_shape: Optional[Tuple[int]] = None,
-        is_double_buffered: bool = False,
         discrete_actions: bool = True,
-    ):
-        self.buffers = TensorDict()
-        self.buffers["observations"] = TensorDict()
-
-        for sensor in observation_space.spaces:
-            self.buffers["observations"][sensor] = torch.from_numpy(
-                np.zeros(
-                    (
-                        numsteps + 1,
-                        num_envs,
-                        *observation_space.spaces[sensor].shape,
-                    ),
-                    dtype=observation_space.spaces[sensor].dtype,
-                )
-            )
-
-        self.buffers["recurrent_hidden_states"] = torch.zeros(
-            numsteps + 1,
-            num_envs,
-            num_recurrent_layers,
-            recurrent_hidden_state_size,
-        )
-
-        self.buffers["rewards"] = torch.zeros(numsteps + 1, num_envs, 1)
-        self.buffers["value_preds"] = torch.zeros(numsteps + 1, num_envs, 1)
-        self.buffers["returns"] = torch.zeros(numsteps + 1, num_envs, 1)
-
-        self.buffers["action_log_probs"] = torch.zeros(
-            numsteps + 1, num_envs, 1
-        )
+    ) -> None:
 
         if action_shape is None:
             if action_space.__class__.__name__ == "ActionSpace":
@@ -60,12 +33,52 @@ class RolloutStorage:
             else:
                 action_shape = action_space.shape
 
+        # initialize rollout buffer
+        self.buffers = TensorDict()
+        self.buffers["observations"] = TensorDict()
+        for sensor in observation_space.spaces:
+            self.buffers["observations"][sensor] = torch.from_numpy(
+                np.zeros(
+                    (
+                        num_steps + 1,
+                        num_envs,
+                        *observation_space.spaces[sensor].shape,
+                    ),
+                    dtype=observation_space.spaces[sensor].dtype,
+                )
+            )
+        self.buffers["recurrent_hidden_states"] = torch.zeros(
+            (
+                num_steps + 1,
+                num_envs,
+                num_recurrent_layers,
+                recurrent_hidden_state_size,
+            ),
+        )
+        self.buffers["rewards"] = torch.zeros(
+            (num_steps + 1, num_envs, 1),
+        )
+        self.buffers["value_preds"] = torch.zeros(
+            (num_steps + 1, num_envs, 1),
+        )
+        self.buffers["returns"] = torch.zeros(
+            (num_steps + 1, num_envs, 1),
+        )
+        self.buffers["action_log_probs"] = torch.zeros(
+            (num_steps + 1, num_envs, 1),
+        )
         self.buffers["actions"] = torch.zeros(
-            numsteps + 1, num_envs, *action_shape
+            (num_steps + 1, num_envs, *action_shape),
         )
         self.buffers["prev_actions"] = torch.zeros(
-            numsteps + 1, num_envs, *action_shape
+            (num_steps + 1, num_envs, *action_shape),
         )
+        self.buffers["masks"] = torch.zeros(
+            (num_steps + 1, num_envs, 1),
+            dtype=torch.bool,
+        )
+
+        # convert actions to long when discrete
         if (
             discrete_actions
             and action_space.__class__.__name__ == "ActionSpace"
@@ -73,28 +86,20 @@ class RolloutStorage:
             self.buffers["actions"] = self.buffers["actions"].long()
             self.buffers["prev_actions"] = self.buffers["prev_actions"].long()
 
-        self.buffers["masks"] = torch.zeros(
-            numsteps + 1, num_envs, 1, dtype=torch.bool
-        )
-
-        self.is_double_buffered = is_double_buffered
-        self._nbuffers = 2 if is_double_buffered else 1
+        # set initial values
         self._num_envs = num_envs
-
-        assert (self._num_envs % self._nbuffers) == 0
-
-        self.numsteps = numsteps
-        self.current_rollout_step_idxs = [0 for _ in range(self._nbuffers)]
+        self._num_steps = num_steps
+        self.current_rollout_step_idx = 0
 
     @property
-    def current_rollout_step_idx(self) -> int:
-        assert all(
-            s == self.current_rollout_step_idxs[0]
-            for s in self.current_rollout_step_idxs
-        )
-        return self.current_rollout_step_idxs[0]
+    def num_envs(self) -> int:
+        return self._num_envs
 
-    def to(self, device):
+    @property
+    def num_steps(self) -> int:
+        return self._num_steps
+
+    def to(self, device) -> None:
         self.buffers.map_in_place(lambda v: v.to(device))
 
     def insert(
@@ -106,10 +111,7 @@ class RolloutStorage:
         value_preds=None,
         rewards=None,
         next_masks=None,
-        buffer_index: int = 0,
-    ):
-        if not self.is_double_buffered:
-            assert buffer_index == 0
+    ) -> None:
 
         next_step = dict(
             observations=next_observations,
@@ -128,36 +130,32 @@ class RolloutStorage:
         next_step = {k: v for k, v in next_step.items() if v is not None}
         current_step = {k: v for k, v in current_step.items() if v is not None}
 
-        env_slice = slice(
-            int(buffer_index * self._num_envs / self._nbuffers),
-            int((buffer_index + 1) * self._num_envs / self._nbuffers),
-        )
-
         if len(next_step) > 0:
             self.buffers.set(
-                (self.current_rollout_step_idxs[buffer_index] + 1, env_slice),
+                self.current_rollout_step_idx + 1,
                 next_step,
                 strict=False,
             )
 
         if len(current_step) > 0:
             self.buffers.set(
-                (self.current_rollout_step_idxs[buffer_index], env_slice),
+                self.current_rollout_step_idx,
                 current_step,
                 strict=False,
             )
 
-    def advance_rollout(self, buffer_index: int = 0):
-        self.current_rollout_step_idxs[buffer_index] += 1
+    def advance_rollout(self) -> None:
+        self.current_rollout_step_idx += 1
 
-    def after_update(self):
+    def after_update(self) -> None:
+
+        # put the last rollout in the beginning
         self.buffers[0] = self.buffers[self.current_rollout_step_idx]
 
-        self.current_rollout_step_idxs = [
-            0 for _ in self.current_rollout_step_idxs
-        ]
+        # reset the rollout index
+        self.current_rollout_step_idx = 0
 
-    def compute_returns(self, next_value, use_gae, gamma, tau):
+    def compute_returns(self, next_value, use_gae, gamma, tau) -> None:
         if use_gae:
             self.buffers["value_preds"][
                 self.current_rollout_step_idx

@@ -61,6 +61,12 @@ class SimpleCNN(nn.Module):
                     stride=np.array(stride, dtype=np.float32),
                 )
 
+            # FIXME: change this to a siamese network instead of convoluting in channels
+            # only 3 stacked CNN, probably not enough to represent exact images
+            # to compare two images, it's probably safer to use two CNN with shared weight
+            # and add linear at the end
+            # maybe also add a loss to learn if the two images are the same or different
+            # it will enable better learning for "stop"
             self.cnn = nn.Sequential(
                 nn.Conv2d(
                     in_channels=self._n_input_pers + self._n_input_target,

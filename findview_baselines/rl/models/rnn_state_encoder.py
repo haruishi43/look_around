@@ -243,7 +243,7 @@ def build_rnn_out_from_seq(
 
 
 class RNNStateEncoder(nn.Module):
-    r"""RNN encoder for use with RL and possibly IL.
+    """RNN encoder for use with RL and possibly IL.
     The main functionality this provides over just using PyTorch's RNN interface directly
     is that it takes an addition masks input that resets the hidden state between two adjacent
     timesteps to handle episodes ending in the middle of a rollout.

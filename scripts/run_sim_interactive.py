@@ -131,11 +131,10 @@ if __name__ == "__main__":
         sampling_mode=sampling_mode,
     )
     sim.inititialize_loader(
-        is_torch=True,
         dtype=dtype,
         device=torch.device('cpu'),
     )
-    sim.initialize_from_episode(
+    sim.reset(
         equi_path=img_path,
         initial_rotation=initial_rots,
         target_rotation=target_rots,
@@ -148,7 +147,7 @@ if __name__ == "__main__":
         inc=1,
         pitch_threshold=60,
     )
-    rot_tracker.initialize(initial_rots)
+    rot_tracker.reset(initial_rots)
 
     # show target image
     target = sim.render_target()
@@ -180,7 +179,7 @@ if __name__ == "__main__":
         action = human.act(k)
         if action == "stop":
             break
-        rots = rot_tracker.convert(action)
+        rots = rot_tracker.move(action)
 
         s = time.time()
         sim.move(rots)

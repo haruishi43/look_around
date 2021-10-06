@@ -2,6 +2,11 @@
 
 """
 Agent that moves in the direction where the features matches the target image
+
+FIXME:
+- [ ] Choose feature descriptors (ORB, SIFT, etc)
+- [ ] More robust movement generator
+- [ ] Debug parameters for matching confidence
 """
 
 from collections import deque
@@ -35,8 +40,12 @@ def movement_generator(size=4):
 class FeatureMatchingAgent(Agent):
     def __init__(
         self,
-        cfg: Config,
-        debug: bool = False,
+        feature_type: str = "ORB",
+        num_features: int = 500,
+        num_matches: int = 10,
+        distance_threshold: int = 30,
+        stop_threshold: int = 5,
+        num_track_actions: int = 50,
     ) -> None:
         self.movement_actions = ["up", "right", "down", "left"]
         self.stop_action = "stop"
@@ -44,19 +53,32 @@ class FeatureMatchingAgent(Agent):
             assert action in FindViewActions.all
 
         # feature matching criteria
-        self.feature_type = cfg.fm.feature_type
-        self.num_features = cfg.fm.num_features
-        self.num_matches = cfg.fm.num_matches
-        self.distance_threshold = cfg.fm.distance_threshold
-        self.stop_threshold = cfg.fm.stop_threshold
-        self.num_track_action = 50
+        self.feature_type = feature_type
+        self.num_features = num_features
+        self.num_matches = num_matches
+        self.distance_threshold = distance_threshold
+        self.stop_threshold = stop_threshold
+        self.num_track_actions = num_track_actions
 
         self.g = movement_generator(len(self.movement_actions))
-        self.tracked_actions = deque(maxlen=self.num_track_action)
+        self.tracked_actions = deque(maxlen=self.num_track_actions)
+
+    @classmethod
+    def from_config(cls, cfg: Config):
+        agent_cfg = cfg.fm
+
+        return cls(
+            feature_type=agent_cfg.feature_type,
+            num_features=agent_cfg.num_features,
+            num_matches=agent_cfg.num_matches,
+            distance_threshold=agent_cfg.distance_threshold,
+            stop_threshold=agent_cfg.stop_threshold,
+            num_track_actions=agent_cfg.num_track_actions,
+        )
 
     def reset(self):
         self.reset_movement_generator()
-        self.tracked_actions = deque(maxlen=self.num_track_action)
+        self.tracked_actions = deque(maxlen=self.num_track_actions)
 
     def reset_movement_generator(self):
         self.g = movement_generator(len(self.movement_actions))
@@ -167,7 +189,7 @@ class FeatureMatchingAgent(Agent):
 
         # if the tracked action consists of only opposites, it might mean that it's occilating
         # NOTE: make track actions large enough
-        if len(self.tracked_actions) == self.num_track_action:
+        if len(self.tracked_actions) == self.num_track_actions:
             _what_actions = set(self.tracked_actions)
             if _what_actions == set(['right', 'left']):
                 action = "stop"
@@ -197,7 +219,7 @@ def main():
     )
     args = parser.parse_args()
     cfg = Config.fromfile(args.config)
-    agent = FeatureMatchingAgent(cfg)
+    agent = FeatureMatchingAgent.from_config(cfg)
     benchmark = FindViewBenchmark(
         cfg=cfg,
         device=torch.device('cpu'),

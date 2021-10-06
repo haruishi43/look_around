@@ -15,58 +15,19 @@ import torch
 from tqdm import tqdm
 
 from LookAround.config import Config
-from LookAround.FindView.env import FindViewActions
 from LookAround.FindView.rl_env import FindViewRLEnv
 from LookAround.FindView.vec_env import construct_envs
 from LookAround.utils.visualizations import save_images_as_video
+
+from findview_baselines.agents.single_movement import SingleMovementAgent
+from findview_baselines.agents.greedy import GreedyMovementAgent
+from findview_baselines.agents.feature_matching import FeatureMatchingAgent
 
 random.seed(0)
 
 
 def filter_episodes_by_img_names(episode, names: List[str]) -> bool:
     return episode.img_name in names
-
-
-class SingleMovementAgent(object):
-    def __init__(self, action: str = "right") -> None:
-        assert action in FindViewActions.all
-        self.action = action
-
-    def act(self):
-        return self.action
-
-    def reset(self):
-        ...
-
-
-def movement_generator(size=4):
-    idx = 0
-    repeat = 1
-    while True:
-        for r in range(repeat):
-            yield idx
-
-        idx = (idx + 1) % size
-        if idx % 2 == 0:
-            repeat += 1
-
-
-class GreedyMovementAgent(object):
-    def __init__(self, chance=0.001) -> None:
-        self.movement_actions = ["up", "right", "down", "left"]
-        self.stop_action = "stop"
-        self.stop_chance = chance
-        for action in self.movement_actions:
-            assert action in FindViewActions.all
-        self.g = movement_generator(len(self.movement_actions))
-
-    def act(self):
-        if random.random() < self.stop_chance:
-            return self.stop_action
-        return self.movement_actions[next(self.g)]
-
-    def reset(self):
-        self.g = movement_generator(len(self.movement_actions))
 
 
 def parse_args():
@@ -76,6 +37,13 @@ def parse_args():
         required=True,
         type=str,
         help="config file for creating dataset"
+    )
+    parser.add_argument(
+        "--agent",
+        required=True,
+        type=str,
+        choices=['single', 'greedy', 'fm'],
+        help="name of the agent"
     )
     return parser.parse_args()
 
@@ -91,22 +59,28 @@ if __name__ == "__main__":
     vec_type = "threaded"
     env_cls = FindViewRLEnv
     split = 'train'
-    is_torch = True
     dtype = torch.float32
     device = torch.device('cpu')
     num_steps = 500
 
     envs = construct_envs(
-        env_cls=env_cls,
         cfg=cfg,
         split=split,
-        is_torch=is_torch,
+        is_rlenv=True,
         dtype=dtype,
         device=device,
         vec_type=vec_type,
     )
 
-    agents = [GreedyMovementAgent() for _ in range(cfg.num_envs)]
+    # initialize agent
+    if args.agent == "single":
+        agents = [SingleMovementAgent.from_config(cfg=cfg) for _ in range(cfg.num_envs)]
+    elif args.agent == "greedy":
+        agents = [GreedyMovementAgent.from_config(cfg=cfg) for _ in range(cfg.num_envs)]
+    elif args.agent == "fm":
+        agents = [FeatureMatchingAgent.from_config(cfg=cfg) for _ in range(cfg.num_envs)]
+    else:
+        raise ValueError
 
     assert envs.num_envs == cfg.num_envs
 
@@ -139,11 +113,11 @@ if __name__ == "__main__":
                     print(f"{i} called stop")
                     assert infos[i]['called_stop']
                 print(f"Loading next episode for {i}")
-                save_path = os.path.join('./results/vecrlenv', f"{i}_{infos[i]['img_name']}.json")
+                save_path = os.path.join('./results/vecrlenv', f"{args.agent}_{i}_{infos[i]['img_name']}.json")
                 with open(save_path, 'w') as f:
                     json.dump(infos[i], f, indent=2)
 
                 agents[i].reset()
 
-    save_path = os.path.join('./results/vecrlenv', 'test.mp4')
+    save_path = os.path.join('./results/vecrlenv', f'{args.agent}_test.mp4')
     save_images_as_video(images, save_path)

@@ -1,12 +1,11 @@
 #!/usr/bin/env python3
 
-"""Run `RLEnv`
+"""Run `RLEnv` in interactive mode
 
 """
 
 import argparse
 from functools import partial
-import random
 from typing import List
 
 import cv2
@@ -14,40 +13,16 @@ import torch
 from tqdm import tqdm
 
 from LookAround.config import Config
-from LookAround.FindView.env import FindViewActions
-from LookAround.FindView.rl_env import make_rl_env
+from LookAround.utils.random import seed
+from LookAround.FindView import RLEnvRegistry
 
-random.seed(0)
+from findview_baselines.agents.human import Human
+
+seed(0)
 
 
 def filter_episodes_by_img_names(episode, names: List[str]) -> bool:
     return episode.img_name in names
-
-
-class Human(object):
-
-    def __init__(self):
-        ...
-
-    def reset(self):
-        ...
-
-    def act(self, k):
-        if k == ord("w"):
-            ret = "up"
-        elif k == ord("s"):
-            ret = "down"
-        elif k == ord("a"):
-            ret = "left"
-        elif k == ord("d"):
-            ret = "right"
-        elif k == ord("q"):
-            ret = "stop"
-        else:
-            raise ValueError(f"Pressed {k}")
-
-        assert ret in FindViewActions.all
-        return ret
 
 
 def parse_args():
@@ -65,13 +40,11 @@ if __name__ == "__main__":
     args = parse_args()
     config_path = args.config
     cfg = Config.fromfile(config_path)
-    cfg.max_steps = 2500
     print(">>> Config:")
     print(cfg.pretty_text)
 
     # params:
-    split = 'train'
-    is_torch = True
+    split = 'test'
     dtype = torch.float32
     device = torch.device('cpu')
     num_steps = 5000
@@ -81,17 +54,17 @@ if __name__ == "__main__":
     # setup filter func
     filter_by_names = partial(filter_episodes_by_img_names, names=img_names)
 
-    rlenv = make_rl_env(
+    rlenv = RLEnvRegistry.build(
+        cfg.rl_env.name,
         cfg=cfg,
         split=split,
-        # filter_fn=filter_by_names,
-        is_torch=is_torch,
+        filter_fn=filter_by_names,
         dtype=dtype,
         device=device,
     )
 
     # initialize human
-    human = Human()
+    human = Human.from_config(cfg=cfg)
 
     obs = rlenv.reset()
 

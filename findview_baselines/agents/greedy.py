@@ -3,6 +3,9 @@
 """
 Agent that greedly moves around from the initial rotation
 and stops when the target image is found
+
+FIXME:
+- [ ] is the movement generator really greedy?
 """
 
 import random
@@ -31,17 +34,29 @@ def movement_generator(size=4):
 
 
 class GreedyMovementAgent(Agent):
+
     def __init__(
         self,
-        cfg: Config,
+        chance: float = 0.001,
+        seed: int = 0,
     ) -> None:
         self.movement_actions = ["up", "right", "down", "left"]
         self.stop_action = "stop"
-        self.stop_chance = cfg.greedy.chance
+        self.stop_chance = chance
+
         for action in self.movement_actions:
             assert action in FindViewActions.all
+
         self.g = movement_generator(len(self.movement_actions))
-        self.rs = random.Random(cfg.greedy.seed)
+        self.rs = random.Random(seed)
+
+    @classmethod
+    def from_config(cls, cfg: Config):
+        agent_cfg = cfg.greedy
+        return cls(
+            chance=agent_cfg.chance,
+            seed=agent_cfg.seed,
+        )
 
     def reset(self):
         self.g = movement_generator(len(self.movement_actions))
@@ -87,7 +102,7 @@ def main():
     )
     args = parser.parse_args()
     cfg = Config.fromfile(args.config)
-    agent = GreedyMovementAgent(cfg)
+    agent = GreedyMovementAgent.from_config(cfg)
     benchmark = FindViewBenchmark(
         cfg=cfg,
         device=torch.device('cpu'),

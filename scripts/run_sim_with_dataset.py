@@ -20,31 +20,18 @@ from tqdm import tqdm
 import torch
 
 from LookAround.config import Config
-from LookAround.core.agent import Agent
 from LookAround.FindView.dataset import Episode, make_dataset
-from LookAround.FindView.env import FindViewActions
 from LookAround.FindView.sim import FindViewSim
 from LookAround.FindView.rotation_tracker import RotationTracker
 from LookAround.utils.visualizations import save_images_as_video
 
+from findview_baselines.agents.single_movement import SingleMovementAgent
 from findview_baselines.agents.greedy import GreedyMovementAgent
 from findview_baselines.agents.feature_matching import FeatureMatchingAgent
 
 
 def filter_episodes_by_sub_labels(episode: Episode, sub_labels: List[str]) -> bool:
     return episode.sub_label in sub_labels
-
-
-class SingleMovementAgent(Agent):
-    def __init__(self, action: str = "right") -> None:
-        assert action in FindViewActions.all
-        self.action = action
-
-    def reset(self):
-        ...
-
-    def act(self, observations):
-        return self.action
 
 
 def parse_args():
@@ -58,7 +45,7 @@ def parse_args():
         "--agent",
         required=True,
         type=str,
-        choices=['greedy', 'single', 'fm'],
+        choices=['single', 'greedy', 'fm'],
         help="name of the agent"
     )
     return parser.parse_args()
@@ -72,14 +59,18 @@ if __name__ == "__main__":
     print(cfg.pretty_text)
 
     # params
-    split = 'test'
+    split = 'test'  # NOTE: we're using an iterator
     sub_labels = ["restaurant"]
 
     # setup filter func
     filter_by_labels = partial(filter_episodes_by_sub_labels, sub_labels=sub_labels)
 
     # initialize dataset
-    dataset = make_dataset(cfg=cfg, split=split, filter_fn=filter_by_labels)
+    dataset = make_dataset(
+        cfg=cfg,
+        split=split,
+        filter_fn=filter_by_labels,
+    )
     print(f"Using {len(dataset)}")  # 200
     episode_iterator = dataset.get_iterator(
         cycle=True,
@@ -89,34 +80,26 @@ if __name__ == "__main__":
 
     # initialze agent
     if args.agent == "single":
-        agent = SingleMovementAgent(action="right")
+        agent = SingleMovementAgent.from_config(cfg=cfg)
     elif args.agent == "greedy":
-        agent = GreedyMovementAgent(cfg=cfg, chance=0.001, seed=0)
+        agent = GreedyMovementAgent.from_config(cfg=cfg)
     elif args.agent == "fm":
-        agent = FeatureMatchingAgent(cfg=cfg)
+        agent = FeatureMatchingAgent.from_config(cfg=cfg)
 
     # initialize sim
-    sim = FindViewSim(
-        **cfg.sim,
-    )
+    sim = FindViewSim.from_config(cfg=cfg)
     sim.inititialize_loader(
-        is_torch=True,
         dtype=torch.float32,
         device=torch.device('cpu'),
     )
     # sim.inititialize_loader(
-    #     is_torch=True,
     #     dtype=torch.float32,
     #     device=torch.device('cuda:0'),
     # )
-    # sim.inititialize_loader(
-    #     is_torch=False,
-    #     dtype=np.float32,
-    # )
 
     rot_tracker = RotationTracker(
-        inc=cfg.step_size,
-        pitch_threshold=cfg.pitch_threshold,
+        inc=dataset.step_size,
+        pitch_threshold=dataset.pitch_threshold,
     )
 
     # run loops for testing
@@ -131,7 +114,7 @@ if __name__ == "__main__":
 
         print("init/target rot:", initial_rotation, target_rotation)
 
-        rot_tracker.initialize(initial_rotation)
+        rot_tracker.reset(initial_rotation)
         # reset/init sim from episode
         pers, target = sim.reset(
             equi_path=episode.path,
@@ -145,7 +128,7 @@ if __name__ == "__main__":
 
         for j in tqdm(range(num_steps)):
             action = agent.act(obs)
-            rot = rot_tracker.convert(action)
+            rot = rot_tracker.move(action)
             pers = sim.move(rot)
             target = sim.target
 

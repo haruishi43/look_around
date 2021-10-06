@@ -1,56 +1,67 @@
 #!/usr/bin/env python3
 
-"""
-NOTE: make registry?
-- subclassing makes it complicated
-
-"""
-
-from LookAround.FindView.dataset.episode import Episode
-from typing import Optional, Union
+from typing import Callable, Optional, Union
 
 import gym
 import numpy as np
 import torch
 
 from LookAround.config import Config
+from LookAround.core import Registry
+from LookAround.FindView.dataset.episode import Episode
 from LookAround.FindView.sim import FindViewSim
 from LookAround.FindView.env import FindViewEnv
+
+__all__ = [
+    "FindViewRLEnv",
+    "BasicFindviewRLEnv",
+    "RLEnvRegistry",
+]
 
 
 class FindViewRLEnv(gym.Env):
 
+    # Hidden Properties
     _env: FindViewEnv
 
     def __init__(
         self,
         cfg: Config,
-        **kwargs,
+        split: str,
+        filter_fn: Optional[Callable[..., bool]] = None,
+        dtype: Union[np.dtype, torch.dtype] = torch.float32,
+        device: torch.device = torch.device('cpu'),
     ) -> None:
-        self._cfg = cfg
+        """FindView RL Environment
 
-        self._env = FindViewEnv(
+        NOTE: initialize using root Config
+
+        params:
+        - cfg (Config)
+        - split (str)
+        - filter_fn (Callable): None
+        - dtype (np.dtype, torch.dtype): torch.float32
+        - device (torch.device): 'cpu'
+        """
+
+        self._env = FindViewEnv.from_config(
             cfg=cfg,
-            **kwargs,
+            split=split,
+            filter_fn=filter_fn,
+            dtype=dtype,
+            device=device,
         )
 
-        self.number_of_episodes = self._env.number_of_episodes
+        dataset = self._env._dataset
 
-        self._min_steps = self._cfg.min_steps
-        self._max_steps = self._cfg.max_steps
-        self._rl_env_cfg = self._cfg.rl_env_cfgs
-        self._slack_reward = self._rl_env_cfg.slack_reward
-        self._success_reward = self._rl_env_cfg.success_reward
-        self._end_reward_type = self._rl_env_cfg.end_type
-        self._end_reward_param = self._rl_env_cfg.end_type_param
+        # from dataset
+        self._min_steps = dataset.min_steps
+        self._max_steps = dataset.max_steps
 
         self.observation_space = self._env.observation_space
         self.action_space = self._env.action_space
-        # self.number_of_episodes = self._env.number_of_episodes
-        self.reward_range = self.get_reward_range()
 
-        # metrics to follow
-        self._prev_dist = None
+        self.reward_range = self.get_reward_range()
 
     @property
     def env(self) -> FindViewEnv:
@@ -64,21 +75,120 @@ class FindViewRLEnv(gym.Env):
     def current_episode(self) -> Episode:
         return self._env.current_episode
 
+    @property
+    def number_of_episodes(self) -> Optional[int]:
+        return self._env.number_of_episodes
+
+    def _reset_metrics(self) -> None:
+        # NOTE: it's a `gym` thing, don't really need to implement
+        # return (-np.inf, np.inf)
+        raise NotImplementedError
+
     def reset(self):
         observations = self._env.reset()
-
-        self._prev_dist = self._env.get_metrics()['l1_distance_to_target']
-
+        self._reset_metrics()
         return observations
 
     def get_reward_range(self):
-        # NOTE: it's a `gym` thing, don't really need to implement
-        # return (-np.inf, np.inf)
+        raise NotImplementedError
+
+    def get_reward(self, observations) -> float:
+        raise NotImplementedError
+
+    def get_done(self, observations) -> bool:
+        return self._env.episode_over
+
+    def get_info(self, observations):
+        return self._env.get_metrics()
+
+    def step_before(self, *args, **kwargs):
+        return self._env.step_before(*args, **kwargs)
+
+    def step_after(self):
+        observations = self._env.step_after()
+        reward = self.get_reward(observations)
+        done = self.get_done(observations)
+        info = self.get_info(observations)
+        return observations, reward, done, info
+
+    def step(self, *args, **kwargs):
+        """Perform an action in the environment
+        return (observations, reward, done, info)
+        """
+        observations = self._env.step(*args, **kwargs)
+        reward = self.get_reward(observations)
+        done = self.get_done(observations)
+        info = self.get_info(observations)
+        return observations, reward, done, info
+
+    def seed(self, seed: Optional[int] = None) -> None:
+        self._env.seed(seed)
+
+    def render(self) -> np.ndarray:
+        return self._env.render()
+
+    def change_difficulty(self, difficulty: str, bounded: bool) -> None:
+        self._env.change_difficulty(difficulty=difficulty, bounded=bounded)
+
+    def close(self) -> None:
+        self._env.close()
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.close()
+
+
+def build_func(name: str, registry: Registry, cfg: Config, **kwargs):
+    rlenv_cls = registry.get(name)
+    assert rlenv_cls is not None, \
+        f"{name} is not in the {registry.name} registry"
+
+    return rlenv_cls(
+        cfg=cfg,
+        **kwargs,
+    )
+
+
+# Create a RL Env Registry
+RLEnvRegistry = Registry('rlenvs', build_func=build_func)
+
+
+@RLEnvRegistry.register_module(name='Basic')
+class BasicFindviewRLEnv(FindViewRLEnv):
+
+    def __init__(
+        self,
+        cfg: Config,
+        **kwargs,
+    ) -> None:
+
+        # rl spectific variables
+        self._rl_env_cfg = cfg.rl_env
+        self._slack_reward = self._rl_env_cfg.slack_reward
+        self._success_reward = self._rl_env_cfg.success_reward
+        self._end_reward_type = self._rl_env_cfg.end_type
+        self._end_reward_param = self._rl_env_cfg.end_type_param
+
+        # Intitialize parent
+        super().__init__(
+            cfg=cfg,
+            **kwargs,
+        )
+
+        # metrics to follow
+        self._prev_dist = None
+
+    def get_reward_range(self) -> tuple:
         # FIXME: better range calculation
         return (
             self._max_steps * self._slack_reward - (120 + 180),
             self._min_steps * self._slack_reward + self._success_reward,
         )
+
+    def _reset_metrics(self) -> None:
+        self._prev_dist = self._env.get_metrics()['l1_distance_to_target']
 
     def _end_rewards(self, measures):
 
@@ -117,7 +227,7 @@ class FindViewRLEnv(gym.Env):
         reward_same_view = -num_same_rots
         return reward_same_view
 
-    def get_reward(self, observations):
+    def get_reward(self, observations) -> float:
         # FIXME: make a good reward function here
         measures = self._env.get_metrics()
         curr_dist = measures['l1_distance_to_target']
@@ -137,70 +247,3 @@ class FindViewRLEnv(gym.Env):
         reward = reward_slack + reward_dist + reward_success
 
         return reward
-
-    def get_done(self, observations) -> bool:
-        return self._env.episode_over
-
-    def get_info(self, observations):
-        return self._env.get_metrics()
-
-    def step_before(self, *args, **kwargs):
-        return self._env.step_before(*args, **kwargs)
-
-    def step_after(self):
-        observations = self._env.step_after()
-        reward = self.get_reward(observations)
-        done = self.get_done(observations)
-        info = self.get_info(observations)
-
-        return observations, reward, done, info
-
-    def step(self, *args, **kwargs):
-        """Perform an action in the environment.
-        :return: :py:`(observations, reward, done, info)`
-        """
-        observations = self._env.step(*args, **kwargs)
-        reward = self.get_reward(observations)
-        done = self.get_done(observations)
-        info = self.get_info(observations)
-
-        return observations, reward, done, info
-
-    def seed(self, seed: Optional[int] = None) -> None:
-        self._env.seed(seed)
-
-    def render(self) -> np.ndarray:
-        return self._env.render()
-
-    def close(self) -> None:
-        self._env.close()
-
-    def __enter__(self):
-        return self
-
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        self.close()
-
-
-# FIXME: don't have the usecase for this...
-def make_rl_env(
-    cfg: Config,
-    split: str,
-    filter_fn=None,
-    is_torch: bool = True,
-    dtype: Union[np.dtype, torch.dtype] = torch.float32,
-    device: torch.device = torch.device('cpu'),
-) -> FindViewRLEnv:
-    if is_torch:
-        assert dtype in (torch.float16, torch.float32, torch.float64)
-    else:
-        assert dtype in (np.float32, np.float64)
-    env = FindViewRLEnv(
-        cfg=cfg,
-        split=split,
-        filter_fn=filter_fn,
-        is_torch=is_torch,
-        dtype=dtype,
-        device=device,
-    )
-    return env

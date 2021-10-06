@@ -60,15 +60,21 @@ def l2_dist(abs_x, abs_y):
     return np.sqrt(abs_x**2 + abs_y**2)
 
 
+class Sampler(object):
+
+    def __call__(self, pseudo) -> Episode:
+        raise NotImplementedError
+
+
 def base_condition(
-    init_pitch,
-    init_yaw,
-    targ_pitch,
-    targ_yaw,
-    min_steps,
-    max_steps,
-    step_size,
-):
+    init_pitch: int,
+    init_yaw: int,
+    targ_pitch: int,
+    targ_yaw: int,
+    min_steps: int,
+    max_steps: int,
+    step_size: int,
+) -> bool:
     diff_pitch = np.abs(init_pitch - targ_pitch)
     diff_yaw = find_minimum(np.abs(init_yaw - targ_yaw))
     l1 = l1_dist(diff_pitch, diff_yaw)
@@ -80,12 +86,12 @@ def base_condition(
 
 
 def easy_condition(
-    init_pitch,
-    init_yaw,
-    targ_pitch,
-    targ_yaw,
-    fov,
-):
+    init_pitch: int,
+    init_yaw: int,
+    targ_pitch: int,
+    targ_yaw: int,
+    fov: float,
+) -> bool:
     # NOTE: we just assume height is less than width
     max_l2 = l2_dist(fov / 2, fov / 2)
 
@@ -97,12 +103,12 @@ def easy_condition(
 
 
 def medium_condition(
-    init_pitch,
-    init_yaw,
-    targ_pitch,
-    targ_yaw,
-    fov,
-):
+    init_pitch: int,
+    init_yaw: int,
+    targ_pitch: int,
+    targ_yaw: int,
+    fov: float,
+) -> bool:
     diff_pitch = np.abs(init_pitch - targ_pitch)
     diff_yaw = find_minimum(np.abs(init_yaw - targ_yaw))
     return (
@@ -113,12 +119,12 @@ def medium_condition(
 
 
 def hard_condition(
-    init_pitch,
-    init_yaw,
-    targ_pitch,
-    targ_yaw,
-    fov,
-):
+    init_pitch: int,
+    init_yaw: int,
+    targ_pitch: int,
+    targ_yaw: int,
+    fov: float,
+) -> bool:
     diff_pitch = np.abs(init_pitch - targ_pitch)
     diff_yaw = find_minimum(np.abs(init_yaw - targ_yaw))
 
@@ -128,19 +134,16 @@ def hard_condition(
     )
 
 
-class Sampler(object):
-
-    def __call__(self, pseudo) -> Episode:
-        raise NotImplementedError
-
-
 class DifficultySampler(Sampler):
 
-    difficulties = ('easy', 'medium', 'hard')
+    # Properties
+    AVAIL_DIFF: Tuple[str] = ('easy', 'medium', 'hard')
+    difficulties: Tuple[str]
 
     def __init__(
         self,
         difficulty: str,
+        bounded: bool,
         fov: float,
         min_steps: int,
         max_steps: int,
@@ -151,8 +154,23 @@ class DifficultySampler(Sampler):
         sigma: float = 0.3,
         num_tries: int = 100000,
     ) -> None:
+        """Difficulty Sampler
 
-        self.set_difficulty(difficulty)
+        params:
+        - difficulty (str)
+        - bounded (bool)
+        - fov (float)
+        - min_steps (int)
+        - max_steps (int)
+        - step_size (int)
+        - threshold (int)
+        - seed (int)
+        - mu (float)
+        - sigma (float)
+        - num_tries (int)
+        """
+
+        self.set_difficulty(difficulty=difficulty, bounded=bounded)
         self.fov = fov
         self.min_steps = min_steps
         self.max_steps = max_steps,
@@ -217,22 +235,22 @@ class DifficultySampler(Sampler):
                 self.base_cond(init_pitch, init_yaw, targ_pitch, targ_yaw)
                 and cond(init_pitch, init_yaw, targ_pitch, targ_yaw)
             ):
-                kwargs = {
-                    "initial_rotation": {
-                        "roll": 0,
-                        "pitch": init_pitch,
-                        "yaw": init_yaw,
-                    },
-                    "target_rotation": {
-                        "roll": 0,
-                        "pitch": targ_pitch,
-                        "yaw": targ_yaw,
-                    },
-                    "difficulty": difficulty,
-                    "steps_for_shortest_path": int(
+                kwargs = dict(
+                    initial_rotation=dict(
+                        roll=0,
+                        pitch=init_pitch,
+                        yaw=init_yaw,
+                    ),
+                    target_rotation=dict(
+                        roll=0,
+                        pitch=targ_pitch,
+                        yaw=targ_yaw,
+                    ),
+                    difficulty=difficulty,
+                    steps_for_shortest_path=int(
                         np.abs(init_pitch - targ_pitch) + np.abs(init_yaw - targ_yaw)
                     ),  # NOTE: includes `stop` action
-                }
+                )
                 break
 
             _count += 1
@@ -243,17 +261,30 @@ class DifficultySampler(Sampler):
 
         return kwargs
 
-    def get_difficulty(self):
-        if self.difficulty == 'medium':
-            return self.rst.choice(('easy', 'medium'))
-        elif self.difficulty == 'hard':
-            return self.rst.choice(('easy', 'medium', 'hard'))
-        else:
-            return 'easy'
+    def get_difficulty(self) -> str:
+        if len(self.difficulties) == 1:
+            return self.difficulties[0]
+        return self.rst.choice(self.difficulties)
 
-    def set_difficulty(self, difficulty: str):
-        assert difficulty in self.difficulties
-        self.difficulty = difficulty
+    def set_difficulty(self, difficulty: str, bounded: bool) -> None:
+        assert isinstance(difficulty, str)
+        assert difficulty in self.AVAIL_DIFF, \
+            f"ERR: {difficulty} is not in {self.AVAIL_DIFF}"
+
+        if bounded:
+            difficulties = (difficulty,)
+        else:
+            if difficulty == "easy":
+                difficulties = (difficulty,)
+            elif difficulty == "medium":
+                difficulties = ('easy', 'medium')
+            elif difficulty == "hard":
+                difficulties = ('easy', 'medium', 'hard')
+
+        for diff in difficulties:
+            assert diff in self.AVAIL_DIFF
+
+        self.difficulties = difficulties
 
     def seed(self, seed: int) -> None:
         self.rst = np.random.RandomState(seed)

@@ -105,6 +105,11 @@ class PPOAgent(Agent):
         self.not_done_masks: Optional[torch.Tensor] = None
         self.prev_actions: Optional[torch.Tensor] = None
 
+    @classmethod
+    def from_config(cls, cfg: Config, ckpt_filename: str):
+        # FIXME: sort out parameters
+        return cls(cfg=cfg, ckpt_filename=ckpt_filename)
+
     def reset(self) -> None:
         self.test_recurrent_hidden_states = torch.zeros(
             1,
@@ -159,7 +164,7 @@ def main():
         required=True,
     )
     parser.add_argument(
-        "--ckpt-fn",
+        "--ckpt-filename",
         type=str,
     )
     parser.add_argument(
@@ -169,7 +174,7 @@ def main():
     )
     args = parser.parse_args()
     cfg = Config.fromfile(args.config)
-    agent = PPOAgent(cfg, ckpt_filename=args.ckpt_fn)
+    agent = PPOAgent(cfg, ckpt_filename=args.ckpt_filename)
     benchmark = FindViewBenchmark(
         cfg=cfg,
         device=agent.device,

@@ -1,5 +1,9 @@
 #!/usr/bin/env python3
 
+"""Reference:
+https://github.com/facebookresearch/habitat-lab/blob/master/habitat/core/spaces.py
+"""
+
 from collections import OrderedDict
 from collections.abc import Collection
 from typing import Dict, List, Union
@@ -28,15 +32,7 @@ class EmptySpace(Space):
 
 class ActionSpace(gym.spaces.Dict):
     """
-    A dictionary of ``EmbodiedTask`` actions and their argument spaces.
-    .. code:: py
-        self.observation_space = spaces.ActionSpace({
-            "move": spaces.Dict({
-                "position": spaces.Discrete(2),
-                "velocity": spaces.Discrete(3)
-            }),
-            "move_forward": EmptySpace(),
-        })
+    A dictionary of actions and their argument spaces.
     """
 
     def __init__(self, spaces: Union[List, Dict]):
@@ -78,9 +74,6 @@ class ListSpace(Space):
     """
     A ``gym.Space`` that describes a list of other Space. Used to describe
     list of tokens ids, vectors and etc.
-    .. code:: py
-        observation_space = ListSpace(spaces.Discrete(
-            dataset.question_vocab.get_size()))
     """
 
     def __init__(

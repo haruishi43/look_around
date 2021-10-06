@@ -1,0 +1,762 @@
+[
+    {
+        "episode_id": 0,
+        "img_name": "pano_aafdevvoxidugi",
+        "path": "indoor/office/pano_aafdevvoxidugi.jpg",
+        "label": "indoor",
+        "sub_label": "office",
+        "initial_rotation": {
+            "roll": 0,
+            "pitch": -1,
+            "yaw": -140
+        },
+        "target_rotation": {
+            "roll": 0,
+            "pitch": 1,
+            "yaw": -91
+        },
+        "difficulty": "easy",
+        "steps_for_shortest_path": 51
+    },
+    {
+        "episode_id": 1,
+        "img_name": "pano_aafdevvoxidugi",
+        "path": "indoor/office/pano_aafdevvoxidugi.jpg",
+        "label": "indoor",
+        "sub_label": "office",
+        "initial_rotation": {
+            "roll": 0,
+            "pitch": -22,
+            "yaw": -28
+        },
+        "target_rotation": {
+            "roll": 0,
+            "pitch": -11,
+            "yaw": 4
+        },
+        "difficulty": "easy",
+        "steps_for_shortest_path": 43
+    },
+    {
+        "episode_id": 2,
+        "img_name": "pano_aafdevvoxidugi",
+        "path": "indoor/office/pano_aafdevvoxidugi.jpg",
+        "label": "indoor",
+        "sub_label": "office",
+        "initial_rotation": {
+            "roll": 0,
+            "pitch": -17,
+            "yaw": -97
+        },
+        "target_rotation": {
+            "roll": 0,
+            "pitch": -20,
+            "yaw": -80
+        },
+        "difficulty": "easy",
+        "steps_for_shortest_path": 20
+    },
+    {
+        "episode_id": 3,
+        "img_name": "pano_aafdevvoxidugi",
+        "path": "indoor/office/pano_aafdevvoxidugi.jpg",
+        "label": "indoor",
+        "sub_label": "office",
+        "initial_rotation": {
+            "roll": 0,
+            "pitch": -6,
+            "yaw": -58
+        },
+        "target_rotation": {
+            "roll": 0,
+            "pitch": -32,
+            "yaw": 24
+        },
+        "difficulty": "medium",
+        "steps_for_shortest_path": 108
+    },
+    {
+        "episode_id": 4,
+        "img_name": "pano_aafdevvoxidugi",
+        "path": "indoor/office/pano_aafdevvoxidugi.jpg",
+        "label": "indoor",
+        "sub_label": "office",
+        "initial_rotation": {
+            "roll": 0,
+            "pitch": 41,
+            "yaw": -132
+        },
+        "target_rotation": {
+            "roll": 0,
+            "pitch": -15,
+            "yaw": -48
+        },
+        "difficulty": "medium",
+        "steps_for_shortest_path": 140
+    },
+    {
+        "episode_id": 5,
+        "img_name": "pano_aafdevvoxidugi",
+        "path": "indoor/office/pano_aafdevvoxidugi.jpg",
+        "label": "indoor",
+        "sub_label": "office",
+        "initial_rotation": {
+            "roll": 0,
+            "pitch": -1,
+            "yaw": 100
+        },
+        "target_rotation": {
+            "roll": 0,
+            "pitch": -8,
+            "yaw": 162
+        },
+        "difficulty": "medium",
+        "steps_for_shortest_path": 69
+    },
+    {
+        "episode_id": 6,
+        "img_name": "pano_aafdevvoxidugi",
+        "path": "indoor/office/pano_aafdevvoxidugi.jpg",
+        "label": "indoor",
+        "sub_label": "office",
+        "initial_rotation": {
+            "roll": 0,
+            "pitch": -23,
+            "yaw": 170
+        },
+        "target_rotation": {
+            "roll": 0,
+            "pitch": 21,
+            "yaw": -137
+        },
+        "difficulty": "medium",
+        "steps_for_shortest_path": 351
+    },
+    {
+        "episode_id": 7,
+        "img_name": "pano_aafdevvoxidugi",
+        "path": "indoor/office/pano_aafdevvoxidugi.jpg",
+        "label": "indoor",
+        "sub_label": "office",
+        "initial_rotation": {
+            "roll": 0,
+            "pitch": 36,
+            "yaw": 22
+        },
+        "target_rotation": {
+            "roll": 0,
+            "pitch": -37,
+            "yaw": -136
+        },
+        "difficulty": "hard",
+        "steps_for_shortest_path": 231
+    },
+    {
+        "episode_id": 8,
+        "img_name": "pano_aafdevvoxidugi",
+        "path": "indoor/office/pano_aafdevvoxidugi.jpg",
+        "label": "indoor",
+        "sub_label": "office",
+        "initial_rotation": {
+            "roll": 0,
+            "pitch": 21,
+            "yaw": 43
+        },
+        "target_rotation": {
+            "roll": 0,
+            "pitch": -27,
+            "yaw": -97
+        },
+        "difficulty": "hard",
+        "steps_for_shortest_path": 188
+    },
+    {
+        "episode_id": 9,
+        "img_name": "pano_aafdevvoxidugi",
+        "path": "indoor/office/pano_aafdevvoxidugi.jpg",
+        "label": "indoor",
+        "sub_label": "office",
+        "initial_rotation": {
+            "roll": 0,
+            "pitch": 3,
+            "yaw": -31
+        },
+        "target_rotation": {
+            "roll": 0,
+            "pitch": -11,
+            "yaw": 91
+        },
+        "difficulty": "hard",
+        "steps_for_shortest_path": 136
+    },
+    {
+        "episode_id": 10,
+        "img_name": "pano_aaawcsqcbquzht",
+        "path": "indoor/bedroom/pano_aaawcsqcbquzht.jpg",
+        "label": "indoor",
+        "sub_label": "bedroom",
+        "initial_rotation": {
+            "roll": 0,
+            "pitch": 10,
+            "yaw": -51
+        },
+        "target_rotation": {
+            "roll": 0,
+            "pitch": -11,
+            "yaw": -5
+        },
+        "difficulty": "easy",
+        "steps_for_shortest_path": 67
+    },
+    {
+        "episode_id": 11,
+        "img_name": "pano_aaawcsqcbquzht",
+        "path": "indoor/bedroom/pano_aaawcsqcbquzht.jpg",
+        "label": "indoor",
+        "sub_label": "bedroom",
+        "initial_rotation": {
+            "roll": 0,
+            "pitch": -46,
+            "yaw": -54
+        },
+        "target_rotation": {
+            "roll": 0,
+            "pitch": 3,
+            "yaw": -85
+        },
+        "difficulty": "easy",
+        "steps_for_shortest_path": 80
+    },
+    {
+        "episode_id": 12,
+        "img_name": "pano_aaawcsqcbquzht",
+        "path": "indoor/bedroom/pano_aaawcsqcbquzht.jpg",
+        "label": "indoor",
+        "sub_label": "bedroom",
+        "initial_rotation": {
+            "roll": 0,
+            "pitch": 11,
+            "yaw": 90
+        },
+        "target_rotation": {
+            "roll": 0,
+            "pitch": -3,
+            "yaw": 149
+        },
+        "difficulty": "easy",
+        "steps_for_shortest_path": 73
+    },
+    {
+        "episode_id": 13,
+        "img_name": "pano_aaawcsqcbquzht",
+        "path": "indoor/bedroom/pano_aaawcsqcbquzht.jpg",
+        "label": "indoor",
+        "sub_label": "bedroom",
+        "initial_rotation": {
+            "roll": 0,
+            "pitch": 3,
+            "yaw": 149
+        },
+        "target_rotation": {
+            "roll": 0,
+            "pitch": 23,
+            "yaw": 69
+        },
+        "difficulty": "medium",
+        "steps_for_shortest_path": 100
+    },
+    {
+        "episode_id": 14,
+        "img_name": "pano_aaawcsqcbquzht",
+        "path": "indoor/bedroom/pano_aaawcsqcbquzht.jpg",
+        "label": "indoor",
+        "sub_label": "bedroom",
+        "initial_rotation": {
+            "roll": 0,
+            "pitch": -14,
+            "yaw": 138
+        },
+        "target_rotation": {
+            "roll": 0,
+            "pitch": -2,
+            "yaw": 81
+        },
+        "difficulty": "medium",
+        "steps_for_shortest_path": 69
+    },
+    {
+        "episode_id": 15,
+        "img_name": "pano_aaawcsqcbquzht",
+        "path": "indoor/bedroom/pano_aaawcsqcbquzht.jpg",
+        "label": "indoor",
+        "sub_label": "bedroom",
+        "initial_rotation": {
+            "roll": 0,
+            "pitch": 3,
+            "yaw": 121
+        },
+        "target_rotation": {
+            "roll": 0,
+            "pitch": 33,
+            "yaw": -155
+        },
+        "difficulty": "medium",
+        "steps_for_shortest_path": 306
+    },
+    {
+        "episode_id": 16,
+        "img_name": "pano_aaawcsqcbquzht",
+        "path": "indoor/bedroom/pano_aaawcsqcbquzht.jpg",
+        "label": "indoor",
+        "sub_label": "bedroom",
+        "initial_rotation": {
+            "roll": 0,
+            "pitch": -23,
+            "yaw": -75
+        },
+        "target_rotation": {
+            "roll": 0,
+            "pitch": -7,
+            "yaw": 3
+        },
+        "difficulty": "medium",
+        "steps_for_shortest_path": 94
+    },
+    {
+        "episode_id": 17,
+        "img_name": "pano_aaawcsqcbquzht",
+        "path": "indoor/bedroom/pano_aaawcsqcbquzht.jpg",
+        "label": "indoor",
+        "sub_label": "bedroom",
+        "initial_rotation": {
+            "roll": 0,
+            "pitch": 53,
+            "yaw": -54
+        },
+        "target_rotation": {
+            "roll": 0,
+            "pitch": 24,
+            "yaw": 79
+        },
+        "difficulty": "hard",
+        "steps_for_shortest_path": 162
+    },
+    {
+        "episode_id": 18,
+        "img_name": "pano_aaawcsqcbquzht",
+        "path": "indoor/bedroom/pano_aaawcsqcbquzht.jpg",
+        "label": "indoor",
+        "sub_label": "bedroom",
+        "initial_rotation": {
+            "roll": 0,
+            "pitch": 20,
+            "yaw": -150
+        },
+        "target_rotation": {
+            "roll": 0,
+            "pitch": -19,
+            "yaw": 116
+        },
+        "difficulty": "hard",
+        "steps_for_shortest_path": 305
+    },
+    {
+        "episode_id": 19,
+        "img_name": "pano_aaawcsqcbquzht",
+        "path": "indoor/bedroom/pano_aaawcsqcbquzht.jpg",
+        "label": "indoor",
+        "sub_label": "bedroom",
+        "initial_rotation": {
+            "roll": 0,
+            "pitch": 11,
+            "yaw": 80
+        },
+        "target_rotation": {
+            "roll": 0,
+            "pitch": 35,
+            "yaw": -152
+        },
+        "difficulty": "hard",
+        "steps_for_shortest_path": 256
+    },
+    {
+        "episode_id": 20,
+        "img_name": "pano_abukmvdkyayzzg",
+        "path": "indoor/greenhouse/pano_abukmvdkyayzzg.jpg",
+        "label": "indoor",
+        "sub_label": "greenhouse",
+        "initial_rotation": {
+            "roll": 0,
+            "pitch": -41,
+            "yaw": -118
+        },
+        "target_rotation": {
+            "roll": 0,
+            "pitch": 11,
+            "yaw": -135
+        },
+        "difficulty": "easy",
+        "steps_for_shortest_path": 69
+    },
+    {
+        "episode_id": 21,
+        "img_name": "pano_abukmvdkyayzzg",
+        "path": "indoor/greenhouse/pano_abukmvdkyayzzg.jpg",
+        "label": "indoor",
+        "sub_label": "greenhouse",
+        "initial_rotation": {
+            "roll": 0,
+            "pitch": 4,
+            "yaw": 113
+        },
+        "target_rotation": {
+            "roll": 0,
+            "pitch": 43,
+            "yaw": 144
+        },
+        "difficulty": "easy",
+        "steps_for_shortest_path": 70
+    },
+    {
+        "episode_id": 22,
+        "img_name": "pano_abukmvdkyayzzg",
+        "path": "indoor/greenhouse/pano_abukmvdkyayzzg.jpg",
+        "label": "indoor",
+        "sub_label": "greenhouse",
+        "initial_rotation": {
+            "roll": 0,
+            "pitch": -15,
+            "yaw": -110
+        },
+        "target_rotation": {
+            "roll": 0,
+            "pitch": -14,
+            "yaw": -135
+        },
+        "difficulty": "easy",
+        "steps_for_shortest_path": 26
+    },
+    {
+        "episode_id": 23,
+        "img_name": "pano_abukmvdkyayzzg",
+        "path": "indoor/greenhouse/pano_abukmvdkyayzzg.jpg",
+        "label": "indoor",
+        "sub_label": "greenhouse",
+        "initial_rotation": {
+            "roll": 0,
+            "pitch": -12,
+            "yaw": -29
+        },
+        "target_rotation": {
+            "roll": 0,
+            "pitch": -3,
+            "yaw": 19
+        },
+        "difficulty": "medium",
+        "steps_for_shortest_path": 57
+    },
+    {
+        "episode_id": 24,
+        "img_name": "pano_abukmvdkyayzzg",
+        "path": "indoor/greenhouse/pano_abukmvdkyayzzg.jpg",
+        "label": "indoor",
+        "sub_label": "greenhouse",
+        "initial_rotation": {
+            "roll": 0,
+            "pitch": 21,
+            "yaw": 169
+        },
+        "target_rotation": {
+            "roll": 0,
+            "pitch": -6,
+            "yaw": 118
+        },
+        "difficulty": "medium",
+        "steps_for_shortest_path": 78
+    },
+    {
+        "episode_id": 25,
+        "img_name": "pano_abukmvdkyayzzg",
+        "path": "indoor/greenhouse/pano_abukmvdkyayzzg.jpg",
+        "label": "indoor",
+        "sub_label": "greenhouse",
+        "initial_rotation": {
+            "roll": 0,
+            "pitch": 24,
+            "yaw": -15
+        },
+        "target_rotation": {
+            "roll": 0,
+            "pitch": -37,
+            "yaw": -63
+        },
+        "difficulty": "medium",
+        "steps_for_shortest_path": 109
+    },
+    {
+        "episode_id": 26,
+        "img_name": "pano_abukmvdkyayzzg",
+        "path": "indoor/greenhouse/pano_abukmvdkyayzzg.jpg",
+        "label": "indoor",
+        "sub_label": "greenhouse",
+        "initial_rotation": {
+            "roll": 0,
+            "pitch": 31,
+            "yaw": -157
+        },
+        "target_rotation": {
+            "roll": 0,
+            "pitch": -35,
+            "yaw": -96
+        },
+        "difficulty": "medium",
+        "steps_for_shortest_path": 127
+    },
+    {
+        "episode_id": 27,
+        "img_name": "pano_abukmvdkyayzzg",
+        "path": "indoor/greenhouse/pano_abukmvdkyayzzg.jpg",
+        "label": "indoor",
+        "sub_label": "greenhouse",
+        "initial_rotation": {
+            "roll": 0,
+            "pitch": -18,
+            "yaw": -118
+        },
+        "target_rotation": {
+            "roll": 0,
+            "pitch": -6,
+            "yaw": 77
+        },
+        "difficulty": "hard",
+        "steps_for_shortest_path": 207
+    },
+    {
+        "episode_id": 28,
+        "img_name": "pano_abukmvdkyayzzg",
+        "path": "indoor/greenhouse/pano_abukmvdkyayzzg.jpg",
+        "label": "indoor",
+        "sub_label": "greenhouse",
+        "initial_rotation": {
+            "roll": 0,
+            "pitch": -14,
+            "yaw": -40
+        },
+        "target_rotation": {
+            "roll": 0,
+            "pitch": 20,
+            "yaw": 169
+        },
+        "difficulty": "hard",
+        "steps_for_shortest_path": 243
+    },
+    {
+        "episode_id": 29,
+        "img_name": "pano_abukmvdkyayzzg",
+        "path": "indoor/greenhouse/pano_abukmvdkyayzzg.jpg",
+        "label": "indoor",
+        "sub_label": "greenhouse",
+        "initial_rotation": {
+            "roll": 0,
+            "pitch": 8,
+            "yaw": -105
+        },
+        "target_rotation": {
+            "roll": 0,
+            "pitch": -20,
+            "yaw": 40
+        },
+        "difficulty": "hard",
+        "steps_for_shortest_path": 173
+    },
+    {
+        "episode_id": 30,
+        "img_name": "pano_aaaesgyjouajng",
+        "path": "indoor/museum/pano_aaaesgyjouajng.jpg",
+        "label": "indoor",
+        "sub_label": "museum",
+        "initial_rotation": {
+            "roll": 0,
+            "pitch": -18,
+            "yaw": 135
+        },
+        "target_rotation": {
+            "roll": 0,
+            "pitch": -7,
+            "yaw": 95
+        },
+        "difficulty": "easy",
+        "steps_for_shortest_path": 51
+    },
+    {
+        "episode_id": 31,
+        "img_name": "pano_aaaesgyjouajng",
+        "path": "indoor/museum/pano_aaaesgyjouajng.jpg",
+        "label": "indoor",
+        "sub_label": "museum",
+        "initial_rotation": {
+            "roll": 0,
+            "pitch": 12,
+            "yaw": 147
+        },
+        "target_rotation": {
+            "roll": 0,
+            "pitch": -14,
+            "yaw": 125
+        },
+        "difficulty": "easy",
+        "steps_for_shortest_path": 48
+    },
+    {
+        "episode_id": 32,
+        "img_name": "pano_aaaesgyjouajng",
+        "path": "indoor/museum/pano_aaaesgyjouajng.jpg",
+        "label": "indoor",
+        "sub_label": "museum",
+        "initial_rotation": {
+            "roll": 0,
+            "pitch": -38,
+            "yaw": -141
+        },
+        "target_rotation": {
+            "roll": 0,
+            "pitch": -42,
+            "yaw": -166
+        },
+        "difficulty": "easy",
+        "steps_for_shortest_path": 29
+    },
+    {
+        "episode_id": 33,
+        "img_name": "pano_aaaesgyjouajng",
+        "path": "indoor/museum/pano_aaaesgyjouajng.jpg",
+        "label": "indoor",
+        "sub_label": "museum",
+        "initial_rotation": {
+            "roll": 0,
+            "pitch": -1,
+            "yaw": -74
+        },
+        "target_rotation": {
+            "roll": 0,
+            "pitch": -47,
+            "yaw": 3
+        },
+        "difficulty": "medium",
+        "steps_for_shortest_path": 123
+    },
+    {
+        "episode_id": 34,
+        "img_name": "pano_aaaesgyjouajng",
+        "path": "indoor/museum/pano_aaaesgyjouajng.jpg",
+        "label": "indoor",
+        "sub_label": "museum",
+        "initial_rotation": {
+            "roll": 0,
+            "pitch": -6,
+            "yaw": 30
+        },
+        "target_rotation": {
+            "roll": 0,
+            "pitch": -10,
+            "yaw": 80
+        },
+        "difficulty": "medium",
+        "steps_for_shortest_path": 54
+    },
+    {
+        "episode_id": 35,
+        "img_name": "pano_aaaesgyjouajng",
+        "path": "indoor/museum/pano_aaaesgyjouajng.jpg",
+        "label": "indoor",
+        "sub_label": "museum",
+        "initial_rotation": {
+            "roll": 0,
+            "pitch": -12,
+            "yaw": -51
+        },
+        "target_rotation": {
+            "roll": 0,
+            "pitch": 8,
+            "yaw": 7
+        },
+        "difficulty": "medium",
+        "steps_for_shortest_path": 78
+    },
+    {
+        "episode_id": 36,
+        "img_name": "pano_aaaesgyjouajng",
+        "path": "indoor/museum/pano_aaaesgyjouajng.jpg",
+        "label": "indoor",
+        "sub_label": "museum",
+        "initial_rotation": {
+            "roll": 0,
+            "pitch": -6,
+            "yaw": 105
+        },
+        "target_rotation": {
+            "roll": 0,
+            "pitch": -20,
+            "yaw": 45
+        },
+        "difficulty": "medium",
+        "steps_for_shortest_path": 74
+    },
+    {
+        "episode_id": 37,
+        "img_name": "pano_aaaesgyjouajng",
+        "path": "indoor/museum/pano_aaaesgyjouajng.jpg",
+        "label": "indoor",
+        "sub_label": "museum",
+        "initial_rotation": {
+            "roll": 0,
+            "pitch": 17,
+            "yaw": -71
+        },
+        "target_rotation": {
+            "roll": 0,
+            "pitch": -25,
+            "yaw": 161
+        },
+        "difficulty": "hard",
+        "steps_for_shortest_path": 274
+    },
+    {
+        "episode_id": 38,
+        "img_name": "pano_aaaesgyjouajng",
+        "path": "indoor/museum/pano_aaaesgyjouajng.jpg",
+        "label": "indoor",
+        "sub_label": "museum",
+        "initial_rotation": {
+            "roll": 0,
+            "pitch": 9,
+            "yaw": 44
+        },
+        "target_rotation": {
+            "roll": 0,
+            "pitch": 18,
+            "yaw": 168
+        },
+        "difficulty": "hard",
+        "steps_for_shortest_path": 133
+    },
+    {
+        "episode_id": 39,
+        "img_name": "pano_aaaesgyjouajng",
+        "path": "indoor/museum/pano_aaaesgyjouajng.jpg",
+        "label": "indoor",
+        "sub_label": "museum",
+        "initial_rotation": {
+            "roll": 0,
+            "pitch": -12,
+            "yaw": -172
+        },
+        "target_rotation": {
+            "roll": 0,
+            "pitch": -42,
+            "yaw": -8
+        },
+        "difficulty": "hard",
+        "steps_for_shortest_path": 194
+    }
+]
