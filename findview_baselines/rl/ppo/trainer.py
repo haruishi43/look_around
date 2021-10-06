@@ -357,7 +357,7 @@ class PPOTrainer(BaseRLTrainer):
         count_checkpoints = 0
         prev_time = 0
 
-        # this is only used when `user_linear_decay` is True
+        # this is only used when `use_linear_decay` is True
         lr_scheduler = LambdaLR(
             optimizer=self.agent.optimizer,
             lr_lambda=lambda x: 1 - self.percent_done(),
@@ -480,6 +480,7 @@ class PPOTrainer(BaseRLTrainer):
                         best_distance = min(checkpoint_distances)
                         is_best = distance < best_distance
                     else:
+                        # FIXME: this doesn't work well when resumed
                         is_best = True
                     checkpoint_distances.append(distance)
 
