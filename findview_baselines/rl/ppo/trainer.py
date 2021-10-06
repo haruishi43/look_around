@@ -506,7 +506,6 @@ class PPOTrainer(BaseRLTrainer):
                         state,
                         extra_state=extra_state,
                     )
-                    count_checkpoints += 1
 
                     # link the best to ckpt.best.pth
                     # FIXME: need to add 'difficulty-aware' checkpoint mechanism
@@ -515,6 +514,8 @@ class PPOTrainer(BaseRLTrainer):
                             os.path.join(self.ckpt_dir, f"ckpt.{count_checkpoints}.pth"),
                             os.path.join(self.ckpt_dir, "ckpt.best.pth"),
                         )
+
+                    count_checkpoints += 1
 
                 # update difficulty scheduler
                 # FIXME: update difficulty scheduler based on metrics
