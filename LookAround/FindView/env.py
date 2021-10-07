@@ -164,7 +164,6 @@ class FindViewEnv(object):
         )
 
         # Initialize episode iterator
-        # FIXME: this part is kinda messy
         if split in ('train'):
             iter_options = cfg.episode_generator_kwargs
             iter_options['seed'] = cfg.seed
@@ -238,10 +237,10 @@ class FindViewEnv(object):
         }
 
     def get_metrics(self) -> Dict[str, Any]:
-        """NOTE: should return dict of metrics for reward calculation, etc...
+        """should return dict of metrics for reward calculation, etc...
         """
 
-        # FIXME: Only put the calculations needed by Benchmark and RLEnv
+        # NOTE: Only put the calculations needed by Benchmark and RLEnv
         # for RLEnv, do their own calculation by extending
 
         # NOTE: get basic info (mainly from episode and env)
@@ -265,8 +264,8 @@ class FindViewEnv(object):
             current_rotation=self._rot_tracker.current_rotation,
         )
         distances_dict = dict(
-            l1_distance_to_target=distances['l1_distance_to_target'],
-            l2_distance_to_target=distances['l2_distance_to_target'],
+            l1_distance=distances['l1_distance'],
+            l2_distance=distances['l2_distance'],
         )
 
         # FIXME: might need to edit this metrics...
@@ -322,7 +321,6 @@ class FindViewEnv(object):
 
         self._reset_stats()
 
-        # FIXME: what to do when iterator is finished and `reset` is called?
         self._current_episode = next(self._episode_iterator)
         assert self._current_episode is not None, "ERR: called reset, but there are no more episodes in the iterator"
 
@@ -362,8 +360,6 @@ class FindViewEnv(object):
         if isinstance(action, int):
             action = FindViewActions.all[action]
 
-        # FIXME: usually I would check if action is in the list, but I'm lazy
-        # FIXME: add support for integer and other action formats
         if action == FindViewActions.STOP:
             self._called_stop = True
             rot = None
@@ -400,8 +396,6 @@ class FindViewEnv(object):
         if isinstance(action, int):
             action = FindViewActions.all[action]
 
-        # FIXME: usually I would check if action is in the list, but I'm lazy
-        # FIXME: add support for integer and other action formats
         if action == FindViewActions.STOP:
             pers = self._sim.pers
             self._called_stop = True

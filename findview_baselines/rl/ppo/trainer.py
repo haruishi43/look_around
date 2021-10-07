@@ -256,7 +256,6 @@ class PPOTrainer(BaseRLTrainer):
 
         # log stats
         if self.num_updates_done % self._base_cfg.log_interval == 0:
-            # FIXME: fps log increases every step
             logger.info(
                 "update: {}\tfps: {:.3f}\t".format(
                     self.num_updates_done,
@@ -372,7 +371,6 @@ class PPOTrainer(BaseRLTrainer):
             assert state_dict is not None, f"ERR: {ckpt_path} doesn't have `state_dict`"
             self.agent.load_state_dict(state_dict)
 
-            # FIXME: old code didn't save optim_state and lr_sched_state
             optim_state = ckpt_dict.get('optim_state')
             if optim_state is None:
                 logger.warn(f'{ckpt_path} has no `optim_state`')
@@ -389,7 +387,6 @@ class PPOTrainer(BaseRLTrainer):
             if extra_state is None:
                 logger.warn(f'{ckpt_path} has no `extra_state`; may impact stats')
             else:
-                # FIXME: change to `extra_states`
                 self.env_time = extra_state["env_time"]
                 self.pth_time = extra_state["pth_time"]
                 self.num_steps_done = extra_state["num_steps_done"]

@@ -31,8 +31,8 @@ def distance_to_target(
 
     # FIXME: ugly
     return {
-        "l1_distance_to_target": l1_distance_to_target,
-        "l2_distance_to_target": l2_distance_to_target,
+        "l1_distance": l1_distance_to_target,
+        "l2_distance": l2_distance_to_target,
     }
 
 

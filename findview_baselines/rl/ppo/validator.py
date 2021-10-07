@@ -55,7 +55,6 @@ class PPOValidator(BaseRLValidator):
         agent.actor_critic.to(self.device)
         agent.actor_critic.eval()
 
-        # FIXME: return some metrics for scheduling decisions
         return self._eval_single(
             agent=agent,
             envs=envs,
@@ -381,13 +380,13 @@ class PPOValidator(BaseRLValidator):
         #   'reward':,
         #   'elapsed_steps':,
         #   'called_stop':,
-        #   'l1_distance_to_target':,
-        #   'l2_distance_to_target':,
+        #   'l1_distance':,
+        #   'l2_distance':,
         #   'num_same_view':,
         #   'efficiency':,
         # }
 
         # NOTE: for now use l1 distance
-        metric = aggregated_stats['l1_distance_to_target']
+        metric = aggregated_stats['l1_distance']
 
         return metric

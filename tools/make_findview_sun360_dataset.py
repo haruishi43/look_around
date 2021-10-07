@@ -241,7 +241,8 @@ if __name__ == "__main__":
             print(f">>> making dataset for {split_name} -> {len(img_paths)}")
 
             dataset = []
-            eps_id = 0  # FIXME be aware of overflows...
+            # FIXME: make sure that it doesn't overflow
+            eps_id = 0
             for img in tqdm(img_paths):
                 assert os.path.exists(os.path.join(sun360_root, img)), f"{img} doesn't exist"
 
@@ -259,8 +260,8 @@ if __name__ == "__main__":
                     "sub_label": sub_category,
                 }
 
+                # FIXME: make sure that there won't be identical episodes
                 for _ in range(num_easy):
-                    # FIXME: make sure that there won't be identical episodes
                     # easy
                     difficulty = "easy"
                     data = make_single_data_based_on_difficulty(

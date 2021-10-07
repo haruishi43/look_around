@@ -122,7 +122,6 @@ def construct_envs_for_validation(
 
     # 3. initialize the vectorized environment
     if vec_type == "mp":
-        # FIXME: Very slow. Torch using multi-thread?
         envs = MPVecEnv(
             make_env_fn=make_rl_env_fn if is_rlenv else make_env_fn,
             env_fn_kwargs=env_fn_kwargs,
@@ -168,7 +167,7 @@ class FindViewRLEnv1(FindViewRLEnv):
         )
 
     def _reset_metrics(self) -> None:
-        self._prev_dist = self._env.get_metrics()['l1_distance_to_target']
+        self._prev_dist = self._env.get_metrics()['l1_distance']
 
     def _end_rewards(self, measures):
 
@@ -179,8 +178,8 @@ class FindViewRLEnv1(FindViewRLEnv):
 
         reward_success = 0
         if self._env.episode_over and measures['called_stop']:
-            l1 = measures['l1_distance_to_target']
-            # l2 = measures['l2_distance_to_target']
+            l1 = measures['l1_distance']
+            # l2 = measures['l2_distance']
 
             # FIXME: is success reward too high???
             # runs 1, 2:
@@ -210,7 +209,7 @@ class FindViewRLEnv1(FindViewRLEnv):
     def get_reward(self, observations):
         # FIXME: make a good reward function here
         measures = self._env.get_metrics()
-        curr_dist = measures['l1_distance_to_target']
+        curr_dist = measures['l1_distance']
 
         # Penalty: slack reward for every step it takes
         # value is small

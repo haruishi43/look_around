@@ -91,8 +91,8 @@ class FindViewBenchmark:
         # FIXME: calculate average metrics
         # select metrics to calculate
         metric_names = (
-            "l1_distance_to_target",
-            "l2_distance_to_target",
+            "l1_distance",
+            "l2_distance",
             "num_same_view",
             "efficiency",
         )

@@ -549,7 +549,7 @@ class MPVecEnv(VecEnv):
                     dict(difficulty=difficulty, bounded=bounded)
                 )
             )
-        # FIXME: need to read
+        # NOTE: need to read before another write
         _ = [read_fn() for read_fn in self._connection_read_fns]
 
     @property
@@ -938,7 +938,6 @@ def construct_envs(
 
     # 3. initialize the vectorized environment
     if vec_type == "mp":
-        # FIXME: Very slow. Torch using multi-thread?
         envs = MPVecEnv(
             make_env_fn=make_rl_env_fn if is_rlenv else make_env_fn,
             env_fn_kwargs=env_fn_kwargs,

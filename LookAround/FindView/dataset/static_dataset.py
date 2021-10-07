@@ -96,7 +96,6 @@ class StaticDataset(Generic[T]):
         - split (str): split referes to the json file name
         """
 
-        # FIXME: should `split` be in config?
         data_dir = os.path.join(cfg.data_root, cfg.dataset.name)
         dataset_json_path = cfg.dataset.json_path.format(
             root=cfg.dataset_root,
