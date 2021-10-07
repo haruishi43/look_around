@@ -80,9 +80,9 @@ def test_vec_env():
         vec_type=vec_type,
     )
 
-    agents = [GreedyMovementAgent() for _ in range(cfg.num_envs)]
+    agents = [GreedyMovementAgent() for _ in range(cfg.base_trainer.num_envs)]
 
-    assert envs.num_envs == cfg.num_envs
+    assert envs.num_envs == cfg.base_trainer.num_envs
 
     # reset env
     _ = envs.reset()
@@ -122,9 +122,9 @@ def test_rl_vec_env():
         vec_type=vec_type,
     )
 
-    agents = [GreedyMovementAgent() for _ in range(cfg.num_envs)]
+    agents = [GreedyMovementAgent() for _ in range(cfg.base_trainer.num_envs)]
 
-    assert envs.num_envs == cfg.num_envs
+    assert envs.num_envs == cfg.base_trainer.num_envs
 
     # reset env
     _ = envs.reset()

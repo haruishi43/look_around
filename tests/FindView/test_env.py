@@ -75,7 +75,7 @@ def test_env_3():
             _ = env.step(action)
 
     # change difficulty
-    env.change_difficulty('hard')
+    env.change_difficulty('hard', bounded=True)
 
     action = "stop"
     for i in range(num_episodes):

@@ -200,7 +200,7 @@ def test_generator():
 
     # change difficulty
     print(">>> Test #3: Changed Diff")
-    sampler.set_difficulty('hard')
+    sampler.set_difficulty('hard', bounded=True)
     for i in range(num_iter):
         episode = next(episode_generator)
         print(i, episode.img_name, episode.difficulty)
