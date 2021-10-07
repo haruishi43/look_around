@@ -17,11 +17,11 @@ rl_env = dict(
 base_trainer = dict(
     run_id=2,
     num_envs=16,
-    num_updates=7500,
+    num_updates=30000,
     ckpt_interval=500,
     log_interval=10,
 )
 scheduler = dict(
     initial_difficulty='easy',
-    update_interval=2500,
+    update_interval=10000,
 )
