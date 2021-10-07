@@ -17,7 +17,7 @@ rl_env = dict(
 base_trainer = dict(
     run_id=1,
     num_envs=16,
-    num_updates=5000,
+    num_updates=7500,
     ckpt_interval=500,
     log_interval=10,
 )
