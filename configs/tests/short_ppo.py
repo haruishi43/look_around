@@ -20,9 +20,9 @@ base_trainer = dict(
     num_updates=200,
     ckpt_interval=50,
     log_interval=10,
-    ckpt_dir="{results_root}/checkpoints/run_{run_id}",
+    ckpt_dir="{results_root}/checkpoints/test_run_{run_id}",
     video_dir="{results_root}/videos/test_run_{run_id}",
-    tb_dir="{tb_root}/run_{run_id}",
+    tb_dir="{tb_root}/test_run_{run_id}",
     log_file="{log_root}/{split}_test_run_{run_id}.log",
 )
 scheduler = dict(

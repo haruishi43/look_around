@@ -334,7 +334,7 @@ class PPOTrainer(BaseRLTrainer):
 
         observations = self.envs.reset()
         batch = batch_obs(
-            observations,
+            observations=observations,
             device=self.device,
             cache=self._obs_batching_cache,
         )
@@ -508,8 +508,8 @@ class PPOTrainer(BaseRLTrainer):
                     # FIXME: need to add 'difficulty-aware' checkpoint mechanism
                     if is_best:
                         symlink(
-                            os.path.join(self.ckpt_dir, f"ckpt.{count_checkpoints}.pth"),
-                            os.path.join(self.ckpt_dir, "ckpt.best.pth"),
+                            os.path.join(os.path.abspath(self.ckpt_dir), f"ckpt.{count_checkpoints}.pth"),
+                            os.path.join(os.path.abspath(self.ckpt_dir), "ckpt.best.pth"),
                         )
 
                     count_checkpoints += 1
