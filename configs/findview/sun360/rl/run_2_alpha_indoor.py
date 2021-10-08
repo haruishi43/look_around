@@ -1,5 +1,5 @@
 _base_ = [
-    '../findview_agents/ppo.py',
+    '../agents/ppo.py',
     '../rl_envs/basic.py',
     '../trainers/base.py'
 ]
@@ -11,11 +11,11 @@ rl_env = dict(
     name='Basic',
     success_reward=100.0,
     slack_reward=-0.01,
-    end_type='bell',
+    end_type='inverse',
     end_type_param=10,
 )
-base_trainer = dict(
-    run_id=1,
+trainer = dict(
+    run_id=2,
     num_envs=16,
     num_updates=30000,
     ckpt_interval=500,

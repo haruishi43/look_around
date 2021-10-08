@@ -265,7 +265,7 @@ class PPOTrainer(BaseRLTrainer):
         )
 
         # log stats
-        if self.num_updates_done % self._base_cfg.log_interval == 0:
+        if self.num_updates_done % self.trainer_cfg.log_interval == 0:
             logger.info(
                 "update: {}\tfps: {:.3f}\t".format(
                     self.num_updates_done,
@@ -301,13 +301,19 @@ class PPOTrainer(BaseRLTrainer):
         """Main method for training PPO.
         """
 
+        if torch.cuda.is_available():
+            self.device = torch.device("cuda", self.trainer_cfg.device)
+            torch.cuda.set_device(self.device)
+        else:
+            self.device = torch.device("cpu")
+
         ppo_cfg = self.cfg.ppo
 
         logger.add_filehandler(
-            self._base_cfg.log_file.format(
+            self.trainer_cfg.log_file.format(
                 split="train",
                 log_root=self.cfg.log_root,
-                run_id=self._base_cfg.run_id,
+                run_id=self.trainer_cfg.run_id,
             )
         )
 
@@ -315,12 +321,6 @@ class PPOTrainer(BaseRLTrainer):
 
         action_shape = None
         discrete_actions = True
-
-        if torch.cuda.is_available():
-            self.device = torch.device("cuda", self.cfg.train.device)
-            torch.cuda.set_device(self.device)
-        else:
-            self.device = torch.device("cpu")
 
         self._setup_actor_critic_agent()
 
@@ -372,7 +372,7 @@ class PPOTrainer(BaseRLTrainer):
             lr_lambda=lambda x: 1 - self.percent_done(),
         )
 
-        if self.cfg.train.resume:
+        if self.trainer_cfg.resume:
             ckpt_path = get_last_checkpoint_folder(self.ckpt_dir)
             ckpt_dict = self.load_checkpoint(ckpt_path, map_location="cpu")
 
@@ -417,6 +417,12 @@ class PPOTrainer(BaseRLTrainer):
                     )
 
             logger.info(f"resuming from {ckpt_path} starting with {self.num_steps_done} steps")
+
+        elif self.trainer_cfg.pretrained:
+            assert os.path.exists(self.trainer_cfg.pretrained)
+            ckpt_dict = self.load_checkpoint(self.trainer_cfg.pretrained, map_location="cpu")
+            self.agent.load_state_dict(ckpt_dict.get('state_dict'))
+            logger.info(f"loading pretrained weights from {self.trainer_cfg.pretrained}")
 
         # account keep stuff
         validator = PPOValidator(cfg=self.cfg)

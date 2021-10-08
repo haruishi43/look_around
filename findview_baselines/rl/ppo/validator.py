@@ -38,18 +38,18 @@ class PPOValidator(BaseRLValidator):
         difficulty: str,
         bounded: bool,
     ):
-        envs = self._init_rlenvs(
-            split="val",
-            cfg=self.cfg,
-            difficulty=difficulty,
-            bounded=bounded,
-        )
 
         if torch.cuda.is_available():
-            self.device = torch.device("cuda", self.cfg.val.device)
+            self.device = torch.device("cuda", self.cfg.trainer.device)
             torch.cuda.set_device(self.device)
         else:
             self.device = torch.device("cpu")
+
+        envs = self._init_rlenvs(
+            split="val",
+            difficulty=difficulty,
+            bounded=bounded,
+        )
 
         # FIXME: when the agent is on a different device during validation
         agent.actor_critic.to(self.device)
@@ -60,7 +60,7 @@ class PPOValidator(BaseRLValidator):
             envs=envs,
             writer=writer,
             step_id=step_id,
-            num_eval_episodes=self.cfg.val.num_eval_episodes,
+            num_eval_episodes=self.val_cfg.num_eval_episodes,
         )
 
     def _eval_checkpoint(
@@ -78,7 +78,7 @@ class PPOValidator(BaseRLValidator):
         # Map location CPU is almost always better than mapping to a CUDA device.
         ckpt_dict = self.load_checkpoint(checkpoint_path, map_location="cpu")
 
-        if self.cfg.test.use_ckpt_cfg:
+        if self.val_cfg.use_ckpt_cfg:
             loaded_cfg = ckpt_dict["cfg"]
         else:
             loaded_cfg = deepcopy(self.cfg)
@@ -92,16 +92,9 @@ class PPOValidator(BaseRLValidator):
         # initialize the envs
         envs = self._init_rlenvs(
             split="test",
-            cfg=self.cfg,
-            difficulty=self.cfg.test.difficulty,
-            bounded=self.cfg.test.bounded,
+            difficulty=self.val_cfg.difficulty,
+            bounded=self.val_cfg.bounded,
         )
-
-        if torch.cuda.is_available():
-            self.device = torch.device("cuda", self.cfg.test.device)
-            torch.cuda.set_device(self.device)
-        else:
-            self.device = torch.device("cpu")
 
         torch.random.manual_seed(self.cfg.seed)
         if torch.cuda.is_available():
@@ -132,7 +125,7 @@ class PPOValidator(BaseRLValidator):
             envs=envs,
             writer=writer,
             step_id=step_id,
-            num_eval_episodes=self.cfg.test.num_eval_episodes,
+            num_eval_episodes=self.val_cfg.num_eval_episodes,
         )
 
     def _eval_single(

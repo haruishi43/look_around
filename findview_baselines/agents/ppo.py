@@ -20,7 +20,7 @@ class PPOAgent(Agent):
     def __init__(
         self,
         cfg: Config,
-        ckpt_filename: str = None,
+        ckpt_path: os.PathLike = None,
     ) -> None:
         observation_space = SpaceDict(
             {
@@ -70,27 +70,6 @@ class PPOAgent(Agent):
         )
         self.actor_critic.to(self.device)
 
-        ckpt_path = cfg.ckpt_dir.format(
-            results_root=cfg.results_root,
-            run_id=cfg.run_id,
-        )
-
-        if ckpt_filename is None:
-            print("warning: using ckpt from config file")
-            ckpt_path = os.path.join(
-                ckpt_path,
-                test_cfg.ckpt_path,
-            )
-        else:
-            ckpt_path = os.path.join(
-                ckpt_path,
-                ckpt_filename,
-            )
-            print(f"loading from {ckpt_path}")
-
-        assert os.path.exists(ckpt_path), \
-            f"{ckpt_path} doesn't exist!"
-
         ckpt = torch.load(ckpt_path, map_location=self.device)
         #  Filter only actor_critic weights
         self.actor_critic.load_state_dict(
@@ -108,6 +87,7 @@ class PPOAgent(Agent):
     @classmethod
     def from_config(cls, cfg: Config, ckpt_filename: str):
         # FIXME: sort out parameters
+        # configs should be outside `__init__`
         return cls(cfg=cfg, ckpt_filename=ckpt_filename)
 
     def reset(self) -> None:
@@ -164,7 +144,7 @@ def main():
         required=True,
     )
     parser.add_argument(
-        "--ckpt-filename",
+        "--ckpt-path",
         type=str,
     )
     parser.add_argument(
@@ -174,6 +154,32 @@ def main():
     )
     args = parser.parse_args()
     cfg = Config.fromfile(args.config)
+
+    ckpt_path = args.ckpt_path
+
+    if not os.path.exists(ckpt_path):
+        ckpt_dir = cfg.trainer.ckpt_dir.format(
+            results_root=cfg.results_root,
+            run_id=cfg.trainer.run_id,
+        )
+        ckpt_path =
+
+        if ckpt_filename is None:
+            print("warning: using ckpt from config file")
+            ckpt_path = os.path.join(
+                ckpt_path,
+                test_cfg.ckpt_path,
+            )
+        else:
+            ckpt_path = os.path.join(
+                ckpt_path,
+                ckpt_filename,
+            )
+            print(f"loading from {ckpt_path}")
+
+    assert os.path.exists(ckpt_path), \
+        f"{ckpt_path} doesn't exist!"
+
     agent = PPOAgent(cfg, ckpt_filename=args.ckpt_filename)
     benchmark = FindViewBenchmark(
         cfg=cfg,

@@ -1,7 +1,7 @@
 _base_ = [
-    '../findview_agents/ppo.py',
-    '../rl_envs/basic.py',
-    '../trainers/base.py'
+    '../findview/sun360/agents/ppo.py',
+    '../findview/sun360/rl_envs/basic.py',
+    '../findview/sun360/trainers/base.py',
 ]
 dataset = dict(
     difficulty='easy',
@@ -14,8 +14,11 @@ rl_env = dict(
     end_type='bell',
     end_type_param=10,
 )
-base_trainer = dict(
+trainer = dict(
     run_id=0,
+    device=0,
+    dtype="torch.float32",
+    vec_type="threaded",
     num_envs=8,
     num_updates=1000,
     ckpt_interval=500,
@@ -24,24 +27,16 @@ base_trainer = dict(
     video_dir="{results_root}/videos/test_run_{run_id}",
     tb_dir="{tb_root}/test_run_{run_id}",
     log_file="{log_root}/{split}_test_run_{run_id}.log",
+    resume=False,
+)
+validator = dict(
+    num_eval_episodes=250,
+    ckpt_path="ckpt.best.pth",
+    use_ckpt_cfg=True,
+    difficulty="easy",
+    bounded=False,
 )
 scheduler = dict(
     initial_difficulty='easy',
     update_interval=-1,
-)
-val = dict(
-    device=0,
-    dtype="torch.float32",
-    vec_type="threaded",
-    num_eval_episodes=250,
-)
-test = dict(
-    device=0,
-    dtype="torch.float32",
-    vec_type="threaded",
-    ckpt_path="ckpt.0.pth",
-    use_ckpt_cfg=True,
-    num_eval_episodes=250,
-    difficulty="easy",
-    bounded=True,
 )

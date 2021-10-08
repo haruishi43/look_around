@@ -1,5 +1,6 @@
 _base_ = [
-    './rl_env/basic.py',
+    '../rl_env/basic.py',
+    './base.py',
 ]
 results_root = "./results"
 log_root = "./logs"

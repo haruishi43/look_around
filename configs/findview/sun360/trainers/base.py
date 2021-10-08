@@ -1,5 +1,11 @@
-base_trainer = dict(
+_base_ = [
+    '../benchmarks/base.py',
+]
+trainer = dict(
     run_id=9999,
+    device=0,
+    dtype="torch.float32",
+    vec_type="threaded",
     num_envs=8,
     num_updates=7500,
     num_ckpts=-1,
@@ -11,32 +17,19 @@ base_trainer = dict(
     video_dir="{results_root}/videos/run_{run_id}",
     tb_dir="{tb_root}/run_{run_id}",
     log_file="{log_root}/{split}_run_{run_id}.log",
+    resume=False,
+    pretrained=None,
     verbose=True,
+)
+validator = dict(
+    num_eval_episodes=250,
+    ckpt_path="ckpt.best.pth",
+    use_ckpt_cfg=True,
+    difficulty="easy",
+    bounded=False,
 )
 scheduler = dict(
     initial_difficulty='easy',
     difficulties=('easy', 'medium', 'hard'),
     update_interval=2500,
-)
-train = dict(
-    device=0,
-    dtype="torch.float32",
-    vec_type="threaded",
-    resume=False,
-)
-val = dict(
-    device=0,
-    dtype="torch.float32",
-    vec_type="threaded",
-    num_eval_episodes=250,
-)
-test = dict(
-    device=0,
-    dtype="torch.float32",
-    vec_type="threaded",
-    ckpt_path="ckpt.best.pth",
-    use_ckpt_cfg=True,
-    num_eval_episodes=250,
-    difficulty="easy",
-    bounded=True,
 )

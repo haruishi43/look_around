@@ -23,6 +23,12 @@ def filter_by_difficulty(
 
 class FindViewBenchmark(object):
 
+    # Properties
+    bench_cfg: Config
+
+    # Hidden Properties
+    _env: FindViewEnv
+
     def __init__(
         self,
         cfg: Config,
@@ -30,15 +36,33 @@ class FindViewBenchmark(object):
     ) -> None:
 
         # FIXME: benchmark should have it's own configs
+        self.bench_cfg = cfg.benchmark
 
         # FIXME: change how we pass arguments
         # - for rl agents, we mostly want gpu and torch.float32 environment
         # - for baselines, we might want numpy environment
         # - we will also want to change how we set the filter
+
+        difficulty = self.bench_cfg.difficulty
+        bounded = self.bench_cfg.bounded
+
+        if bounded:
+            difficulties = (difficulty,)
+        else:
+            if difficulty == "easy":
+                difficulties = (difficulty,)
+            elif difficulty == "medium":
+                difficulties = ("easy", "medium")
+            elif difficulty == "hard":
+                difficulties = ("easy", "medium", "hard")
+
+        for diff in difficulties:
+            assert diff in ("easy", "medium", "hard")
+
         self._env = FindViewEnv.from_config(
             cfg=cfg,
             split="test",
-            filter_fn=partial(filter_by_difficulty, difficulties=['easy']),
+            filter_fn=partial(filter_by_difficulty, difficulties=difficulties),
             dtype=torch.float32,
             device=device,
         )

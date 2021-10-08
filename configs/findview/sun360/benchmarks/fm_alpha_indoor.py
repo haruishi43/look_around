@@ -1,6 +1,7 @@
 _base_ = [
-    './rl_envs/basic.py',
-    './findview_agents/feature_matching.py'
+    '../rl_envs/basic.py',
+    '../agents/feature_matching.py',
+    './base.py',
 ]
 results_root = "./results"
 log_root = "./logs"

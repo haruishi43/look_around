@@ -28,7 +28,7 @@ class BaseTrainer(object):
     num_steps_done: int
 
     # Hidden Properties
-    _base_cfg: Config
+    trainer_cfg: Config
     _flush_secs: int
     _last_checkpoint_percent: float
 
@@ -103,7 +103,7 @@ class BaseRLTrainer(BaseTrainer):
 
         # initialize properties
         self.cfg = cfg
-        self._base_cfg = cfg.base_trainer
+        self.trainer_cfg = cfg.trainer
         self.envs = None
 
         # set spaces to None
@@ -111,49 +111,49 @@ class BaseRLTrainer(BaseTrainer):
         self._policy_action_space = None
 
         # Some sanity checks in the input config
-        if self._base_cfg.num_updates != -1 and self._base_cfg.total_num_steps != -1:
+        if self.trainer_cfg.num_updates != -1 and self.trainer_cfg.total_num_steps != -1:
             raise RuntimeError(
                 "`num_updates` and `total_num_steps` are both specified. One must be -1.\n"
                 "`num_updates`: {} `total_num_steps`: {}".format(
-                    self._base_cfg.num_updates, self._base_cfg.total_num_steps,
+                    self.trainer_cfg.num_updates, self.trainer_cfg.total_num_steps,
                 )
             )
-        if self._base_cfg.num_updates == -1 and self._base_cfg.total_num_steps == -1:
+        if self.trainer_cfg.num_updates == -1 and self.trainer_cfg.total_num_steps == -1:
             raise RuntimeError(
                 "One of `num_updates` and `total_num_steps` must be specified.\n"
                 "`num_updates`: {} `total_num_steps`: {}".format(
-                    self._base_cfg.num_updates, self._base_cfg.total_num_steps,
+                    self.trainer_cfg.num_updates, self.trainer_cfg.total_num_steps,
                 )
             )
-        if self._base_cfg.num_ckpts != -1 and self._base_cfg.ckpt_interval != -1:
+        if self.trainer_cfg.num_ckpts != -1 and self.trainer_cfg.ckpt_interval != -1:
             raise RuntimeError(
                 "`num_ckpts` and `ckpt_interval` are both specified."
                 "  One must be -1.\n"
                 " `num_ckpts`: {} `ckpt_interval`: {}".format(
-                    self._base_cfg.num_ckpts, self._base_cfg.ckpt_interval
+                    self.trainer_cfg.num_ckpts, self.trainer_cfg.ckpt_interval
                 )
             )
-        if self._base_cfg.num_ckpts == -1 and self._base_cfg.ckpt_interval == -1:
+        if self.trainer_cfg.num_ckpts == -1 and self.trainer_cfg.ckpt_interval == -1:
             raise RuntimeError(
                 "One of `num_ckpts` and `ckpt_interval` must be specified"
                 " `num_ckpts`: {} `ckpt_interval`: {}".format(
-                    self._base_cfg.num_ckpts, self._base_cfg.ckpt_interval
+                    self.trainer_cfg.num_ckpts, self.trainer_cfg.ckpt_interval
                 )
             )
 
     def percent_done(self) -> float:
-        if self._base_cfg.num_updates != -1:
-            return self.num_updates_done / self._base_cfg.num_updates
+        if self.trainer_cfg.num_updates != -1:
+            return self.num_updates_done / self.trainer_cfg.num_updates
         else:
-            return self.num_steps_done / self._base_cfg.total_num_steps
+            return self.num_steps_done / self.trainer_cfg.total_num_steps
 
     def is_done(self) -> bool:
         return self.percent_done() >= 1.0
 
     def should_checkpoint(self) -> bool:
         needs_checkpoint = False
-        if self._base_cfg.num_ckpts != -1:
-            checkpoint_every = 1 / self._base_cfg.num_ckpts
+        if self.trainer_cfg.num_ckpts != -1:
+            checkpoint_every = 1 / self.trainer_cfg.num_ckpts
             if (
                 self._last_checkpoint_percent + checkpoint_every
                 < self.percent_done()
@@ -162,7 +162,7 @@ class BaseRLTrainer(BaseTrainer):
                 self._last_checkpoint_percent = self.percent_done()
         else:
             needs_checkpoint = (
-                self.num_updates_done % self._base_cfg.ckpt_interval
+                self.num_updates_done % self.trainer_cfg.ckpt_interval
             ) == 0
 
         return needs_checkpoint
@@ -195,9 +195,9 @@ class BaseRLTrainer(BaseTrainer):
 
     @property
     def ckpt_dir(self) -> PathLike:
-        ckpt_dir = self._base_cfg.ckpt_dir.format(
+        ckpt_dir = self.trainer_cfg.ckpt_dir.format(
             results_root=self.cfg.results_root,
-            run_id=str(self._base_cfg.run_id),
+            run_id=str(self.trainer_cfg.run_id),
         )
         if not os.path.exists(ckpt_dir):
             os.makedirs(ckpt_dir, exist_ok=True)
@@ -205,9 +205,9 @@ class BaseRLTrainer(BaseTrainer):
 
     @property
     def tb_dir(self) -> PathLike:
-        tb_dir = self._base_cfg.tb_dir.format(
+        tb_dir = self.trainer_cfg.tb_dir.format(
             tb_root=self.cfg.tb_root,
-            run_id=str(self._base_cfg.run_id),
+            run_id=str(self.trainer_cfg.run_id),
         )
         if not os.path.exists(tb_dir):
             os.makedirs(tb_dir, exist_ok=True)
@@ -215,9 +215,9 @@ class BaseRLTrainer(BaseTrainer):
 
     @property
     def video_dir(self) -> PathLike:
-        video_dir = self._base_cfg.video_dir.format(
+        video_dir = self.trainer_cfg.video_dir.format(
             results_root=self.cfg.results_root,
-            run_id=str(self._base_cfg.run_id),
+            run_id=str(self.trainer_cfg.run_id),
         )
         if not os.path.exists(video_dir):
             os.makedirs(video_dir, exist_ok=True)
@@ -250,12 +250,10 @@ class BaseRLTrainer(BaseTrainer):
     ) -> None:
         if cfg is None:
             cfg = Config(deepcopy(self.cfg))
-        split_cfg = getattr(cfg, split)
-        assert split_cfg is not None
 
-        if split_cfg.dtype == "torch.float32":
+        if cfg.trainer.dtype == "torch.float32":
             dtype = torch.float32
-        elif split_cfg.dtype == "torch.float64":
+        elif cfg.trainer.dtype == "torch.float64":
             dtype = torch.float64
         else:
             raise ValueError()
@@ -265,8 +263,8 @@ class BaseRLTrainer(BaseTrainer):
             split=split,
             is_rlenv=True,
             dtype=dtype,
-            device=torch.device(split_cfg.device),
-            vec_type=split_cfg.vec_type,
+            device=self.device,
+            vec_type=cfg.trainer.vec_type,
         )
 
     METRICS_BLACKLIST = [

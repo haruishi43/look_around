@@ -26,6 +26,7 @@ class BaseValidator(object):
 
     # Properties
     cfg: Config
+    val_cfg: Config
     video_option: List[str]
 
     # Hidden Properties
@@ -38,10 +39,10 @@ class BaseValidator(object):
 
         # Initialize properties
         self.cfg = cfg
-        self.video_option = self.cfg.base_trainer.video_option
+        self.val_cfg = self.cfg.validator
+        self.video_option = self.cfg.trainer.video_option
 
         # Initialize hidden properties
-        self._base_cfg = self.cfg.base_trainer  # FIXME: change this to validation cfg
         self._flush_secs = 30
 
     @property
@@ -78,20 +79,24 @@ class BaseValidator(object):
         """
 
         logger.add_filehandler(
-            self._base_cfg.log_file.format(
+            self.cfg.trainer.log_file.format(
                 split="test",
                 log_root=self.cfg.log_root,
-                run_id=self._base_cfg.run_id,
+                run_id=self.cfg.trainer.run_id,
             )
         )
 
-        self.device = torch.device(self.cfg.test.device)
+        if torch.cuda.is_available():
+            self.device = torch.device("cuda", self.cfg.trainer.device)
+            torch.cuda.set_device(self.device)
+        else:
+            self.device = torch.device("cpu")
 
         with TensorboardWriter(
             self.tb_dir,
             flush_secs=self.flush_secs,
         ) as writer:
-            ckpt_path = os.path.join(self.ckpt_dir, self.cfg.test.ckpt_path)
+            ckpt_path = os.path.join(self.ckpt_dir, self.val_cfg.ckpt_path)
             if os.path.isfile(ckpt_path):
                 # evaluate singe checkpoint
                 proposed_index = get_checkpoint_id(ckpt_path)
@@ -173,37 +178,32 @@ class BaseRLValidator(BaseValidator):
     def _init_rlenvs(
         self,
         split: str,
-        cfg: Config,
         difficulty: str,
         bounded: bool,
     ) -> VecEnv:
-        cfg = Config(deepcopy(self.cfg))
-        split_cfg = getattr(cfg, split)
-        assert split_cfg is not None
-
-        if split_cfg.dtype == "torch.float32":
+        if self.cfg.trainer.dtype == "torch.float32":
             dtype = torch.float32
-        elif split_cfg.dtype == "torch.float64":
+        elif self.cfg.trainer.dtype == "torch.float64":
             dtype = torch.float64
         else:
             raise ValueError()
 
         return construct_envs_for_validation(
-            cfg=cfg,
+            cfg=deepcopy(self.cfg),
             split=split,
             is_rlenv=True,
             dtype=dtype,
-            device=torch.device(split_cfg.device),
-            vec_type=split_cfg.vec_type,
+            device=self.device,
+            vec_type=self.cfg.trainer.vec_type,
             difficulty=difficulty,
             bounded=bounded,
         )
 
     @property
     def ckpt_dir(self) -> PathLike:
-        ckpt_dir = self._base_cfg.ckpt_dir.format(
+        ckpt_dir = self.cfg.trainer.ckpt_dir.format(
             results_root=self.cfg.results_root,
-            run_id=str(self._base_cfg.run_id),
+            run_id=str(self.cfg.trainer.run_id),
         )
         if not os.path.exists(ckpt_dir):
             os.makedirs(ckpt_dir, exist_ok=True)
@@ -211,9 +211,9 @@ class BaseRLValidator(BaseValidator):
 
     @property
     def tb_dir(self) -> PathLike:
-        tb_dir = self._base_cfg.tb_dir.format(
+        tb_dir = self.cfg.trainer.tb_dir.format(
             tb_root=self.cfg.tb_root,
-            run_id=str(self._base_cfg.run_id),
+            run_id=str(self.cfg.trainer.run_id),
         )
         if not os.path.exists(tb_dir):
             os.makedirs(tb_dir, exist_ok=True)
@@ -221,9 +221,9 @@ class BaseRLValidator(BaseValidator):
 
     @property
     def video_dir(self) -> PathLike:
-        video_dir = self._base_cfg.video_dir.format(
+        video_dir = self.cfg.trainer.video_dir.format(
             results_root=self.cfg.results_root,
-            run_id=str(self._base_cfg.run_id),
+            run_id=str(self.cfg.trainer.run_id),
         )
         if not os.path.exists(video_dir):
             os.makedirs(video_dir, exist_ok=True)

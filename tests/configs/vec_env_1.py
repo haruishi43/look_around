@@ -1,7 +1,7 @@
 _base_ = [
     "./env_1.py",
 ]
-base_trainer = dict(
+trainer = dict(
     run_id=9999,
     num_envs=8,
     num_updates=7500,

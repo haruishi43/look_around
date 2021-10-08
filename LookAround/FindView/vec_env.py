@@ -890,7 +890,7 @@ def construct_envs(
     random.seed(cfg.seed)
     np.random.seed(cfg.seed)
 
-    num_envs = cfg.base_trainer.num_envs
+    num_envs = cfg.trainer.num_envs
 
     # get all dataset
     dataset = make_dataset(cfg=cfg, split=split)
