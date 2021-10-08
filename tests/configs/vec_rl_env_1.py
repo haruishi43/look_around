@@ -3,7 +3,7 @@ _base_ = [
 ]
 base_trainer = dict(
     run_id=9999,
-    num_envs=8,
+    num_envs=4,
     num_updates=7500,
     num_ckpts=-1,
     ckpt_interval=500,

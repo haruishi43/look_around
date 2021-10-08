@@ -21,7 +21,7 @@ def filter_by_difficulty(
     return episode.difficulty in difficulties
 
 
-class FindViewBenchmark:
+class FindViewBenchmark(object):
 
     def __init__(
         self,

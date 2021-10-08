@@ -174,10 +174,10 @@ class DynamicDataset(Generic[T]):
         return len(self.pseudos)
 
     def get_img_names(self) -> List[str]:
-        return list(set([p.img_name for p in self.pseudos]))
+        return sorted(list(set([p.img_name for p in self.pseudos])))
 
     def get_sub_labels(self) -> List[str]:
-        return list(set([p.sub_label for p in self.pseudos]))
+        return sorted(list(set([p.sub_label for p in self.pseudos])))
 
     def pseudos_from_json(
         self,

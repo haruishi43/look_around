@@ -14,6 +14,7 @@ except ImportError:
 
 from LookAround.config import Config
 from LookAround.core import logger
+from LookAround.utils.random import seed
 
 from findview_baselines.common import (
     BaseRLTrainer,
@@ -53,10 +54,19 @@ class PPOTrainer(BaseRLTrainer):
         """Sets up actor critic and agent for PPO.
         """
 
-        # random.seed(0)
+        # FIXME: seems that more work is needed for setting seeds
+        # torch.random.manual_seed(self.cfg.seed)
+        # if torch.cuda.is_available():
+        #     torch.cuda.manual_seed(self.cfg.seed)
+        #     torch.backends.cudnn.deterministic = True  # type: ignore
+
+        seed(self.cfg.seed)
         torch.random.manual_seed(self.cfg.seed)
         if torch.cuda.is_available():
+            torch.cuda.manual_seed(self.cfg.seed)
+            torch.cuda.manual_seed_all(self.cfg.seed)  # this might not be necessary
             torch.backends.cudnn.deterministic = True  # type: ignore
+            torch.backends.cudnn.benchmark = False
 
         # FIXME: better to use registry for customization?
         self.actor_critic = FindViewBaselinePolicy(
@@ -463,6 +473,7 @@ class PPOTrainer(BaseRLTrainer):
 
                     # validate
                     # FIXME: difficulty changes so `is_best` is not reliable...
+                    # FIXME: validation takes long when agent starts to not call stop
                     distance = validator.eval_from_trainer(
                         agent=self.agent,
                         writer=writer,

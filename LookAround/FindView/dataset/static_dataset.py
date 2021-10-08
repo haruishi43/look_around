@@ -151,10 +151,10 @@ class StaticDataset(Generic[T]):
         return len(self.episodes)
 
     def get_img_names(self) -> List[str]:
-        return list(set([e.img_name for e in self.episodes]))
+        return sorted(list(set([e.img_name for e in self.episodes])))
 
     def get_sub_labels(self) -> List[str]:
-        return list(set([e.sub_label for e in self.episodes]))
+        return sorted(list(set([e.sub_label for e in self.episodes])))
 
     def episodes_from_json(
         self,

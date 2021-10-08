@@ -18,7 +18,7 @@ base_trainer = dict(
     run_id=0,
     num_envs=8,
     num_updates=1000,
-    ckpt_interval=200,
+    ckpt_interval=500,
     log_interval=10,
     ckpt_dir="{results_root}/checkpoints/test_run_{run_id}",
     video_dir="{results_root}/videos/test_run_{run_id}",
@@ -27,7 +27,7 @@ base_trainer = dict(
 )
 scheduler = dict(
     initial_difficulty='easy',
-    update_interval=200,
+    update_interval=-1,
 )
 val = dict(
     device=0,
