@@ -64,7 +64,6 @@ class GreedyMovementAgent(object):
         self.g = movement_generator(len(self.movement_actions))
 
 
-@pytest.mark.skip(reason="skipping for now")
 def test_vec_env():
     cfg = Config.fromfile("tests/configs/vec_env_1.py")
     print(cfg.pretty_text)
@@ -107,7 +106,6 @@ def test_vec_env():
                 agents[i].reset()
 
 
-@pytest.mark.skip(reason="skipping for now")
 def test_rl_vec_env():
     cfg = Config.fromfile("tests/configs/vec_rl_env_1.py")
     print(cfg.pretty_text)
@@ -152,6 +150,7 @@ def test_rl_vec_env():
                 agents[i].reset()
 
 
+@pytest.mark.skip(reason="skipping for now")
 def test_rl_vec_env_reproducibility():
     cfg = Config.fromfile("tests/configs/vec_rl_env_1.py")
     print(cfg.pretty_text)

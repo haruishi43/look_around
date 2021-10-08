@@ -66,7 +66,7 @@ class PPOTrainer(BaseRLTrainer):
             torch.cuda.manual_seed(self.cfg.seed)
             torch.cuda.manual_seed_all(self.cfg.seed)  # this might not be necessary
             torch.backends.cudnn.deterministic = True  # type: ignore
-            torch.backends.cudnn.benchmark = False
+            # torch.backends.cudnn.benchmark = False
 
         # FIXME: better to use registry for customization?
         self.actor_critic = FindViewBaselinePolicy(
