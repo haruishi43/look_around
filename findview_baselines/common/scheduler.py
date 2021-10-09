@@ -42,6 +42,8 @@ class DifficultyScheduler(object):
             else:
                 self.current_level = _level
 
+                print(f"setting difficulty to {self.difficulties[self.current_level]}")
+
             return True
         else:
             return False
