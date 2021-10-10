@@ -150,6 +150,7 @@ class FindViewEnv(object):
         cfg: Config,
         split: str,
         filter_fn: Optional[Callable[..., bool]] = None,
+        num_episodes_per_img: int = -1,
         dtype: Union[np.dtype, torch.dtype] = torch.float32,
         device: torch.device = torch.device('cpu'),
     ):
@@ -161,6 +162,7 @@ class FindViewEnv(object):
             cfg=cfg,
             split=split,
             filter_fn=filter_fn,
+            num_episodes_per_img=num_episodes_per_img,
         )
 
         # Initialize episode iterator

@@ -9,6 +9,7 @@ import tqdm
 from LookAround.config import Config
 from LookAround.core import logger
 from LookAround.FindView.vec_env import VecEnv
+from LookAround.FindView.dataset.episode import Episode
 from LookAround.utils.visualizations import obs2img
 
 from findview_baselines.common.tensorboard_utils import TensorboardWriter
@@ -182,9 +183,8 @@ class PPOValidator(BaseRLValidator):
             device=self.device,
             dtype=torch.bool,
         )
-        stats_episodes: Dict[
-            Any, Any
-        ] = {}  # dict of dicts that stores stats per episode
+        # dict of dicts that stores stats per episode
+        stats_episodes: Dict[Any, Any, Any] = {}
 
         # get the number of episodes to test
         number_of_eval_episodes = num_eval_episodes
@@ -199,13 +199,14 @@ class PPOValidator(BaseRLValidator):
                 )
                 logger.warn(f"Evaluating with {total_num_eps} instead.")
                 number_of_eval_episodes = total_num_eps
+        logger.info(f"evaluating {number_of_eval_episodes}/{sum(envs.number_of_episodes)}")
 
         pbar = tqdm.tqdm(total=number_of_eval_episodes)
         while (
             len(stats_episodes) < number_of_eval_episodes
             and envs.num_envs > 0
         ):
-            current_episodes = envs.current_episodes()
+            current_episodes: List[Episode] = envs.current_episodes()
 
             # 1. Sample actions
             with torch.no_grad():
@@ -263,6 +264,7 @@ class PPOValidator(BaseRLValidator):
                         (
                             current_episodes[i].img_name,
                             current_episodes[i].episode_id,
+                            current_episodes[i].difficulty,
                         )
                     ] = episode_stats
 
@@ -277,7 +279,7 @@ class PPOValidator(BaseRLValidator):
                             images=rgb_frames[i],
                             episode_id=current_episodes[i].episode_id,
                             checkpoint_idx=step_id,
-                            metrics=self._extract_scalars_from_info(infos[i]),
+                            metrics=infos[i],
                             tb_writer=writer,
                         )
 
@@ -304,7 +306,7 @@ class PPOValidator(BaseRLValidator):
             not_done_masks = not_done_masks.to(device=self.device)
 
             # 5. Pause envs that repeats episodes
-            next_episodes = envs.current_episodes()
+            next_episodes: List[Episode] = envs.current_episodes()
             envs_to_pause = []
             n_envs = envs.num_envs
             for i in range(n_envs):
@@ -312,6 +314,7 @@ class PPOValidator(BaseRLValidator):
                 if (
                     next_episodes[i].img_name,
                     next_episodes[i].episode_id,
+                    next_episodes[i].difficulty,
                 ) in stats_episodes:
                     envs_to_pause.append(i)
             (

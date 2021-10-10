@@ -185,8 +185,11 @@ class BaseRLValidator(BaseValidator):
         else:
             raise ValueError()
 
+        num_envs = self.val_cfg.num_envs
+
         return construct_envs_for_validation(
             cfg=deepcopy(self.cfg),
+            num_envs=num_envs,
             split=split,
             is_rlenv=True,
             dtype=dtype,
@@ -195,6 +198,8 @@ class BaseRLValidator(BaseValidator):
             difficulty=difficulty,
             bounded=bounded,
             auto_reset_done=False,  # NOTE: auto reset is turned off
+            remove_labels=self.val_cfg.remove_labels,
+            num_episodes_per_img=self.val_cfg.num_episodes_per_img,
         )
 
     @property

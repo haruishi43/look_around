@@ -274,6 +274,9 @@ def get_checkpoint_id(ckpt_path: str) -> Optional[int]:
     Returns:
         returns an int if it is able to extract the ckpt_path else None
     """
+    if os.path.islink(ckpt_path):
+        # if the path is symlinked, get the source
+        ckpt_path = os.readlink(ckpt_path)
     ckpt_path = os.path.basename(ckpt_path)
     nums: List[int] = [int(s) for s in ckpt_path.split(".") if s.isdigit()]
     if len(nums) > 0:
@@ -309,7 +312,7 @@ def poll_checkpoint_folder(
 def get_last_checkpoint_folder(
     checkpoint_folder: str,
 ) -> Optional[str]:
-    r"""Return last checkpoint file if there are any
+    """Return last checkpoint file if there are any
     """
     assert os.path.isdir(checkpoint_folder), (
         f"invalid checkpoint root " f"path {checkpoint_folder}"
@@ -361,8 +364,7 @@ def generate_video(
     #     metric_strs
     # )
 
-    # NOTE: until I need some metrics in the naming, I'm just leaving it this
-    video_name = f"episode-{episode_id}_ckpt-{checkpoint_idx}"
+    video_name = f"ckpt-{checkpoint_idx}_difficulty-{metrics['difficulty']}_episode-{episode_id}_label-{metrics['sub_label']}"
 
     if "disk" in video_option:
         assert video_dir is not None

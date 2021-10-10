@@ -2,6 +2,12 @@
 
 """Simple script for creating SUN360 Datset for FindView
 
+FIXME: change how we split the data
+- `others` should be train
+- val and test should have at least 1 images when the total of sub category images are greater than 3
+- test should be prioritized when sub category images is 2
+- when sub category images are 1, put it in test
+
 """
 
 import argparse
@@ -94,6 +100,11 @@ if __name__ == "__main__":
         category_path = os.path.join(sun360_root, cfg.dataset.category)
         assert os.path.exists(category_path)
 
+        # FIXME: better way of creating dataset
+        # sub category aware
+        # - some sub category has less than 3 images while other will have hundreds
+        # - `others` consume more than half the images
+
         # get all image paths
         img_paths = gather_image_paths_in_category(
             category_path=category_path,
@@ -135,7 +146,7 @@ if __name__ == "__main__":
 
     # check if the image exists
     for name, paths in splits.items():
-        print(f"checking for images in {name}")
+        print(f"checking for images in {name} with {len(paths)} images")
         for path in tqdm(paths):
             assert os.path.exists(os.path.join(sun360_root, path)), \
                 f"ERR: {path} doesn't exist! Did the dataset change?"
@@ -314,6 +325,7 @@ if __name__ == "__main__":
 
             if not args.no_shuffle:
                 print("shuffling")
+                # FIXME: reorder episode_id
                 random.shuffle(dataset)
 
             # dump to json
@@ -321,7 +333,7 @@ if __name__ == "__main__":
             with open(save_path, "w") as f:
                 json.dump(dataset, f, indent=4)
 
-            print("dumped")
+            print(f"dumped {len(dataset)}")
 
     # if training mode is dynamic, we just save the essentials in `train.json`
     if not args.static_train and not args.check_dataset:
@@ -356,11 +368,12 @@ if __name__ == "__main__":
 
             if not args.no_shuffle:
                 print("shuffling")
+                # FIXME: reorder episode_id
                 random.shuffle(dataset)
 
             with open(save_path, "w") as f:
                 json.dump(dataset, f, indent=4)
 
-            print("dumped")
+            print(f"dumped {len(dataset)}")
 
     print("done")

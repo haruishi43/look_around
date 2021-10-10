@@ -196,6 +196,24 @@ class StaticDataset(Generic[T]):
         new_dataset.episodes = new_episodes
         return new_dataset
 
+    def reduce_dataset(self, num_episodes_per_img: int = 3) -> "StaticDataset":
+        assert num_episodes_per_img > 0
+        dataset = {}
+        for episode in self.episodes:
+            if episode.img_name not in dataset.keys():
+                dataset[episode.img_name] = [episode]
+            elif len(dataset[episode.img_name]) < num_episodes_per_img:
+                dataset[episode.img_name].append(episode)
+
+        new_episodes = []
+        for episodes in dataset.values():
+            new_episodes += episodes
+        assert len(new_episodes) > 0, \
+            "ERR: filtered all episodes; no episode for dataset"
+        new_dataset = copy(self)  # copies all attributes
+        new_dataset.episodes = new_episodes
+        return new_dataset
+
 
 class StaticIterator(Iterator):
 

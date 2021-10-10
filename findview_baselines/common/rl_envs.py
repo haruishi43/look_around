@@ -3,7 +3,7 @@
 from copy import deepcopy
 from functools import partial
 import random
-from typing import List, Optional, Union
+from typing import List, Optional, Tuple, Union
 
 import numpy as np
 import torch
@@ -23,16 +23,24 @@ from LookAround.FindView.vec_env import (
 )
 
 
+def filter_out_sub_labels(episode: Episode, sub_labels: Union[List[str], Tuple[str]]) -> bool:
+    return episode.sub_label not in sub_labels
+
+
 def joint_filter_fn(
     episode: Episode,
     names: List[str],
     difficulties: List[str],
 ) -> bool:
-    return filter_by_difficulty(episode, difficulties) and filter_by_name(episode, names)
+    return (
+        filter_by_difficulty(episode, difficulties)
+        and filter_by_name(episode, names)
+    )
 
 
 def construct_envs_for_validation(
     cfg: Config,
+    num_envs: int,
     split: str,
     is_rlenv: bool = True,
     dtype: Union[np.dtype, torch.dtype] = torch.float32,
@@ -41,29 +49,47 @@ def construct_envs_for_validation(
     difficulty: Optional[str] = None,
     bounded: Optional[bool] = None,
     auto_reset_done: bool = False,
+    shuffle: bool = False,
+    remove_labels: Optional[Union[List[str], Tuple[str], str]] = "others",
+    num_episodes_per_img: int = -1,
 ) -> VecEnv:
     """Basic initialization of vectorized environments
 
     It splits the dataset into smaller dataset for each enviornment by first
     splitting the dataset by `img_name`.
+
+    NOTE: VecEnv validation is not consistent when using more than 1 envs and
+    `num_eval_episodes=-1`.
     """
 
-    # 1. preprocessing
-    # NOTE: make sure to seed first so that we get consistant tests
-    random.seed(cfg.seed)
-    np.random.seed(cfg.seed)
-
-    num_envs = cfg.trainer.num_envs
-
-    # get all dataset
     assert split in ("val", "test")
-    dataset = make_dataset(cfg=cfg, split=split)
+
+    # make sure that validation cycles since we try to catch when episodes
+    # repeat to pause the thread
+    cfg.episode_iterator_kwargs.cycle = True
+
+    if remove_labels is not None:
+        if isinstance(remove_labels, str):
+            remove_labels = [remove_labels]
+        assert len(remove_labels) > 0
+        filter_fn = partial(filter_out_sub_labels, sub_labels=remove_labels)
+    else:
+        filter_fn = None
+
+    # 1. preprocessing
+    dataset = make_dataset(
+        cfg=cfg,
+        split=split,
+        filter_fn=filter_fn,
+    )
     img_names = dataset.get_img_names()
 
     if len(img_names) > 0:
-        # NOTE: uses global random state
-        random.shuffle(img_names)
-
+        if shuffle:
+            print("WARNING; shuffling img_names during validation!")
+            random.seed(cfg.seed)
+            np.random.seed(cfg.seed)
+            random.shuffle(img_names)
         assert len(img_names) >= num_envs, (
             "reduce the number of environments as there "
             "aren't enough diversity in images"
@@ -114,6 +140,7 @@ def construct_envs_for_validation(
                 names=img_name_splits[i],
                 difficulties=difficulties,
             ),
+            num_episodes_per_img=num_episodes_per_img,
             split=split,
             rank=i,
             dtype=dtype,

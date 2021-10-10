@@ -31,11 +31,14 @@ trainer = dict(
     pretrained=None,
 )
 validator = dict(
-    num_eval_episodes=250,
+    num_envs=8,
+    num_eval_episodes=-1,
     ckpt_path="ckpt.best.pth",
     use_ckpt_cfg=True,
-    difficulty="easy",
+    difficulty="hard",
     bounded=False,
+    remove_labels="others",
+    num_episodes_per_img=3,
 )
 scheduler = dict(
     initial_difficulty='easy',

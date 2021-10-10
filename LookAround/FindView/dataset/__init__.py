@@ -18,6 +18,7 @@ def make_dataset(
     cfg: Config,
     split: str,
     filter_fn: Optional[Callable[..., bool]] = None,
+    num_episodes_per_img: int = -1,
 ) -> Union[DynamicDataset, StaticDataset]:
     """Simple function to create dataset from config
 
@@ -38,5 +39,8 @@ def make_dataset(
     # filter out episodes/pseudos
     if filter_fn is not None:
         dataset = dataset.filter_dataset(filter_fn)
+
+    if num_episodes_per_img > 0 and isinstance(dataset, StaticDataset):
+        dataset = dataset.reduce_dataset(num_episodes_per_img=num_episodes_per_img)
 
     return dataset

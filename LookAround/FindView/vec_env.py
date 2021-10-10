@@ -834,13 +834,19 @@ def make_env_fn(
     filter_fn: Callable[..., bool],
     split: str,
     rank: int,
+    num_episodes_per_img: int = -1,
     dtype: Union[np.dtype, torch.dtype] = torch.float32,
     device: torch.device = torch.device('cpu'),
 ) -> FindViewEnv:
+
+    # FIXME: play around with this value for threaded and multiprocessing
+    # Lower threads the better
+    torch.set_num_threads(1)  # NOTE: this is needed for multiprocessing?
     env: FindViewEnv = FindViewEnv.from_config(
         cfg=cfg,
         split=split,
         filter_fn=filter_fn,
+        num_episodes_per_img=num_episodes_per_img,
         dtype=dtype,
         device=device,
     )
@@ -853,6 +859,7 @@ def make_rl_env_fn(
     filter_fn: Callable[..., bool],
     split: str,
     rank: int,
+    num_episodes_per_img: int = -1,
     dtype: Union[np.dtype, torch.dtype] = torch.float32,
     device: torch.device = torch.device('cpu'),
 ) -> FindViewRLEnv:
@@ -864,6 +871,7 @@ def make_rl_env_fn(
         cfg.rl_env.name,
         cfg=cfg,
         filter_fn=filter_fn,
+        num_episodes_per_img=num_episodes_per_img,
         split=split,
         dtype=dtype,
         device=device,
@@ -933,6 +941,7 @@ def construct_envs(
         kwargs = dict(
             cfg=_cfg,
             filter_fn=partial(filter_by_name, names=img_name_splits[i]),
+            num_episodes_per_img=-1,
             split=split,
             rank=i,
             dtype=dtype,
