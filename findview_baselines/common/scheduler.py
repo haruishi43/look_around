@@ -38,8 +38,10 @@ class DifficultyScheduler(object):
         _level = num_updates_done // self.update_interval
         if _level > self.current_level:
             if _level > len(self.difficulties) - 1:
+                # repeat max level
                 self.current_level = len(self.difficulties) - 1
             else:
+                # set new level
                 self.current_level = _level
 
                 print(f"setting difficulty to {self.difficulties[self.current_level]}")
@@ -49,12 +51,22 @@ class DifficultyScheduler(object):
             return False
 
     def update(self, envs: VecEnv, num_updates_done: int) -> None:
-        # FIXME: add update by metrics
-        # need to save metrics
-        # - doesn't work well when resume is turned on
-        # - what threshold should we use and which metric?
+        """Update based on `num_updates_done` and scheduler's `update_interval`
+        """
         if self._update_difficulty(num_updates_done=num_updates_done):
             envs.change_difficulty(
                 difficulty=self.difficulties[self.current_level],
                 bounded=self.bounded,
             )
+
+    def update_by_metrics(
+        self,
+        envs: VecEnv,
+        num_updates_done: int,
+        metrics,
+    ) -> None:
+        """Update based on `metrics`
+
+        which metrics to used and how, is unknown...
+        """
+        raise NotImplementedError

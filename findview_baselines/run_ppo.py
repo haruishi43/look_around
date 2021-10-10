@@ -19,8 +19,8 @@ def main():
     parser.add_argument(
         "--mode",
         type=str,
-        choices=['train', 'eval'],
-        required=True,
+        choices=('train', 'eval'),
+        default='train',
     )
     parser.add_argument(
         '--options',

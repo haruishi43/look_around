@@ -373,6 +373,9 @@ class PPOTrainer(BaseRLTrainer):
         )
 
         if self.trainer_cfg.resume:
+            if self.trainer_cfg.pretrained:
+                logger.warn(f'{self.trainer_cfg.pretrained} would not be loaded since `resume` is `True`')
+
             ckpt_path = get_last_checkpoint_folder(self.ckpt_dir)
             ckpt_dict = self.load_checkpoint(ckpt_path, map_location="cpu")
 
@@ -422,6 +425,7 @@ class PPOTrainer(BaseRLTrainer):
             assert os.path.exists(self.trainer_cfg.pretrained)
             ckpt_dict = self.load_checkpoint(self.trainer_cfg.pretrained, map_location="cpu")
             self.agent.load_state_dict(ckpt_dict.get('state_dict'))
+
             logger.info(f"loading pretrained weights from {self.trainer_cfg.pretrained}")
 
         # account keep stuff

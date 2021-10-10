@@ -15,7 +15,7 @@ rl_env = dict(
     end_type_param=10,
 )
 trainer = dict(
-    run_id=9876,
+    run_id=999999,
     device=0,
     dtype="torch.float32",
     vec_type="threaded",
@@ -28,6 +28,7 @@ trainer = dict(
     tb_dir="{tb_root}/test_run_{run_id}",
     log_file="{log_root}/{split}_test_run_{run_id}.log",
     resume=False,
+    pretrained=None,
 )
 validator = dict(
     num_eval_episodes=250,

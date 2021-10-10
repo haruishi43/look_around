@@ -14,12 +14,17 @@ rl_env = dict(
     end_type='bell',
     end_type_param=10,
 )
+ppo = dict(
+    ppo_epoch=4,
+    num_mini_batch=2,
+    num_steps=128,
+)
 trainer = dict(
-    run_id=999998,
+    run_id=999997,
     device=0,
     dtype="torch.float32",
     vec_type="threaded",
-    num_envs=8,
+    num_envs=2,
     num_updates=1000,
     ckpt_interval=500,
     log_interval=10,
@@ -28,7 +33,7 @@ trainer = dict(
     tb_dir="{tb_root}/test_run_{run_id}",
     log_file="{log_root}/{split}_test_run_{run_id}.log",
     resume=False,
-    pretrained=None,
+    pretrained="results/checkpoints/run_20/ckpt.best.pth",
 )
 validator = dict(
     num_eval_episodes=250,
