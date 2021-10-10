@@ -2,6 +2,7 @@
 
 from collections import defaultdict
 from functools import partial
+from os import PathLike
 from typing import Dict, List, Optional
 
 import torch
@@ -32,6 +33,8 @@ class FindViewBenchmark(object):
     def __init__(
         self,
         cfg: Config,
+        output_path: PathLike,
+        video_path: PathLike,
         device: torch.device = torch.device('cpu'),
     ) -> None:
 
@@ -59,6 +62,11 @@ class FindViewBenchmark(object):
         for diff in difficulties:
             assert diff in ("easy", "medium", "hard")
 
+        if torch.cuda.is_available():
+            device = torch.device("cuda", self.bench_cfg.device)
+        else:
+            device = torch.device("cpu")
+
         self._env = FindViewEnv.from_config(
             cfg=cfg,
             split="test",
@@ -69,6 +77,12 @@ class FindViewBenchmark(object):
 
         # FIXME: since the evaluation is really long, maybe add a checkpoint?
         # FIXME: save the metrics as csv or json so I can compare by episode
+
+    def evaluate_parallel(self):
+        raise NotImplementedError
+
+    def evaluate_sequential(self):
+        raise NotImplementedError
 
     def evaluate(
         self,

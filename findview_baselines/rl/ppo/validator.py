@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 
-from copy import deepcopy
 from typing import Any, Dict, List, Optional
 
 import numpy as np
@@ -9,9 +8,8 @@ import tqdm
 
 from LookAround.config import Config
 from LookAround.core import logger
-from LookAround.core.improc import post_process_for_render_torch
 from LookAround.FindView.vec_env import VecEnv
-from LookAround.utils.visualizations import renders_to_image
+from LookAround.utils.visualizations import obs2img
 
 from findview_baselines.common.tensorboard_utils import TensorboardWriter
 from findview_baselines.common.base_validator import BaseRLValidator
@@ -41,7 +39,6 @@ class PPOValidator(BaseRLValidator):
 
         if torch.cuda.is_available():
             self.device = torch.device("cuda", self.cfg.trainer.device)
-            torch.cuda.set_device(self.device)
         else:
             self.device = torch.device("cpu")
 
@@ -67,7 +64,6 @@ class PPOValidator(BaseRLValidator):
         self,
         checkpoint_path: str,
         writer: TensorboardWriter,
-        checkpoint_index: int = 0,
     ) -> None:
         """Evaluates a single checkpoint.
         Args:
@@ -80,11 +76,8 @@ class PPOValidator(BaseRLValidator):
 
         if self.val_cfg.use_ckpt_cfg:
             loaded_cfg = ckpt_dict["cfg"]
-        else:
-            loaded_cfg = deepcopy(self.cfg)
-
-        self.cfg.policy = loaded_cfg.policy
-        self.cfg.ppo = loaded_cfg.ppo
+            self.cfg.policy = loaded_cfg.policy
+            self.cfg.ppo = loaded_cfg.ppo
 
         # if self.cfg.verbose:
         #     logger.info(self.cfg.pretty_text)
@@ -116,9 +109,7 @@ class PPOValidator(BaseRLValidator):
         )
         agent.load_state_dict(ckpt_dict["state_dict"])
 
-        step_id = checkpoint_index
-        if "extra_state" in ckpt_dict and "num_step_done" in ckpt_dict["extra_state"]:
-            step_id = ckpt_dict["extra_state"]["num_step_done"]
+        step_id = ckpt_dict["extra_state"]["num_steps_done"]
 
         self._eval_single(
             agent=agent,
@@ -151,6 +142,20 @@ class PPOValidator(BaseRLValidator):
             cache=_obs_batching_cache,
         )
 
+        # Add initial frames
+        if len(self.video_option) > 0:
+            rgb_frames = [
+                [] for _ in range(envs.num_envs)
+            ]  # type: List[List[np.ndarray]]
+
+            for i in range(envs.num_envs):
+                frame = obs2img(
+                    pers=observations[i]['pers'],
+                    target=observations[i]['target'],
+                    to_bgr=False,
+                )
+                rgb_frames[i].append(frame)
+
         current_episode_reward = torch.zeros((envs.num_envs, 1), device="cpu")
 
         test_recurrent_hidden_states = torch.zeros(
@@ -181,25 +186,8 @@ class PPOValidator(BaseRLValidator):
             Any, Any
         ] = {}  # dict of dicts that stores stats per episode
 
-        rgb_frames = [
-            [] for _ in range(envs.num_envs)
-        ]  # type: List[List[np.ndarray]]
-
-        # Add initial frames
-        if len(self.video_option) > 0:
-            for i in range(envs.num_envs):
-                frame = renders_to_image(
-                    {
-                        k: post_process_for_render_torch(v[i], to_bgr=False)
-                        for k, v in batch.items()
-                    },
-                )
-                rgb_frames[i].append(frame)
-
         # get the number of episodes to test
         number_of_eval_episodes = num_eval_episodes
-
-        # some checks for `number_of_eval_episodes`
         if number_of_eval_episodes == -1:
             number_of_eval_episodes = sum(envs.number_of_episodes)
         else:
@@ -219,6 +207,7 @@ class PPOValidator(BaseRLValidator):
         ):
             current_episodes = envs.current_episodes()
 
+            # 1. Sample actions
             with torch.no_grad():
                 (
                     _,
@@ -234,48 +223,35 @@ class PPOValidator(BaseRLValidator):
                 )
 
                 prev_actions.copy_(actions)  # type: ignore
-            # NB: Move actions to CPU.  If CUDA tensors are
-            # sent in to env.step(), that will create CUDA contexts
-            # in the subprocesses.
-            # For backwards compatibility, we also call .item() to convert to
-            # an int
+
+            # 2. Step environment
             step_data = [a.item() for a in actions.to(device="cpu")]
-
             outputs = envs.step(step_data)
-
             observations, rewards_l, dones, infos = [
                 list(x) for x in zip(*outputs)
             ]
-            batch = batch_obs(
-                observations,
-                device=self.device,
-                cache=_obs_batching_cache,
-            )
-
-            not_done_masks = torch.tensor(
-                [[not done] for done in dones],
-                dtype=torch.bool,
-                device="cpu",
-            )
 
             rewards = torch.tensor(
                 rewards_l, dtype=torch.float, device="cpu"
             ).unsqueeze(1)
             current_episode_reward += rewards
-            next_episodes = envs.current_episodes()
-            envs_to_pause = []
-            n_envs = envs.num_envs
-            for i in range(n_envs):
-                if (
-                    next_episodes[i].img_name,
-                    next_episodes[i].episode_id,
-                ) in stats_episodes:
-                    envs_to_pause.append(i)
 
-                # episode ended
-                if not not_done_masks[i].item():
+            # 3. Reset when done
+            for i, done in enumerate(dones):
+
+                # add to `rgb_frames` for every step
+                if len(self.video_option) > 0:
+                    frame = obs2img(
+                        pers=observations[i]['pers'],
+                        target=observations[i]['target'],
+                        to_bgr=False,
+                    )
+                    rgb_frames[i].append(frame)
+
+                if done:
                     pbar.update()
 
+                    # update episode_stats
                     episode_stats = {}
                     episode_stats["reward"] = current_episode_reward[i].item()
                     episode_stats.update(
@@ -290,6 +266,10 @@ class PPOValidator(BaseRLValidator):
                         )
                     ] = episode_stats
 
+                    # NOTE: replace the observation when calling reset
+                    observations[i] = envs.reset_at(i)
+
+                    # generate video
                     if len(self.video_option) > 0:
                         generate_video(
                             video_option=self.video_option,
@@ -301,27 +281,39 @@ class PPOValidator(BaseRLValidator):
                             tb_writer=writer,
                         )
 
-                        # add first frame
+                        # add first frame (since we just reset the env)
                         rgb_frames[i] = [
-                            renders_to_image(
-                                {
-                                    k: post_process_for_render_torch(v[i], to_bgr=False)
-                                    for k, v in batch.items()
-                                },
+                            obs2img(
+                                pers=observations[i]['pers'],
+                                target=observations[i]['target'],
+                                to_bgr=False,
                             )
                         ]
 
-                # episode continues
-                elif len(self.video_option) > 0:
-                    frame = renders_to_image(
-                        {
-                            k: post_process_for_render_torch(v[i], to_bgr=False)
-                            for k, v in batch.items()
-                        },
-                    )
-                    rgb_frames[i].append(frame)
-
+            # 4. Post process for policy's input
+            batch = batch_obs(
+                observations,
+                device=self.device,
+                cache=_obs_batching_cache,
+            )
+            not_done_masks = torch.tensor(
+                [[not done] for done in dones],
+                dtype=torch.bool,
+                device="cpu",
+            )
             not_done_masks = not_done_masks.to(device=self.device)
+
+            # 5. Pause envs that repeats episodes
+            next_episodes = envs.current_episodes()
+            envs_to_pause = []
+            n_envs = envs.num_envs
+            for i in range(n_envs):
+                # detect if the episodes are repeating
+                if (
+                    next_episodes[i].img_name,
+                    next_episodes[i].episode_id,
+                ) in stats_episodes:
+                    envs_to_pause.append(i)
             (
                 envs,
                 test_recurrent_hidden_states,

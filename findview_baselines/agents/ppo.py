@@ -49,7 +49,7 @@ class PPOAgent(Agent):
         test_cfg = cfg.test
 
         self.device = (
-            torch.device("cuda:{}".format(test_cfg.device))
+            torch.device("cuda", test_cfg.device)
             if torch.cuda.is_available()
             else torch.device("cpu")
         )

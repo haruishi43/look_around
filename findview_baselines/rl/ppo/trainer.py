@@ -303,7 +303,6 @@ class PPOTrainer(BaseRLTrainer):
 
         if torch.cuda.is_available():
             self.device = torch.device("cuda", self.trainer_cfg.device)
-            torch.cuda.set_device(self.device)
         else:
             self.device = torch.device("cpu")
 
@@ -372,6 +371,7 @@ class PPOTrainer(BaseRLTrainer):
             lr_lambda=lambda x: 1 - self.percent_done(),
         )
 
+        # resumed from checkpoint
         if self.trainer_cfg.resume:
             if self.trainer_cfg.pretrained:
                 logger.warn(f'{self.trainer_cfg.pretrained} would not be loaded since `resume` is `True`')
@@ -428,7 +428,7 @@ class PPOTrainer(BaseRLTrainer):
 
             logger.info(f"loading pretrained weights from {self.trainer_cfg.pretrained}")
 
-        # account keep stuff
+        # account keeping stuff
         validator = PPOValidator(cfg=self.cfg)
         difficulty_scheduler = DifficultyScheduler(
             initial_difficulty=self.cfg.scheduler.initial_difficulty,

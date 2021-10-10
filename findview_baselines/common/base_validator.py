@@ -88,7 +88,6 @@ class BaseValidator(object):
 
         if torch.cuda.is_available():
             self.device = torch.device("cuda", self.cfg.trainer.device)
-            torch.cuda.set_device(self.device)
         else:
             self.device = torch.device("cpu")
 
@@ -100,13 +99,13 @@ class BaseValidator(object):
             if os.path.isfile(ckpt_path):
                 # evaluate singe checkpoint
                 proposed_index = get_checkpoint_id(ckpt_path)
-                assert proposed_index is not None, \
-                    f"ERR: could not find valid ckpt for {ckpt_path}"
-                ckpt_idx = proposed_index
+                print(proposed_index)
+                # assert proposed_index is not None, \
+                #     f"ERR: could not find valid ckpt for {ckpt_path}"
+                # ckpt_idx = proposed_index
                 self._eval_checkpoint(
                     ckpt_path,
                     writer,
-                    checkpoint_index=ckpt_idx,
                 )
             else:
                 # evaluate multiple checkpoints in order
@@ -122,7 +121,6 @@ class BaseValidator(object):
                     self._eval_checkpoint(
                         checkpoint_path=current_ckpt,
                         writer=writer,
-                        checkpoint_index=prev_ckpt_ind,
                     )
 
     def eval_from_trainer(
@@ -137,7 +135,6 @@ class BaseValidator(object):
         self,
         checkpoint_path: str,
         writer: TensorboardWriter,
-        checkpoint_index: int = 0,
     ) -> None:
         raise NotImplementedError
 
@@ -197,6 +194,7 @@ class BaseRLValidator(BaseValidator):
             vec_type=self.cfg.trainer.vec_type,
             difficulty=difficulty,
             bounded=bounded,
+            auto_reset_done=False,  # NOTE: auto reset is turned off
         )
 
     @property

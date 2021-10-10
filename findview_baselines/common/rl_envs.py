@@ -40,6 +40,7 @@ def construct_envs_for_validation(
     vec_type: str = "threaded",
     difficulty: Optional[str] = None,
     bounded: Optional[bool] = None,
+    auto_reset_done: bool = False,
 ) -> VecEnv:
     """Basic initialization of vectorized environments
 
@@ -125,18 +126,21 @@ def construct_envs_for_validation(
         envs = MPVecEnv(
             make_env_fn=make_rl_env_fn if is_rlenv else make_env_fn,
             env_fn_kwargs=env_fn_kwargs,
+            auto_reset_done=auto_reset_done,
         )
     elif vec_type == "equilib":
         # NOTE: faster than multiprocessing
         envs = EquilibVecEnv(
             make_env_fn=make_rl_env_fn if is_rlenv else make_env_fn,
             env_fn_kwargs=env_fn_kwargs,
+            auto_reset_done=auto_reset_done,
         )
     elif vec_type == "threaded":
         # NOTE: fastest by far
         envs = ThreadedVecEnv(
             make_env_fn=make_rl_env_fn if is_rlenv else make_env_fn,
             env_fn_kwargs=env_fn_kwargs,
+            auto_reset_done=auto_reset_done,
         )
     else:
         raise ValueError(f"ERR: {vec_type} not supported")

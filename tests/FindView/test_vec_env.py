@@ -7,6 +7,7 @@ TODO:
 - [ ] Test EquilibVecEnv
 """
 
+from copy import deepcopy
 import random
 
 # import numpy as np
@@ -82,9 +83,10 @@ def test_vec_env():
         dtype=dtype,
         device=device,
         vec_type=vec_type,
+        auto_reset_done=False,  # since auto_reset_done leads to tail observation disappearing
     )
 
-    agents = [GreedyMovementAgent() for _ in range(cfg.trainer.num_envs)]
+    agents = [GreedyMovementAgent(seed=cfg.seed) for _ in range(cfg.trainer.num_envs)]
 
     assert envs.num_envs == cfg.trainer.num_envs
 
@@ -95,15 +97,30 @@ def test_vec_env():
 
         actions = [agent.act() for agent in agents]
 
-        _ = envs.step(actions)
-        dones = envs.episode_over()
+        out = envs.step(actions)
+        obs, dones, metrics = [list(x) for x in zip(*out)]
+        # print(type(obs), type(obs[0]), len(obs), len(obs[0]), obs[0].keys())
+        # print(metrics[0].keys())
 
+        old_obs = deepcopy(obs)
+
+        new_obs = {}
         for i, done in enumerate(dones):
             if done:
                 print(f"Loading next episode for {i}")
                 # NOTE: Env needs to be reset
-                envs.reset_at(i)
+                o = envs.reset_at(i)
+                new_obs[i] = o
+                obs[i] = o
                 agents[i].reset()
+
+        for i in range(envs.num_envs):
+            if i in new_obs.keys():
+                assert torch.equal(obs[i]['pers'], new_obs[i]['pers'])
+                assert torch.equal(obs[i]['target'], new_obs[i]['target'])
+            else:
+                assert torch.equal(obs[i]['pers'], old_obs[i]['pers'])
+                assert torch.equal(obs[i]['target'], old_obs[i]['target'])
 
 
 def test_rl_vec_env():

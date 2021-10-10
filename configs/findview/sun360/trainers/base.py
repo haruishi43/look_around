@@ -1,6 +1,3 @@
-_base_ = [
-    '../benchmarks/base.py',
-]
 trainer = dict(
     run_id=9999,
     device=0,

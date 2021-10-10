@@ -128,22 +128,22 @@ class VecEnv(object):
     def reset(self) -> None:
         raise NotImplementedError
 
-    def reset_at(self, index):
+    def reset_at(self, index: int):
         raise NotImplementedError
 
     def step(self, actions) -> List[Any]:
         raise NotImplementedError
 
-    def step_at(self, index, action):
+    def step_at(self, index: int, action):
         raise NotImplementedError
 
-    def async_step_at(self, index, action) -> None:
+    def async_step_at(self, index: int, action) -> None:
         raise NotImplementedError
 
-    def wait_step_at(self, index) -> List[Any]:
+    def wait_step_at(self, index: int) -> List[Any]:
         raise NotImplementedError
 
-    def pause_at(self, index):
+    def pause_at(self, index: int):
         raise NotImplementedError
 
     def resume_all(self):
@@ -238,17 +238,19 @@ class MPVecEnv(VecEnv):
                     if isinstance(env, (FindViewRLEnv, gym.Env)):
                         observations, reward, done, info = env.step(**data)
                         if auto_reset_done and done:
+                            # FIXME: last observation is not taken into account during validation
                             observations = env.reset()
                         connection_write_fn(
                             (observations, reward, done, info)
                         )
                     elif isinstance(env, FindViewEnv):  # type: ignore
                         observations = env.step(**data)
+                        done = env.episode_over
+                        metrics = env.get_metrics()
                         # NOTE: don't restart since `episode_over` also gets reset
-                        # FIXME: get `dones` if `auto_reset` is True?
-                        # if auto_reset_done and env.episode_over:
-                        #     observations = env.reset()
-                        connection_write_fn(observations)
+                        if auto_reset_done and done:
+                            observations = env.reset()
+                        connection_write_fn((observations, done, metrics))
                     else:
                         raise NotImplementedError
 
@@ -372,8 +374,7 @@ class MPVecEnv(VecEnv):
         :return: list containing the output of reset method of indexed env.
         """
         self._connection_write_fns[index]((RESET_COMMAND, None))
-        results = [self._connection_read_fns[index]()]
-        return results
+        return self._connection_read_fns[index]()
 
     def async_step_at(
         self,
@@ -735,10 +736,12 @@ class EquilibVecEnv(VecEnv):
                     (observation, reward, done, info)
                 )
             elif isinstance(env, FindViewEnv):
-                obs = env.step_after()
-                batch_ret.append(obs)
-
-                # NOTE: we don't `auto_reset` for Env
+                observation = env.step_after()
+                done = env.episode_over
+                metrics = env.get_metrics()
+                if done and self._auto_reset_done:
+                    observation = env.reset()
+                batch_ret.append((observation, done, metrics))
 
         # Serial method
         # NOTE: pretty slow
@@ -878,6 +881,7 @@ def construct_envs(
     dtype: Union[np.dtype, torch.dtype] = torch.float32,
     device: torch.device = torch.device('cpu'),
     vec_type: str = "threaded",
+    auto_reset_done: bool = True,
 ) -> VecEnv:
     """Basic initialization of vectorized environments
 
@@ -941,18 +945,21 @@ def construct_envs(
         envs = MPVecEnv(
             make_env_fn=make_rl_env_fn if is_rlenv else make_env_fn,
             env_fn_kwargs=env_fn_kwargs,
+            auto_reset_done=auto_reset_done,
         )
     elif vec_type == "equilib":
         # NOTE: faster than multiprocessing
         envs = EquilibVecEnv(
             make_env_fn=make_rl_env_fn if is_rlenv else make_env_fn,
             env_fn_kwargs=env_fn_kwargs,
+            auto_reset_done=auto_reset_done,
         )
     elif vec_type == "threaded":
         # NOTE: fastest by far
         envs = ThreadedVecEnv(
             make_env_fn=make_rl_env_fn if is_rlenv else make_env_fn,
             env_fn_kwargs=env_fn_kwargs,
+            auto_reset_done=auto_reset_done,
         )
     else:
         raise ValueError(f"ERR: {vec_type} not supported")
