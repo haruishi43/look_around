@@ -10,8 +10,8 @@ rl_env = dict(
 )
 trainer = dict(
     run_id=2,
-    num_updates=30000,
-    ckpt_interval=1000,
+    num_updates=15000,
+    ckpt_interval=500,
     log_interval=10,
 )
 validator = dict(
@@ -24,5 +24,5 @@ validator = dict(
 )
 scheduler = dict(
     initial_difficulty='easy',
-    update_interval=10000,
+    update_interval=5000,
 )
