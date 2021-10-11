@@ -21,6 +21,16 @@ trainer = dict(
     ckpt_interval=500,
     log_interval=10,
 )
+validator = dict(
+    num_envs=16,
+    num_eval_episodes=-1,
+    ckpt_path="ckpt.best.pth",
+    use_ckpt_cfg=True,
+    difficulty="hard",
+    bounded=False,
+    remove_labels="others",
+    num_episodes_per_img=1,
+)
 scheduler = dict(
     initial_difficulty='easy',
     update_interval=5000,
