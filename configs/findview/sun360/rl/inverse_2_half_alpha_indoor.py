@@ -1,5 +1,5 @@
 _base_ = [
-    './inverse_1_alpha_indoor.py',
+    './inverse_2_alpha_indoor.py',
 ]
 dataset = dict(
     difficulty='easy',
@@ -10,6 +10,7 @@ rl_env = dict(
 )
 trainer = dict(
     run_id=2,
+    identifier='half',
     num_updates=30000,
     ckpt_interval=1000,
     log_interval=10,
