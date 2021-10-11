@@ -1,32 +1,76 @@
 trainer = dict(
-    run_id=9999,
+    run_id=999999,
+    identifier=None,
     device=0,
     dtype="torch.float32",
     vec_type="threaded",
-    num_envs=8,
+    num_envs=16,
     num_updates=7500,
     num_ckpts=-1,
     ckpt_interval=500,
     total_num_steps=-1.0,
     log_interval=10,
-    video_option=["disk"],
-    ckpt_dir="{results_root}/checkpoints/run_{run_id}",
-    video_dir="{results_root}/videos/run_{run_id}",
-    tb_dir="{tb_root}/run_{run_id}",
-    log_file="{log_root}/{split}_run_{run_id}.log",
+    ckpt_dir=(
+        "{results_root}/checkpoints/"
+        "{dataset}_{version}_{category}/"
+        "{rlenv}/"
+        "run_{run_id}"
+    ),
+    tb_dir=(
+        "{tb_root}/"
+        "{dataset}_{version}_{category}/"
+        "{rlenv}/"
+        "run_{run_id}"
+    ),
+    log_file=(
+        "{log_root}/"
+        "{dataset}_{version}_{category}/"
+        "{rlenv}/"
+        "{split}/"
+        "run_{run_id}.log"
+    ),
     resume=False,
     pretrained=None,
     verbose=True,
 )
 validator = dict(
-    num_envs=8,
-    num_eval_episodes=250,
+    num_envs=16,
+    num_eval_episodes=-1,
     ckpt_path="ckpt.best.pth",
     use_ckpt_cfg=True,
+    video_option=["disk"],
+    video_dir=(
+        "{results_root}/videos/"
+        "{dataset}_{version}_{category}/"
+        "{rlenv}/"
+        "{split}/"
+        "run_{run_id}"
+    ),
+    metric_dir=(
+        "{results_root}/metrics/"
+        "{dataset}_{version}_{category}/"
+        "{rlenv}/"
+        "{split}/"
+        "run_{run_id}"
+    ),
+    tb_dir=(
+        "{tb_root}/"
+        "{dataset}_{version}_{category}/"
+        "{rlenv}/"
+        "{split}/"
+        "run_{run_id}"
+    ),
+    log_file=(
+        "{log_root}/"
+        "{dataset}_{version}_{category}/"
+        "{rlenv}/"
+        "{split}/"
+        "run_{run_id}.log"
+    ),
     difficulty="hard",
     bounded=False,
     remove_labels="others",
-    num_episodes_per_img=3,
+    num_episodes_per_img=1,
 )
 scheduler = dict(
     initial_difficulty='easy',

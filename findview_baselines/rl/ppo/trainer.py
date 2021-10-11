@@ -308,15 +308,9 @@ class PPOTrainer(BaseRLTrainer):
 
         ppo_cfg = self.cfg.ppo
 
-        logger.add_filehandler(
-            self.trainer_cfg.log_file.format(
-                split="train",
-                log_root=self.cfg.log_root,
-                run_id=self.trainer_cfg.run_id,
-            )
-        )
+        logger.add_filehandler(self.log_path)
 
-        self._init_rlenvs(split="train")
+        self._init_rlenvs()
 
         action_shape = None
         discrete_actions = True

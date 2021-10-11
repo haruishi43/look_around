@@ -17,7 +17,13 @@ dataset = dict(
     step_size=1,
     pitch_threshold=60,
     max_seconds=10000000,
-    json_path="{root}/{name}/{version}/{category}/{split}.json",
+    json_path=(
+        "{root}/"
+        "{name}/"
+        "{version}/"
+        "{category}/"
+        "{split}.json"
+    ),
     mu=0.0,
     sigma=0.3,
     sample_limit=100000,

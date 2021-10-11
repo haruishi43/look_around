@@ -28,6 +28,8 @@ class BaseValidator(object):
     cfg: Config
     val_cfg: Config
     video_option: List[str]
+    split: str
+    run_id: str
 
     # Hidden Properties
     _flush_secs: int
@@ -40,7 +42,12 @@ class BaseValidator(object):
         # Initialize properties
         self.cfg = cfg
         self.val_cfg = self.cfg.validator
-        self.video_option = self.cfg.trainer.video_option
+        self.video_option = self.val_cfg.video_option
+        run_id = str(self.cfg.trainer.run_id)
+        if self.cfg.trainer.identifier is not None:
+            assert len(self.cfg.trainer.identifier) > 0
+            run_id = run_id + '_' + str(self.cfg.trainer.identifier)
+        self.run_id = run_id
 
         # Initialize hidden properties
         self._flush_secs = 30
@@ -65,6 +72,14 @@ class BaseValidator(object):
     def video_dir(self) -> PathLike:
         raise NotImplementedError
 
+    @property
+    def metric_dir(self) -> PathLike:
+        raise NotImplementedError
+
+    @property
+    def log_path(self) -> PathLike:
+        raise NotImplementedError
+
     def __call__(self, **kwargs):
         raise self.eval_from_trainer(**kwargs)
 
@@ -77,14 +92,9 @@ class BaseValidator(object):
 
         NOTE: make sure that `num_envs=1` inorder to get the most consistent results
         """
+        self.split = 'test'
 
-        logger.add_filehandler(
-            self.cfg.trainer.log_file.format(
-                split="test",
-                log_root=self.cfg.log_root,
-                run_id=self.cfg.trainer.run_id,
-            )
-        )
+        logger.add_filehandler(self.log_path)
 
         if torch.cuda.is_available():
             self.device = torch.device("cuda", self.cfg.trainer.device)
@@ -174,7 +184,6 @@ class BaseRLValidator(BaseValidator):
 
     def _init_rlenvs(
         self,
-        split: str,
         difficulty: str,
         bounded: bool,
     ) -> VecEnv:
@@ -190,7 +199,7 @@ class BaseRLValidator(BaseValidator):
         return construct_envs_for_validation(
             cfg=deepcopy(self.cfg),
             num_envs=num_envs,
-            split=split,
+            split=self.split,
             is_rlenv=True,
             dtype=dtype,
             device=self.device,
@@ -206,31 +215,83 @@ class BaseRLValidator(BaseValidator):
     def ckpt_dir(self) -> PathLike:
         ckpt_dir = self.cfg.trainer.ckpt_dir.format(
             results_root=self.cfg.results_root,
-            run_id=str(self.cfg.trainer.run_id),
+            dataset=self.cfg.dataset.name,
+            version=self.cfg.dataset.version,
+            category=self.cfg.dataset.category,
+            rlenv=self.cfg.rl_env.name,
+            run_id=self.run_id,
         )
+        assert '{' not in ckpt_dir, ckpt_dir
+        assert '}' not in ckpt_dir, ckpt_dir
         if not os.path.exists(ckpt_dir):
             os.makedirs(ckpt_dir, exist_ok=True)
         return ckpt_dir
 
     @property
     def tb_dir(self) -> PathLike:
-        tb_dir = self.cfg.trainer.tb_dir.format(
+        tb_dir = self.val_cfg.tb_dir.format(
             tb_root=self.cfg.tb_root,
-            run_id=str(self.cfg.trainer.run_id),
+            dataset=self.cfg.dataset.name,
+            version=self.cfg.dataset.version,
+            category=self.cfg.dataset.category,
+            rlenv=self.cfg.rl_env.name,
+            split=self.split,
+            run_id=self.run_id,
         )
+        assert '{' not in tb_dir, tb_dir
+        assert '}' not in tb_dir, tb_dir
         if not os.path.exists(tb_dir):
             os.makedirs(tb_dir, exist_ok=True)
         return tb_dir
 
     @property
     def video_dir(self) -> PathLike:
-        video_dir = self.cfg.trainer.video_dir.format(
+        video_dir = self.val_cfg.video_dir.format(
             results_root=self.cfg.results_root,
-            run_id=str(self.cfg.trainer.run_id),
+            dataset=self.cfg.dataset.name,
+            version=self.cfg.dataset.version,
+            category=self.cfg.dataset.category,
+            rlenv=self.cfg.rl_env.name,
+            split=self.split,
+            run_id=self.run_id,
         )
+        assert '{' not in video_dir, video_dir
+        assert '}' not in video_dir, video_dir
         if not os.path.exists(video_dir):
             os.makedirs(video_dir, exist_ok=True)
         return video_dir
+
+    @property
+    def metric_dir(self) -> PathLike:
+        metric_dir = self.val_cfg.metric_dir.format(
+            results_root=self.cfg.results_root,
+            dataset=self.cfg.dataset.name,
+            version=self.cfg.dataset.version,
+            category=self.cfg.dataset.category,
+            rlenv=self.cfg.rl_env.name,
+            split=self.split,
+            run_id=self.run_id,
+        )
+        assert '{' not in metric_dir, metric_dir
+        assert '}' not in metric_dir, metric_dir
+        if not os.path.exists(metric_dir):
+            os.makedirs(metric_dir, exist_ok=True)
+        return metric_dir
+
+    @property
+    def log_path(self) -> PathLike:
+        log_path = self.val_cfg.log_file.format(
+            log_root=self.cfg.log_root,
+            dataset=self.cfg.dataset.name,
+            version=self.cfg.dataset.version,
+            category=self.cfg.dataset.category,
+            rlenv=self.cfg.rl_env.name,
+            split=self.split,
+            run_id=self.run_id,
+        )
+        assert '{' not in log_path, log_path
+        assert '}' not in log_path, log_path
+        return log_path
 
     @staticmethod
     def _pause_envs(

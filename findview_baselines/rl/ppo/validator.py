@@ -37,6 +37,7 @@ class PPOValidator(BaseRLValidator):
         difficulty: str,
         bounded: bool,
     ):
+        self.split = 'val'
 
         if torch.cuda.is_available():
             self.device = torch.device("cuda", self.cfg.trainer.device)
@@ -44,7 +45,6 @@ class PPOValidator(BaseRLValidator):
             self.device = torch.device("cpu")
 
         envs = self._init_rlenvs(
-            split="val",
             difficulty=difficulty,
             bounded=bounded,
         )
@@ -85,7 +85,6 @@ class PPOValidator(BaseRLValidator):
 
         # initialize the envs
         envs = self._init_rlenvs(
-            split="test",
             difficulty=self.val_cfg.difficulty,
             bounded=self.val_cfg.bounded,
         )

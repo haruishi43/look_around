@@ -65,6 +65,9 @@ class FindViewRLEnv(gym.Env):
 
         self.reward_range = self.get_reward_range()
 
+        # some metrics to follow
+        self._prev_dist = None
+
     @property
     def env(self) -> FindViewEnv:
         return self._env
@@ -82,9 +85,7 @@ class FindViewRLEnv(gym.Env):
         return self._env.number_of_episodes
 
     def _reset_metrics(self) -> None:
-        # NOTE: it's a `gym` thing, don't really need to implement
-        # return (-np.inf, np.inf)
-        raise NotImplementedError
+        self._prev_dist = self._env.get_metrics()['l1_distance']
 
     def reset(self):
         observations = self._env.reset()
@@ -92,7 +93,7 @@ class FindViewRLEnv(gym.Env):
         return observations
 
     def get_reward_range(self):
-        raise NotImplementedError
+        return (-np.inf, np.inf)
 
     def get_reward(self, observations) -> float:
         raise NotImplementedError
@@ -157,7 +158,7 @@ def build_func(name: str, registry: Registry, cfg: Config, **kwargs):
 RLEnvRegistry = Registry('rlenvs', build_func=build_func)
 
 
-@RLEnvRegistry.register_module(name='Basic')
+@RLEnvRegistry.register_module(name='basic')
 class BasicFindviewRLEnv(FindViewRLEnv):
 
     def __init__(
@@ -166,21 +167,11 @@ class BasicFindviewRLEnv(FindViewRLEnv):
         **kwargs,
     ) -> None:
 
-        # rl spectific variables
         self._rl_env_cfg = cfg.rl_env
         self._slack_reward = self._rl_env_cfg.slack_reward
         self._success_reward = self._rl_env_cfg.success_reward
-        self._end_reward_type = self._rl_env_cfg.end_type
-        self._end_reward_param = self._rl_env_cfg.end_type_param
 
-        # Intitialize parent
-        super().__init__(
-            cfg=cfg,
-            **kwargs,
-        )
-
-        # metrics to follow
-        self._prev_dist = None
+        super().__init__(cfg=cfg, **kwargs)
 
     def get_reward_range(self) -> tuple:
         # FIXME: better range calculation
@@ -189,45 +180,15 @@ class BasicFindviewRLEnv(FindViewRLEnv):
             self._min_steps * self._slack_reward + self._success_reward,
         )
 
-    def _reset_metrics(self) -> None:
-        self._prev_dist = self._env.get_metrics()['l1_distance']
-
     def _end_rewards(self, measures):
-
-        def bell_curve(x, threshold_steps):
-            """Bell curve"""
-            # NOTE: when x/threshold_steps == 1, the output is 0.36787944117144233
-            return (np.e)**(-(x / threshold_steps)**2)
-
         reward_success = 0
         if self._env.episode_over and measures['called_stop']:
             l1 = measures['l1_distance']
-            # l2 = measures['l2_distance']
-
-            # FIXME: is success reward too high???
-            # runs 1, 2:
-            # reward_success = self._success_reward - l1
-            # run 3:
-            if self._end_reward_type == "inverse":
-                reward_success = self._success_reward / (l1 + self._end_reward_param)
-            # run 4: threshold = 10
-            elif self._end_reward_type == "bell":
-                reward_success = self._success_reward * bell_curve(l1, self._end_reward_param)  # FIXME parametrize
-            else:
-                raise ValueError("Reward function parameter is not set correctly")
-
+            reward_success = self._success_reward / (l1 + 0.01)
         elif self._env.episode_over:
             # if agent couldn't finish by the limit, penalize them
             reward_success = -self._success_reward
-
         return reward_success
-
-    def _same_view_penalty(self, measures):
-        # Penality: Looked in the same spot
-        # value is in the range of (0 ~ 1)
-        num_same_rots = measures['num_same_view']
-        reward_same_view = -num_same_rots
-        return reward_same_view
 
     def get_reward(self, observations) -> float:
         # FIXME: make a good reward function here

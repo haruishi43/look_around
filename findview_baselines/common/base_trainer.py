@@ -57,7 +57,7 @@ class BaseTrainer(object):
         raise NotImplementedError
 
     @property
-    def video_dir(self) -> PathLike:
+    def log_path(self) -> PathLike:
         raise NotImplementedError
 
     def train(self) -> None:
@@ -94,6 +94,7 @@ class BaseRLTrainer(BaseTrainer):
     # Properties
     envs: Optional[VecEnv]
     device: torch.device
+    run_id: str
 
     def __init__(
         self,
@@ -105,6 +106,11 @@ class BaseRLTrainer(BaseTrainer):
         self.cfg = cfg
         self.trainer_cfg = cfg.trainer
         self.envs = None
+        run_id = str(self.trainer_cfg.run_id)
+        if self.trainer_cfg.identifier is not None:
+            assert len(self.trainer_cfg.identifier) > 0
+            run_id = run_id + '_' + str(self.trainer_cfg.identifier)
+        self.run_id = run_id
 
         # set spaces to None
         self._obs_space = None
@@ -197,8 +203,14 @@ class BaseRLTrainer(BaseTrainer):
     def ckpt_dir(self) -> PathLike:
         ckpt_dir = self.trainer_cfg.ckpt_dir.format(
             results_root=self.cfg.results_root,
-            run_id=str(self.trainer_cfg.run_id),
+            dataset=self.cfg.dataset.name,
+            version=self.cfg.dataset.version,
+            category=self.cfg.dataset.category,
+            rlenv=self.cfg.rl_env.name,
+            run_id=self.run_id,
         )
+        assert '{' not in ckpt_dir, ckpt_dir
+        assert '}' not in ckpt_dir, ckpt_dir
         if not os.path.exists(ckpt_dir):
             os.makedirs(ckpt_dir, exist_ok=True)
         return ckpt_dir
@@ -207,21 +219,35 @@ class BaseRLTrainer(BaseTrainer):
     def tb_dir(self) -> PathLike:
         tb_dir = self.trainer_cfg.tb_dir.format(
             tb_root=self.cfg.tb_root,
-            run_id=str(self.trainer_cfg.run_id),
+            dataset=self.cfg.dataset.name,
+            version=self.cfg.dataset.version,
+            category=self.cfg.dataset.category,
+            rlenv=self.cfg.rl_env.name,
+            run_id=self.run_id,
         )
+        assert '{' not in tb_dir, tb_dir
+        assert '}' not in tb_dir, tb_dir
         if not os.path.exists(tb_dir):
             os.makedirs(tb_dir, exist_ok=True)
         return tb_dir
 
     @property
-    def video_dir(self) -> PathLike:
-        video_dir = self.trainer_cfg.video_dir.format(
-            results_root=self.cfg.results_root,
-            run_id=str(self.trainer_cfg.run_id),
+    def log_path(self) -> PathLike:
+        log_path = self.trainer_cfg.log_file.format(
+            log_root=self.cfg.log_root,
+            dataset=self.cfg.dataset.name,
+            version=self.cfg.dataset.version,
+            category=self.cfg.dataset.category,
+            rlenv=self.cfg.rl_env.name,
+            split="train",
+            run_id=self.run_id,
         )
-        if not os.path.exists(video_dir):
-            os.makedirs(video_dir, exist_ok=True)
-        return video_dir
+        assert '{' not in log_path, log_path
+        assert '}' not in log_path, log_path
+        parent_path = os.path.dirname(log_path)
+        if not os.path.exists(parent_path):
+            os.makedirs(parent_path, exist_ok=True)
+        return log_path
 
     def save_checkpoint(
         self,
@@ -245,7 +271,6 @@ class BaseRLTrainer(BaseTrainer):
 
     def _init_rlenvs(
         self,
-        split: str = "train",
         cfg: Optional[Config] = None,
     ) -> None:
         if cfg is None:
@@ -260,7 +285,7 @@ class BaseRLTrainer(BaseTrainer):
 
         self.envs = construct_envs(
             cfg=cfg,
-            split=split,
+            split="train",
             is_rlenv=True,
             dtype=dtype,
             device=self.device,
