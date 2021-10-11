@@ -4,10 +4,14 @@ benchmark = dict(
     dtype="torch.float32",
     vec_type="threaded",
     video_option=['disk'],
-    video_dir="{results_root}/benchmarks/videos/run",
+    video_dir=(
+        "{results_root}/benchmarks/"
+        "{agent}/"
+        "videos/"
+    ),
     output_dir="{results_root}/benchmarks/outputs/run",
     log_file="{log_root}/benchmarks_run.log",
-    num_eval_episodes=250,
+    num_eval_episodes=-1,
     difficulty="easy",
     bounded=True,
 )
