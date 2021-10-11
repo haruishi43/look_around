@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
 
+import json
+import os
 from typing import Any, Dict, List, Optional
 
 import numpy as np
@@ -185,6 +187,10 @@ class PPOValidator(BaseRLValidator):
         # dict of dicts that stores stats per episode
         stats_episodes: Dict[Any, Any, Any] = {}
 
+        # save output to csv
+        if self.val_cfg.save_metrics:
+            episodes_stats = []
+
         # get the number of episodes to test
         number_of_eval_episodes = num_eval_episodes
         if number_of_eval_episodes == -1:
@@ -270,7 +276,9 @@ class PPOValidator(BaseRLValidator):
                     # NOTE: replace the observation when calling reset
                     observations[i] = envs.reset_at(i)
 
-                    # FIXME: save episode results
+                    # save episode results
+                    if self.val_cfg.save_metrics:
+                        episodes_stats.append(infos[i])
 
                     # generate video
                     if len(self.video_option) > 0:
@@ -347,9 +355,24 @@ class PPOValidator(BaseRLValidator):
                 / num_episodes
             )
 
+        # log
         for k, v in aggregated_stats.items():
             logger.info(f"Average episode {k}: {v:.4f}")
 
+        # save metrics
+        if self.val_cfg.save_metrics:
+            save_dict = dict(
+                summary=aggregated_stats,
+                episodes_stats=episodes_stats,
+            )
+            save_path = os.path.join(
+                self.metric_dir,
+                f"{step_id}_distance-{aggregated_stats['l1_distance']:.4f}.json",
+            )
+            with open(save_path, 'w') as f:
+                json.dump(save_dict, f, indent=2)
+
+        # tensorboard
         if (writer is not None) and isinstance(writer, TensorboardWriter):
             writer.add_scalars(
                 "test_reward",

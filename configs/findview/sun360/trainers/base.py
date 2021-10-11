@@ -39,6 +39,7 @@ validator = dict(
     ckpt_path="ckpt.best.pth",
     use_ckpt_cfg=True,
     video_option=["disk"],
+    save_metrics=True,
     video_dir=(
         "{results_root}/videos/"
         "{dataset}_{version}_{category}/"
