@@ -384,6 +384,7 @@ class PPOValidator(BaseRLValidator):
             if len(metrics) > 0:
                 writer.add_scalars("test_metrics", metrics, step_id)
 
+        # need to close the envs so memory is not pinned
         envs.close()
 
         # FIXME: debug
