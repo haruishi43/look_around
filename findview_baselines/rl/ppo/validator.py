@@ -270,6 +270,8 @@ class PPOValidator(BaseRLValidator):
                     # NOTE: replace the observation when calling reset
                     observations[i] = envs.reset_at(i)
 
+                    # FIXME: save episode results
+
                     # generate video
                     if len(self.video_option) > 0:
                         generate_video(
@@ -335,7 +337,7 @@ class PPOValidator(BaseRLValidator):
                 rgb_frames,
             )
 
-        pbar.update()  # debug
+        pbar.update()  # FIXME: might be redundant...
 
         num_episodes = len(stats_episodes)
         aggregated_stats = {}

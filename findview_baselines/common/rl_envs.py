@@ -180,7 +180,7 @@ class InverseFindViewRLEnv(FindViewRLEnv):
 
     def __init__(self, cfg: Config, **kwargs) -> None:
 
-        self._rl_env_cfg = cfg.rl_env_cfgs
+        self._rl_env_cfg = cfg.rl_env
         self._slack_reward = self._rl_env_cfg.slack_reward
         self._success_reward = self._rl_env_cfg.success_reward
         self._param = self._rl_env_cfg.param
@@ -239,7 +239,7 @@ class BellFindViewRLEnv(FindViewRLEnv):
 
     def __init__(self, cfg: Config, **kwargs) -> None:
 
-        self._rl_env_cfg = cfg.rl_env_cfgs
+        self._rl_env_cfg = cfg.rl_env
         self._slack_reward = self._rl_env_cfg.slack_reward
         self._success_reward = self._rl_env_cfg.success_reward
         self._param = self._rl_env_cfg.param

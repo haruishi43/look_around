@@ -291,6 +291,9 @@ class BaseRLValidator(BaseValidator):
         )
         assert '{' not in log_path, log_path
         assert '}' not in log_path, log_path
+        parent_path = os.path.dirname(log_path)
+        if not os.path.exists(parent_path):
+            os.makedirs(parent_path, exist_ok=True)
         return log_path
 
     @staticmethod
