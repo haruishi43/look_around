@@ -120,6 +120,14 @@ class FindViewBenchmark(object):
         else:
             raise ValueError()
 
+        # FIXME: play around with number of threads
+        torch.set_num_threads(4)
+        os.environ["OMP_NUM_THREADS"] = "4"  # export OMP_NUM_THREADS=4
+        os.environ["OPENBLAS_NUM_THREADS"] = "4"  # export OPENBLAS_NUM_THREADS=4
+        os.environ["MKL_NUM_THREADS"] = "6"  # export MKL_NUM_THREADS=6
+        os.environ["VECLIB_MAXIMUM_THREADS"] = "4"  # export VECLIB_MAXIMUM_THREADS=4
+        os.environ["NUMEXPR_NUM_THREADS"] = "6"  # export NUMEXPR_NUM_THREADS=6
+
         self.env = FindViewEnv.from_config(
             cfg=cfg,
             split="test",
