@@ -60,7 +60,7 @@ class PPOValidator(BaseRLValidator):
             envs=envs,
             writer=writer,
             step_id=step_id,
-            num_eval_episodes=self.val_cfg.num_eval_episodes,
+            num_episodes=self.val_cfg.num_episodes,
         )
 
     def _eval_checkpoint(
@@ -118,7 +118,7 @@ class PPOValidator(BaseRLValidator):
             envs=envs,
             writer=writer,
             step_id=step_id,
-            num_eval_episodes=self.val_cfg.num_eval_episodes,
+            num_episodes=self.val_cfg.num_episodes,
         )
 
     def _eval_single(
@@ -127,7 +127,7 @@ class PPOValidator(BaseRLValidator):
         envs: VecEnv,
         writer: Optional[TensorboardWriter],
         step_id: int,
-        num_eval_episodes: int,
+        num_episodes: int,
     ) -> float:
 
         # isolate actor_critic
@@ -192,7 +192,7 @@ class PPOValidator(BaseRLValidator):
             episodes_stats = []
 
         # get the number of episodes to test
-        number_of_eval_episodes = num_eval_episodes
+        number_of_eval_episodes = num_episodes
         if number_of_eval_episodes == -1:
             number_of_eval_episodes = sum(envs.number_of_episodes)
         else:

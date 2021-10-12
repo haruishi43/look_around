@@ -59,7 +59,7 @@ def construct_envs_for_validation(
     splitting the dataset by `img_name`.
 
     NOTE: VecEnv validation is not consistent when using more than 1 envs and
-    `num_eval_episodes=-1`.
+    `num_episodes=-1`.
     """
 
     assert split in ("val", "test")

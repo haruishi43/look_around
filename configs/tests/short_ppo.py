@@ -22,7 +22,7 @@ trainer = dict(
 )
 validator = dict(
     num_envs=16,
-    num_eval_episodes=10,
+    num_episodes=10,
     ckpt_path="ckpt.best.pth",
     difficulty="easy",
     bounded=False,

@@ -35,7 +35,7 @@ trainer = dict(
 )
 validator = dict(
     num_envs=16,
-    num_eval_episodes=-1,
+    num_episodes=-1,
     ckpt_path="ckpt.best.pth",
     use_ckpt_cfg=True,
     video_option=["disk"],

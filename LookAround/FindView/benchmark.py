@@ -3,7 +3,7 @@
 from collections import defaultdict
 from functools import partial
 from os import PathLike
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Tuple, Union
 
 import torch
 from tqdm import tqdm
@@ -20,6 +20,24 @@ def filter_by_difficulty(
     difficulties: List[str],
 ) -> bool:
     return episode.difficulty in difficulties
+
+
+def filter_out_sub_labels(
+    episode: Episode,
+    remove_labels: Union[List[str], Tuple[str]],
+) -> bool:
+    return episode.sub_label not in remove_labels
+
+
+def joint_filter(
+    episode: Episode,
+    remove_labels: Union[List[str]],
+    difficulties: List[str],
+) -> bool:
+    return (
+        filter_by_difficulty(episode, difficulties)
+        and filter_out_sub_labels(episode, remove_labels)
+    )
 
 
 class FindViewBenchmark(object):
@@ -46,11 +64,14 @@ class FindViewBenchmark(object):
         # - for baselines, we might want numpy environment
         # - we will also want to change how we set the filter
 
+        # filter difficulties
+
         difficulty = self.bench_cfg.difficulty
         bounded = self.bench_cfg.bounded
 
         if bounded:
             difficulties = (difficulty,)
+            bench_name = f"bounded_{difficulty}"
         else:
             if difficulty == "easy":
                 difficulties = (difficulty,)
@@ -58,6 +79,9 @@ class FindViewBenchmark(object):
                 difficulties = ("easy", "medium")
             elif difficulty == "hard":
                 difficulties = ("easy", "medium", "hard")
+            else:
+                raise ValueError()
+            bench_name = f"unbounded_{difficulty}"
 
         for diff in difficulties:
             assert diff in ("easy", "medium", "hard")
@@ -67,21 +91,39 @@ class FindViewBenchmark(object):
         else:
             device = torch.device("cpu")
 
-        self._env = FindViewEnv.from_config(
-            cfg=cfg,
-            split="test",
-            filter_fn=partial(filter_by_difficulty, difficulties=difficulties),
-            dtype=torch.float32,
-            device=device,
-        )
+        remove_labels = self.bench_cfg.remove_labels
 
-        # FIXME: since the evaluation is really long, maybe add a checkpoint?
-        # FIXME: save the metrics as csv or json so I can compare by episode
+        if remove_labels is not None:
+            if isinstance(remove_labels, str):
+                remove_labels = [remove_labels]
+            assert (
+                len(remove_labels) > 0
+                and (isinstance(remove_labels, list) or isinstance(remove_labels, tuple))
+            )
+            self._env = FindViewEnv.from_config(
+                cfg=cfg,
+                split="test",
+                filter_fn=partial(
+                    joint_filter,
+                    remove_labels=remove_labels,
+                    difficulties=difficulties,
+                ),
+                dtype=torch.float32,
+                device=device,
+            )
+        else:
+            self._env = FindViewEnv.from_config(
+                cfg=cfg,
+                split="test",
+                filter_fn=partial(filter_by_difficulty, difficulties=difficulties),
+                dtype=torch.float32,
+                device=device,
+            )
 
     def evaluate_parallel(self):
-        raise NotImplementedError
-
-    def evaluate_sequential(self):
+        # FIXME: since agents are made for single process, this might not be as efficient unless
+        # we provide batch processing implementation for each agents.
+        # Also, we can evaluate in batch using `validators`
         raise NotImplementedError
 
     def evaluate(

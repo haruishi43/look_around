@@ -1,4 +1,5 @@
 benchmark = dict(
+    num_episodes=-1,
     device='cpu',
     num_envs=1,
     dtype="torch.float32",
@@ -11,7 +12,8 @@ benchmark = dict(
     ),
     output_dir="{results_root}/benchmarks/outputs/run",
     log_file="{log_root}/benchmarks_run.log",
-    num_eval_episodes=-1,
-    difficulty="easy",
-    bounded=True,
+    difficulty="hard",
+    bounded=False,
+    remove_labels="others",
+    num_episodes_per_img=1,
 )
