@@ -40,6 +40,7 @@ class GreedyMovementAgent(Agent):
         chance: float = 0.001,
         seed: int = 0,
     ) -> None:
+        self.name = "greedy"
         self.movement_actions = ["up", "right", "down", "left"]
         self.stop_action = "stop"
         self.stop_chance = chance
@@ -86,7 +87,7 @@ def main():
 
     import argparse
 
-    from LookAround.core.logging import logger
+    from LookAround.config import DictAction
     from LookAround.FindView.benchmark import FindViewBenchmark
 
     parser = argparse.ArgumentParser()
@@ -96,24 +97,37 @@ def main():
         required=True,
     )
     parser.add_argument(
-        "--num-episodes",
-        type=int,
-        default=5,
+        '--name',
+        type=str,
+        help='name of the agent (used for naming save directory)'
+    )
+    parser.add_argument(
+        '--options',
+        nargs='+',
+        action=DictAction,
+        help='arguments in dict',
     )
     args = parser.parse_args()
     cfg = Config.fromfile(args.config)
+    if args.options is not None:
+        cfg.merge_from_dict(args.options)
+
+    print(">>> Config:")
+    print(cfg.pretty_text)
+
+    # Intializing the agent
     agent = GreedyMovementAgent.from_config(cfg)
+    name = agent.name
+    if args.name is not None:
+        name += '_' + args.name
+
+    # Benchmark
+    print(f"Benchmarking {name}")
     benchmark = FindViewBenchmark(
         cfg=cfg,
-        device=torch.device('cpu'),
+        agent_name=name,
     )
-    if args.num_episodes == 0:
-        metrics = benchmark.evaluate(agent, num_episodes=None)
-    else:
-        metrics = benchmark.evaluate(agent, num_episodes=args.num_episodes)
-
-    for k, v in metrics.items():
-        logger.info("{}: {:.3f}".format(k, v))
+    benchmark.evaluate(agent)
 
 
 if __name__ == "__main__":

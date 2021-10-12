@@ -6,10 +6,5 @@ _base_ = [
 ]
 benchmark = dict(
     device='cpu',
-    num_envs=1,
     dtype="np.float32",
-    vec_type="threaded",
-    video_dir="{results_root}/benchmarks/videos/fm",
-    output_dir="{results_root}/benchmarks/outputs/fm",
-    log_file="{log_root}/benchmarks_fm.log",
 )

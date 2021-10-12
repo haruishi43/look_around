@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 
-import argparse
 import os
 import random
 from typing import Any, Dict, Optional
@@ -17,16 +16,28 @@ from findview_baselines.rl.ppo.policy import FindViewBaselinePolicy
 
 
 class PPOAgent(Agent):
+
     def __init__(
         self,
         cfg: Config,
-        ckpt_path: os.PathLike = None,
+        ckpt_path: os.PathLike,
+        dtype: torch.dtype = torch.float32,
+        device: torch.device = torch.device(0),
     ) -> None:
+
+        assert os.path.exists(ckpt_path), \
+            f"ERR: {ckpt_path} doesn't exist!"
+
+        if torch.cuda.is_available():
+            self.device = torch.device(device)
+        else:
+            self.device = torch.device('cpu')
+
         observation_space = SpaceDict(
             {
                 "pers": Box(
-                    low=torch.finfo(torch.float32).min,
-                    high=torch.finfo(torch.float32).max,
+                    low=torch.finfo(dtype).min,
+                    high=torch.finfo(dtype).max,
                     shape=(
                         3,
                         cfg.sim.height,
@@ -34,8 +45,8 @@ class PPOAgent(Agent):
                     ),
                 ),
                 "target": Box(
-                    low=torch.finfo(torch.float32).min,
-                    high=torch.finfo(torch.float32).max,
+                    low=torch.finfo(dtype).min,
+                    high=torch.finfo(dtype).max,
                     shape=(
                         3,
                         cfg.sim.height,
@@ -46,36 +57,43 @@ class PPOAgent(Agent):
         )
         action_spaces = Discrete(5)
 
-        test_cfg = cfg.test
-
-        self.device = (
-            torch.device("cuda", test_cfg.device)
-            if torch.cuda.is_available()
-            else torch.device("cpu")
-        )
-
-        ppo_cfg = cfg.ppo
-        self.hidden_size = ppo_cfg.hidden_size
-
         random.seed(cfg.seed)
         torch.random.manual_seed(cfg.seed)
         if torch.cuda.is_available():
             torch.backends.cudnn.deterministic = True  # type: ignore
 
+        # loading values from ckpt dict
+        ckpt_dict = torch.load(ckpt_path, map_location=self.device)
+
+        agent_name = 'ppo'
+        ckpt_cfg = ckpt_dict['cfg']
+        agent_name += f'_{str(ckpt_cfg.trainer.run_id)}'
+        identifier = ckpt_cfg.trainer.get('identifier', None)
+        if identifier is not None:
+            agent_name += f'_{identifier}'
+
+        step_id = ckpt_dict['extra_state']['num_steps_done']
+        agent_name += f'_{str(step_id)}'
+
+        self.name = agent_name
+
+        # load model configuration from ckpt
+        ppo_cfg = ckpt_cfg.ppo
+        self.hidden_size = ppo_cfg.hidden_size
+
         self.actor_critic = FindViewBaselinePolicy(
             observation_space=observation_space,
             action_space=action_spaces,
             hidden_size=self.hidden_size,
-            **cfg.policy,
+            **ckpt_cfg.policy,
         )
         self.actor_critic.to(self.device)
 
-        ckpt = torch.load(ckpt_path, map_location=self.device)
         #  Filter only actor_critic weights
         self.actor_critic.load_state_dict(
             {
                 k[len("actor_critic.") :]: v
-                for k, v in ckpt["state_dict"].items()
+                for k, v in ckpt_dict["state_dict"].items()
                 if "actor_critic" in k
             }
         )
@@ -134,63 +152,68 @@ class PPOAgent(Agent):
 
 def main():
 
-    from LookAround.core.logging import logger
+    import argparse
+
+    from LookAround.config import DictAction
     from LookAround.FindView.benchmark import FindViewBenchmark
 
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        "--config",
+        '--config',
         type=str,
         required=True,
     )
     parser.add_argument(
-        "--ckpt-path",
+        '--ckpt-path',
         type=str,
+        required=True,
     )
     parser.add_argument(
-        "--num-episodes",
-        type=int,
-        default=5,
+        '--name',
+        type=str,
+        help='name of the agent (used for naming save directory)'
+    )
+    parser.add_argument(
+        '--options',
+        nargs='+',
+        action=DictAction,
+        help='arguments in dict',
     )
     args = parser.parse_args()
     cfg = Config.fromfile(args.config)
+    if args.options is not None:
+        cfg.merge_from_dict(args.options)
 
+    print(">>> Config:")
+    print(cfg.pretty_text)
+
+    # Intializing the agent
     ckpt_path = args.ckpt_path
-
-    if not os.path.exists(ckpt_path):
-        ckpt_dir = cfg.trainer.ckpt_dir.format(
-            results_root=cfg.results_root,
-            run_id=cfg.trainer.run_id,
-        )
-        ckpt_path =
-
-        if ckpt_filename is None:
-            print("warning: using ckpt from config file")
-            ckpt_path = os.path.join(
-                ckpt_path,
-                test_cfg.ckpt_path,
-            )
-        else:
-            ckpt_path = os.path.join(
-                ckpt_path,
-                ckpt_filename,
-            )
-            print(f"loading from {ckpt_path}")
-
     assert os.path.exists(ckpt_path), \
-        f"{ckpt_path} doesn't exist!"
+        f"ERR: {ckpt_path} doesn't exist!"
 
-    agent = PPOAgent(cfg, ckpt_filename=args.ckpt_filename)
+    if torch.cuda.is_available():
+        device = torch.device(cfg.benchmark.device)
+    else:
+        device = torch.device("cpu")
+
+    agent = PPOAgent(
+        cfg=cfg,
+        ckpt_path=ckpt_path,
+        device=device,
+    )
+
+    name = agent.name
+    if args.name is not None:
+        name += '_' + args.name
+
+    # Benchmark
+    print(f"Benchmarking {name}")
     benchmark = FindViewBenchmark(
         cfg=cfg,
-        device=agent.device,
+        agent_name=name,
     )
-    if args.num_episodes == 0:
-        metrics = benchmark.evaluate(agent, num_episodes=None)
-    else:
-        metrics = benchmark.evaluate(agent, num_episodes=args.num_episodes)
-    for k, v in metrics.items():
-        logger.info("{}: {:.3f}".format(k, v))
+    benchmark.evaluate(agent)
 
 
 if __name__ == "__main__":

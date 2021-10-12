@@ -1,19 +1,27 @@
 benchmark = dict(
-    num_episodes=-1,
     device='cpu',
-    num_envs=1,
     dtype="torch.float32",
-    vec_type="threaded",
-    video_option=['disk'],
     video_dir=(
         "{results_root}/benchmarks/"
-        "{agent}/"
-        "videos/"
+        "findview_{dataset}_{version}_{category}/"
+        "{bench_name}/"
+        "{agent_name}/"
     ),
-    output_dir="{results_root}/benchmarks/outputs/run",
-    log_file="{log_root}/benchmarks_run.log",
+    metric_path=(
+        "{results_root}/benchmarks/"
+        "findview_{dataset}_{version}_{category}/"
+        "{bench_name}/"
+        "{agent_name}.json"
+    ),
+    log_file=(
+        "{log_root}/benchmarks/"
+        "findview_{dataset}_{version}_{category}/"
+        "{bench_name}/"
+        "{agent_name}.log"
+    ),
+    num_episodes=-1,
     difficulty="hard",
-    bounded=False,
+    bounded=True,
     remove_labels="others",
     num_episodes_per_img=1,
 )

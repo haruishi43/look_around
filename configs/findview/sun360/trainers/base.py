@@ -12,19 +12,19 @@ trainer = dict(
     log_interval=10,
     ckpt_dir=(
         "{results_root}/checkpoints/"
-        "{dataset}_{version}_{category}/"
+        "findview_{dataset}_{version}_{category}/"
         "{rlenv}/"
         "run_{run_id}"
     ),
     tb_dir=(
         "{tb_root}/"
-        "{dataset}_{version}_{category}/"
+        "findview_{dataset}_{version}_{category}/"
         "{rlenv}/"
         "run_{run_id}"
     ),
     log_file=(
         "{log_root}/"
-        "{dataset}_{version}_{category}/"
+        "findview_{dataset}_{version}_{category}/"
         "{rlenv}/"
         "{split}/"
         "run_{run_id}.log"
@@ -42,28 +42,28 @@ validator = dict(
     save_metrics=True,
     video_dir=(
         "{results_root}/videos/"
-        "{dataset}_{version}_{category}/"
+        "findview_{dataset}_{version}_{category}/"
         "{rlenv}/"
         "{split}/"
         "run_{run_id}"
     ),
     metric_dir=(
         "{results_root}/metrics/"
-        "{dataset}_{version}_{category}/"
+        "findview_{dataset}_{version}_{category}/"
         "{rlenv}/"
         "{split}/"
         "run_{run_id}"
     ),
     tb_dir=(
         "{tb_root}/"
-        "{dataset}_{version}_{category}/"
+        "findview_{dataset}_{version}_{category}/"
         "{rlenv}/"
         "{split}/"
         "run_{run_id}"
     ),
     log_file=(
         "{log_root}/"
-        "{dataset}_{version}_{category}/"
+        "findview_{dataset}_{version}_{category}/"
         "{rlenv}/"
         "{split}/"
         "run_{run_id}.log"

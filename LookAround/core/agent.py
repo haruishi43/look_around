@@ -5,6 +5,8 @@ from typing import Any, Dict, Union
 
 class Agent:
 
+    name: str
+
     def reset(self) -> None:
         """Called before starting a new episode in environment."""
         raise NotImplementedError

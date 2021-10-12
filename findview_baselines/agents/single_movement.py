@@ -10,9 +10,11 @@ from LookAround.FindView.actions import FindViewActions
 
 
 class SingleMovementAgent(Agent):
+
     def __init__(self, action: str = "right") -> None:
         assert action in FindViewActions.all
         self.action = action
+        self.name = 'single'
 
     @classmethod
     def from_config(cls, cfg: Config):
