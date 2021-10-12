@@ -219,6 +219,7 @@ class FindViewBenchmark(object):
         logger.add_filehandler(self.log_path)
 
         episodes_metrics = []
+        rot_histories = {}
         env_times = []
         act_times = []
 
@@ -269,6 +270,9 @@ class FindViewBenchmark(object):
                 verbose=False,
             )
 
+            rot_history = self.env._rot_tracker.history
+            rot_histories[current_episode.episode_id] = rot_history
+
             count_episodes += 1
             pbar.update()
 
@@ -300,7 +304,8 @@ class FindViewBenchmark(object):
             times=dict(
                 agent=act_time,
                 env=env_time,
-            )
+            ),
+            rot_histories=rot_histories,
         )
         with open(self.metric_path, 'w') as f:
             json.dump(save_dict, f, indent=2)
