@@ -12,7 +12,7 @@ rl_env = dict(
     param=5,
 )
 trainer = dict(
-    run_id=1,
+    run_id=2,
     num_updates=15000,
     ckpt_interval=500,
     log_interval=10,
