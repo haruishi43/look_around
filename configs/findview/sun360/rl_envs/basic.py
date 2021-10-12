@@ -4,6 +4,6 @@ _base_ = [
 ]
 rl_env = dict(
     name="basic",
-    success_reward=100.0,
+    success_reward=10.0,
     slack_reward=-0.01,
 )

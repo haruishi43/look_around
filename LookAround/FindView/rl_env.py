@@ -184,7 +184,7 @@ class BasicFindviewRLEnv(FindViewRLEnv):
         reward_success = 0
         if self._env.episode_over and measures['called_stop']:
             l1 = measures['l1_distance']
-            reward_success = self._success_reward / (l1 + 0.01)
+            reward_success = self._success_reward / (l1 + 1.0)
         elif self._env.episode_over:
             # if agent couldn't finish by the limit, penalize them
             reward_success = -self._success_reward
