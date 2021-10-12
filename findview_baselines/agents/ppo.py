@@ -73,6 +73,7 @@ class PPOAgent(Agent):
         agent_name = 'ppo'
         ckpt_cfg = ckpt_dict['cfg']
         agent_name += f'_{str(ckpt_cfg.trainer.run_id)}'
+        agent_name += f'_{ckpt_cfg.rl_env.name}'
         identifier = ckpt_cfg.trainer.get('identifier', None)
         if identifier is not None:
             agent_name += f'_{identifier}'
