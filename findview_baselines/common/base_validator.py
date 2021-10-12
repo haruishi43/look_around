@@ -110,8 +110,8 @@ class BaseValidator(object):
                 # evaluate singe checkpoint
                 proposed_index = get_checkpoint_id(ckpt_path)
                 print(proposed_index)
-                # assert proposed_index is not None, \
-                #     f"ERR: could not find valid ckpt for {ckpt_path}"
+                assert proposed_index is not None, \
+                    f"ERR: could not find valid ckpt for {ckpt_path}"
                 # ckpt_idx = proposed_index
                 self._eval_checkpoint(
                     ckpt_path,

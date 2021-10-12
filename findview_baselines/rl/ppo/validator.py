@@ -38,7 +38,7 @@ class PPOValidator(BaseRLValidator):
         step_id: int,
         difficulty: str,
         bounded: bool,
-    ):
+    ) -> float:
         self.split = 'val'
 
         if torch.cuda.is_available():
@@ -128,7 +128,7 @@ class PPOValidator(BaseRLValidator):
         writer: Optional[TensorboardWriter],
         step_id: int,
         num_eval_episodes: int,
-    ):
+    ) -> float:
 
         # isolate actor_critic
         actor_critic = agent.actor_critic
