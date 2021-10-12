@@ -1,5 +1,10 @@
 #!/usr/bin/env python3
 
+# FIXME: somehow, running this script calls a warning:
+# /home/ubuntu/.pyenv/versions/3.8.8/lib/python3.8/site-packages/setuptools/distutils_patch.py:25: User
+# Warning: Distutils was imported before Setuptools. This usage is discouraged and may exhibit undesira
+# ble behaviors or errors. Please use Setuptools' objects directly or at least import Setuptools first.
+
 import os
 import random
 from typing import Any, Dict, Optional
