@@ -295,6 +295,9 @@ class FindViewSim(object):
         else:
             return post_process_for_render(self.equi, to_bgr=to_bgr)
 
+    def get_bounding_fov(self, rot: Rots) -> np.ndarray:
+        return self.equi2pers.get_bounding_fov(equi=self.equi, rots=deg2rad(rot))
+
     def __del__(self):
         del self._equi
         del self._target

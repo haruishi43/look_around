@@ -4,6 +4,7 @@
 
 """
 
+from copy import deepcopy
 import os
 import time
 
@@ -14,6 +15,7 @@ import torch
 from LookAround.FindView.actions import FindViewActions
 from LookAround.FindView.sim import FindViewSim
 from LookAround.FindView.rotation_tracker import RotationTracker
+from LookAround.core.improc import post_process_for_render, post_process_for_render_torch
 from LookAround.utils.visualizations import save_images_as_video
 
 
@@ -94,6 +96,73 @@ def draw_movements(
     return img
 
 
+def draw_bfov(
+    equi,
+    points: np.ndarray,
+    color: tuple = (0, 255, 0),
+    thickness: int = 4,
+    input_cv2: bool = False
+) -> np.ndarray:
+
+    if not input_cv2:
+        if torch.is_tensor(equi):
+            equi = post_process_for_render_torch(equi, to_bgr=True)
+        else:
+            equi = post_process_for_render(equi, to_bgr=True)
+
+    points = points.tolist()
+    points = [(x, y) for y, x in points]
+
+    for index, point in enumerate(points):
+        if index == len(points) - 1:
+            next_point = points[0]
+        else:
+            next_point = points[index + 1]
+
+        if abs(point[0] - next_point[0]) < 100 and abs(point[1] - next_point[1]) < 100:
+            cv2.line(equi, point, next_point, color=color, thickness=thickness)
+
+    return equi
+
+
+def draw_bfov_video(
+    sim: FindViewSim,
+    history: list,
+    target: dict,
+):
+
+    frames = []
+    initial = history.pop(0)
+    equi = draw_bfov(
+        equi=sim.equi,
+        points=sim.get_bounding_fov(initial),
+        color=(0, 255, 38),
+        thickness=5,
+    )
+    equi = draw_bfov(
+        equi=equi,
+        points=sim.get_bounding_fov(target),
+        color=(255, 0, 43),
+        thickness=5,
+        input_cv2=True,
+    )
+    frames.append(equi)
+
+    for rot in history:
+        frame = deepcopy(equi)
+
+        frame = draw_bfov(
+            equi=frame,
+            points=sim.get_bounding_fov(rot),
+            color=(0, 162, 255),
+            thickness=3,
+            input_cv2=True,
+        )
+        frames.append(frame)
+
+    return frames
+
+
 if __name__ == "__main__":
 
     # initialize data path
@@ -108,13 +177,13 @@ if __name__ == "__main__":
     is_video = False
     initial_rots = {
         "roll": 0,
-        "pitch": -40,
-        "yaw": 70,
+        "pitch": 0,
+        "yaw": 0,
     }
     target_rots = {
         "roll": 0,
         "pitch": -20,
-        "yaw": -40,
+        "yaw": 180,
     }
     num_steps = 2000
     dtype = torch.float32
@@ -211,5 +280,13 @@ if __name__ == "__main__":
     # print(history)
     print("last/target:", history[-1], target_rots)
     equi = sim.render_equi()
-    img = draw_movements(equi, history, target_rots)
+    img = draw_movements(equi, deepcopy(history), target_rots)
     cv2.imwrite(os.path.join(save_root, f"{img_name}_path.jpg"), img)
+
+    # save movements
+    video = draw_bfov_video(
+        sim=sim,
+        history=history,
+        target=target_rots,
+    )
+    save_images_as_video(video, os.path.join(save_root, f"{img_name}_fov_movement.mp4"))
