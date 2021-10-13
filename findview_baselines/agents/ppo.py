@@ -79,10 +79,9 @@ class PPOAgent(Agent):
             # backward compatibility
             trainer = ckpt_cfg.get('base_trainer', None)
             assert trainer is not None, ckpt_cfg.pretty_text
-
-            agent_name += f'_compat_{str(ckpt_cfg.trainer.run_id)}'
+            agent_name += f'_compat_{str(trainer.run_id)}'
         else:
-            agent_name += f'_{str(ckpt_cfg.trainer.run_id)}'
+            agent_name += f'_{str(trainer.run_id)}'
 
         # add rl_env name
         agent_name += f'_{ckpt_cfg.rl_env.name}'
