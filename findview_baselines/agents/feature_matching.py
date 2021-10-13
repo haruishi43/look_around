@@ -47,6 +47,7 @@ class FeatureMatchingAgent(Agent):
         distance_threshold: int = 30,
         stop_threshold: int = 5,
         num_track_actions: int = 50,
+        num_threads: int = 4,
     ) -> None:
 
         self.name = 'fm'
@@ -54,6 +55,8 @@ class FeatureMatchingAgent(Agent):
         self.stop_action = "stop"
         for action in self.movement_actions:
             assert action in FindViewActions.all
+
+        cv2.setNumThreads(num_threads)
 
         # feature matching criteria
         self.feature_type = feature_type
@@ -77,6 +80,7 @@ class FeatureMatchingAgent(Agent):
             distance_threshold=agent_cfg.distance_threshold,
             stop_threshold=agent_cfg.stop_threshold,
             num_track_actions=agent_cfg.num_track_actions,
+            num_threads=agent_cfg.num_threads,
         )
 
     def reset(self):
