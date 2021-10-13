@@ -56,7 +56,7 @@ class FeatureMatchingAgent(Agent):
         for action in self.movement_actions:
             assert action in FindViewActions.all
 
-        cv2.setNumThreads(num_threads)
+        cv2.setNumThreads(num_threads)  # FIXME: doesn't really work...
 
         # feature matching criteria
         self.feature_type = feature_type
