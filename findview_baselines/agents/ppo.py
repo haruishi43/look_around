@@ -72,9 +72,23 @@ class PPOAgent(Agent):
 
         agent_name = 'ppo'
         ckpt_cfg = ckpt_dict['cfg']
-        agent_name += f'_{str(ckpt_cfg.trainer.run_id)}'  # add run_id
-        agent_name += f'_{ckpt_cfg.rl_env.name}'  # add rl_env name
-        identifier = ckpt_cfg.trainer.get('identifier', None)
+
+        # try to get trainer
+        trainer = ckpt_cfg.get('trainer', None)
+        if trainer is None:
+            # backward compatibility
+            trainer = ckpt_cfg.get('base_trainer', None)
+            assert trainer is not None, ckpt_cfg.pretty_text
+
+            agent_name += f'_compat_{str(ckpt_cfg.trainer.run_id)}'
+        else:
+            agent_name += f'_{str(ckpt_cfg.trainer.run_id)}'
+
+        # add rl_env name
+        agent_name += f'_{ckpt_cfg.rl_env.name}'
+
+        # add identifier
+        identifier = trainer.get('identifier', None)
         if identifier is not None:
             agent_name += f'_{identifier}'
 
