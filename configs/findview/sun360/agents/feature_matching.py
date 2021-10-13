@@ -5,5 +5,5 @@ fm = dict(
     distance_threshold=30,
     stop_threshold=5,
     num_track_actions=50,
-    num_threads=4,
+    num_threads=1,
 )

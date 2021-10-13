@@ -47,7 +47,7 @@ class FeatureMatchingAgent(Agent):
         distance_threshold: int = 30,
         stop_threshold: int = 5,
         num_track_actions: int = 50,
-        num_threads: int = 4,
+        num_threads: int = 1,
     ) -> None:
 
         self.name = 'fm'
