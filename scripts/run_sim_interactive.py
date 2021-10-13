@@ -177,7 +177,7 @@ if __name__ == "__main__":
     is_video = False
     initial_rots = {
         "roll": 0,
-        "pitch": 0,
+        "pitch": 50,
         "yaw": 0,
     }
     target_rots = {
