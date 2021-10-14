@@ -12,7 +12,7 @@ from LookAround.config import Config
 from LookAround.core import logger
 from LookAround.FindView.vec_env import VecEnv
 from LookAround.FindView.dataset.episode import Episode
-from LookAround.utils.visualizations import obs2img
+from LookAround.FindView.utils import obs2img
 
 from findview_baselines.common.tensorboard_utils import TensorboardWriter
 from findview_baselines.common.base_validator import BaseRLValidator

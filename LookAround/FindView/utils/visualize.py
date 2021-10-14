@@ -99,6 +99,7 @@ def generate_movement_video(
     use_imageio: bool = False,
     fps: int = 30,
     quality: int = 5,
+    verbose: bool = False,
     **kwargs,
 ) -> None:
     """Generate an "easy to see" movement video
@@ -226,7 +227,11 @@ def generate_movement_video(
     )
 
     # 5. draw BFOV for each perspectives and add it to the template
-    for index, (bp, bbox) in tqdm(enumerate(zip(bpers, pers_bboxs))):
+    if verbose:
+        iters = tqdm(enumerate(zip(bpers, pers_bboxs)))
+    else:
+        iters = enumerate(zip(bpers, pers_bboxs))
+    for index, (bp, bbox) in iters:
         _equi = draw_bfov(
             equi=deepcopy(base_equi),
             points=bbox,

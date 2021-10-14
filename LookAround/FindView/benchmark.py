@@ -17,10 +17,8 @@ from LookAround.core.agent import Agent
 from LookAround.core.logging import logger
 from LookAround.FindView.env import FindViewEnv
 from LookAround.FindView.dataset import Episode
-from LookAround.utils.visualizations import (
-    images_to_video,
-    obs2img,
-)
+from LookAround.FindView.utils import generate_movement_video, obs2img
+from LookAround.utils.visualizations import images_to_video
 
 
 def filter_by_difficulty(
@@ -239,9 +237,10 @@ class FindViewBenchmark(object):
 
             if save_video:
                 if beautify:
-                    renders = self.env.render(to_bgr=False)
+                    renders = self.env.render(to_bgr=True)
                     pers = [renders['pers']]
                     target = renders['target']
+                    actions = []
                 else:
                     rgb_frames = []
                     rgb_frames.append(obs2img(**observations))
@@ -257,7 +256,8 @@ class FindViewBenchmark(object):
 
                 if save_video:
                     if beautify:
-                        pers.append(self.env.render(to_bgr=False)['pers'])
+                        pers.append(self.env.render(to_bgr=True)['pers'])
+                        actions.append(action)
                     else:
                         rgb_frames.append(obs2img(**observations))
 
@@ -273,6 +273,11 @@ class FindViewBenchmark(object):
             # save video to disk
             if save_video:
                 if beautify:
+                    # remove the last image to keep lengths consistent
+                    pers.pop(-1)
+                    assert len(pers) == len(actions)
+                    assert len(pers) == len(rot_history)
+
                     pers_bboxs = []
                     for rot in rot_history:
                         pers_bboxs.append(self.env.sim.get_bounding_fov(rot))
@@ -284,7 +289,18 @@ class FindViewBenchmark(object):
                         f"label-{current_episode.sub_label}"
                     )
                     # FIXME: add beautified image here
-
+                    generate_movement_video(
+                        output_dir=self.video_dir,
+                        video_name=video_name,
+                        equi=self.env.sim.render_equi(to_bgr=True),
+                        pers=pers,
+                        target=target,
+                        pers_bboxs=pers_bboxs,
+                        target_bbox=target_bbox,
+                        actions=actions,
+                        add_text=False,
+                        fps=30,
+                    )
                 else:
                     video_name = (
                         f"episode-{current_episode.episode_id}_"
