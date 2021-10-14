@@ -148,7 +148,8 @@ def images_to_video_cv2(
 ) -> None:
     """OpenCV version of `images_to_video`
 
-    Probably not as efficient as imageio
+    Probably not as efficient as imageio. However with OpenCV, you can save
+    images that are not multiples of 16 pixels.
     """
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)

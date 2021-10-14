@@ -84,15 +84,18 @@ def generate_movement_video(
     actions: List[Union[int, str, Dict[str, int]]],
     equi_size: Tuple[int, int] = (512, 1024),
     pers_size: Tuple[int, int] = (256, 256),
-    pers_boundary_thickness: int = 5,
+    pers_boundary_thickness: int = 6,
     init_color: Tuple[int, int, int] = (218, 62, 82),
     pers_color: Tuple[int, int, int] = (92, 187, 255),
     target_color: Tuple[int, int, int] = (150, 230, 179),
     background_color: Tuple[int, int, int] = (255, 255, 255),
-    frame_boundary: Tuple[int, int] = (6, 8),
+    frame_boundary: Tuple[int, int] = (5, 5),
     boundary_between_updown: int = 10,
     boundary_between_pers: int = 20,
     boundary_arrow: int = 10,
+    add_text: bool = False,
+    text_color: Tuple[int, int, int] = (0, 0, 0),
+    text_bottom_boundary: int = 10,
     use_imageio: bool = False,
     fps: int = 30,
     quality: int = 5,
@@ -106,21 +109,43 @@ def generate_movement_video(
 
     # 1. create base template to place the images
     frames = []
-    template_frame = np.full(
-        (
-            2 * frame_boundary[0] + equi_size[0]
-            + boundary_between_updown + pers_size[0]
-            + 2 * pers_boundary_thickness,
-            2 * frame_boundary[1] + equi_size[1],
-            3,
-        ),
-        background_color,
-        dtype=np.uint8,
-    )
-    if equi.shape[:2] != equi_size:
-        equi = cv2.resize(equi, equi_size, interpolation=cv2.INTER_LINEAR)
 
     # NOTE: make sure that the video is a multiple of 16 for imageio
+    if add_text:
+        # FIXME: font is ugly...
+        # https://stackoverflow.com/questions/16615662/how-to-write-text-on-a-image-in-windows-using-python-opencv2
+        font = cv2.FONT_HERSHEY_TRIPLEX
+        font_scale = 1
+        font_thickness = 2
+        line_type = cv2.LINE_AA
+        text = 'hoge'
+        (_, text_h), _ = cv2.getTextSize(text, font, font_scale, font_thickness)
+        template_frame = np.full(
+            (
+                2 * frame_boundary[0] + equi_size[0]
+                + boundary_between_updown + pers_size[0]
+                + 2 * pers_boundary_thickness
+                + boundary_between_updown + text_h + text_bottom_boundary,
+                2 * frame_boundary[1] + equi_size[1],
+                3,
+            ),
+            background_color,
+            dtype=np.uint8,
+        )
+    else:
+        template_frame = np.full(
+            (
+                2 * frame_boundary[0] + equi_size[0]
+                + boundary_between_updown + pers_size[0]
+                + 2 * pers_boundary_thickness,
+                2 * frame_boundary[1] + equi_size[1],
+                3,
+            ),
+            background_color,
+            dtype=np.uint8,
+        )
+    if equi.shape[:2] != equi_size:
+        equi = cv2.resize(equi, equi_size, interpolation=cv2.INTER_LINEAR)
 
     # 2. resize and put boundary on perspective images
     initial_pers = deepcopy(pers[0])
@@ -222,18 +247,36 @@ def generate_movement_video(
             h : h + pers_size[0],
             w : w + pers_size[1],
         ] = initial_bpers
+        if add_text:
+            text = 'Initial'
+            (text_w, _), _ = cv2.getTextSize(text, font, font_scale, font_thickness)
+            text_y = (h + pers_size[0] + boundary_between_updown + text_h)
+            text_x = (w + (pers_size[1] - text_w) // 2)
+            cv2.putText(frame, text, (text_x, text_y), font, font_scale, text_color, font_thickness, line_type)
         w += pers_size[1] + boundary_between_pers
         # target perspective
         frame[
             h : h + pers_size[0],
             w : w + pers_size[1],
         ] = target_bpers
+        if add_text:
+            text = 'Target'
+            (text_w, _), _ = cv2.getTextSize(text, font, font_scale, font_thickness)
+            text_y = (h + pers_size[0] + boundary_between_updown + text_h)
+            text_x = (w + (pers_size[1] - text_w) // 2)
+            cv2.putText(frame, text, (text_x, text_y), font, font_scale, text_color, font_thickness, line_type)
         w += pers_size[1] + boundary_between_pers
         # current perspective
         frame[
             h : h + pers_size[0],
             w : w + pers_size[1],
         ] = bp
+        if add_text:
+            text = 'Perspective'
+            (text_w, _), _ = cv2.getTextSize(text, font, font_scale, font_thickness)
+            text_y = (h + pers_size[0] + boundary_between_updown + text_h)
+            text_x = (w + (pers_size[1] - text_w) // 2)
+            cv2.putText(frame, text, (text_x, text_y), font, font_scale, text_color, font_thickness, line_type)
         w += pers_size[1] + boundary_arrow
 
         # process actions
