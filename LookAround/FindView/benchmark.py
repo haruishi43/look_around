@@ -275,6 +275,8 @@ class FindViewBenchmark(object):
                 if beautify:
                     # remove the last image to keep lengths consistent
                     pers.pop(-1)
+                    if not self.env._called_stop:
+                        rot_history.pop(-1)
                     assert len(pers) == len(actions)
                     assert len(pers) == len(rot_history)
 
