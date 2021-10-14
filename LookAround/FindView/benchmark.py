@@ -255,6 +255,7 @@ class FindViewBenchmark(object):
                 env_time += time.time() - env_t
 
                 if save_video:
+                    # NOTE: the observation is still being added after stop is called
                     if beautify:
                         pers.append(self.env.render(to_bgr=True)['pers'])
                         actions.append(action)
@@ -290,7 +291,6 @@ class FindViewBenchmark(object):
                         f"difficulty-{current_episode.difficulty}_"
                         f"label-{current_episode.sub_label}"
                     )
-                    # FIXME: add beautified image here
                     generate_movement_video(
                         output_dir=self.video_dir,
                         video_name=video_name,
