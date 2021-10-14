@@ -11,12 +11,13 @@ import time
 import cv2
 import numpy as np
 import torch
+from tqdm import tqdm
 
 from LookAround.FindView.actions import FindViewActions
 from LookAround.FindView.sim import FindViewSim
 from LookAround.FindView.rotation_tracker import RotationTracker
-from LookAround.core.improc import post_process_for_render, post_process_for_render_torch
-from LookAround.utils.visualizations import save_images_as_video
+from LookAround.utils.visualizations import images_to_video_cv2
+from LookAround.FindView.utils.visualize import generate_movement_video
 
 
 class Human(object):
@@ -96,84 +97,17 @@ def draw_movements(
     return img
 
 
-def draw_bfov(
-    equi,
-    points: np.ndarray,
-    color: tuple = (0, 255, 0),
-    thickness: int = 4,
-    input_cv2: bool = False
-) -> np.ndarray:
-
-    if not input_cv2:
-        if torch.is_tensor(equi):
-            equi = post_process_for_render_torch(equi, to_bgr=True)
-        else:
-            equi = post_process_for_render(equi, to_bgr=True)
-
-    points = points.tolist()
-    points = [(x, y) for y, x in points]
-
-    for index, point in enumerate(points):
-        if index == len(points) - 1:
-            next_point = points[0]
-        else:
-            next_point = points[index + 1]
-
-        if abs(point[0] - next_point[0]) < 100 and abs(point[1] - next_point[1]) < 100:
-            cv2.line(equi, point, next_point, color=color, thickness=thickness)
-
-    return equi
-
-
-def draw_bfov_video(
-    sim: FindViewSim,
-    history: list,
-    target: dict,
-):
-
-    frames = []
-    initial = history.pop(0)
-    equi = draw_bfov(
-        equi=sim.equi,
-        points=sim.get_bounding_fov(initial),
-        color=(0, 255, 38),
-        thickness=5,
-    )
-    equi = draw_bfov(
-        equi=equi,
-        points=sim.get_bounding_fov(target),
-        color=(255, 0, 43),
-        thickness=5,
-        input_cv2=True,
-    )
-    frames.append(equi)
-
-    for rot in history:
-        frame = deepcopy(equi)
-
-        frame = draw_bfov(
-            equi=frame,
-            points=sim.get_bounding_fov(rot),
-            color=(0, 162, 255),
-            thickness=3,
-            input_cv2=True,
-        )
-        frames.append(frame)
-
-    return frames
-
-
 if __name__ == "__main__":
 
     # initialize data path
     save_root = "./results/interactive/"
     data_root = "./data/sun360/indoor/bedroom"
-    img_name = "pano_afvwdfmjeaglsd"
+    img_name = "pano_abcdnxnujvcavm"
     img_with_ext = f"{img_name}.jpg"
     img_path = os.path.join(data_root, img_with_ext)
 
     # params:
-    will_write = True
+    will_write = False
     is_video = False
     initial_rots = {
         "roll": 0,
@@ -225,12 +159,13 @@ if __name__ == "__main__":
         cv2.imwrite(os.path.join(save_root, f"{img_name}_target.jpg"), target)
 
     # render first frame
-    pers = sim.render_pers()
-    cv2.imshow("pers", pers)
+    _pers = sim.render_pers()
+    cv2.imshow("pers", _pers)
 
     # stats
     times = []
-    frames = [pers]
+    pers = [_pers]
+    actions = []
 
     steps = 0
     for i in range(num_steps):
@@ -246,16 +181,18 @@ if __name__ == "__main__":
             continue
 
         action = human.act(k)
+        actions.append(action)
         if action == "stop":
             break
+
         rots = rot_tracker.move(action)
 
         s = time.time()
         sim.move(rots)
         # render
-        pers = sim.render_pers()
-        cv2.imshow("pers", pers)
-        frames.append(pers)
+        _pers = sim.render_pers()
+        cv2.imshow("pers", _pers)
+        pers.append(_pers)
 
         e = time.time()
         times.append(e - s)
@@ -269,10 +206,15 @@ if __name__ == "__main__":
 
     if will_write:
         if not is_video:
-            for i, frame in enumerate(frames):
+            for i, frame in enumerate(pers):
                 cv2.imwrite(os.path.join(save_root, f"{img_name}_{i}.jpg"), frame)
         else:
-            save_images_as_video(frames, os.path.join(save_root, f"{img_name}_video.mp4"))
+            images_to_video_cv2(
+                images=pers,
+                output_dir=save_root,
+                video_name=f"{img_name}_video",
+                fps=30.0,
+            )
 
     history = rot_tracker.history
 
@@ -284,9 +226,20 @@ if __name__ == "__main__":
     cv2.imwrite(os.path.join(save_root, f"{img_name}_path.jpg"), img)
 
     # save movements
-    video = draw_bfov_video(
-        sim=sim,
-        history=history,
-        target=target_rots,
+    pers_bboxs = []
+    for rot in tqdm(history):
+        pers_bboxs.append(sim.get_bounding_fov(rot))
+    target_bbox = sim.get_bounding_fov(target_rots)
+
+    frames = generate_movement_video(
+        output_dir=save_root,
+        video_name=f"{img_name}_pretty",
+        equi=sim.render_equi(to_bgr=True),
+        pers=pers,
+        target=target,
+        pers_bboxs=pers_bboxs,
+        target_bbox=target_bbox,
+        actions=actions,
+        use_imageio=False,
+        fps=30,
     )
-    save_images_as_video(video, os.path.join(save_root, f"{img_name}_fov_movement.mp4"))

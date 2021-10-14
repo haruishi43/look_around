@@ -12,7 +12,6 @@ NOTE: think about how to make the `Sim` Parallel!
 
 import argparse
 from functools import partial
-import os
 from typing import List
 
 from tqdm import tqdm
@@ -23,7 +22,7 @@ from LookAround.config import Config
 from LookAround.FindView.dataset import Episode, make_dataset
 from LookAround.FindView.sim import FindViewSim
 from LookAround.FindView.rotation_tracker import RotationTracker
-from LookAround.utils.visualizations import save_images_as_video
+from LookAround.utils.visualizations import images_to_video_cv2
 
 from findview_baselines.agents.single_movement import SingleMovementAgent
 from findview_baselines.agents.greedy import GreedyMovementAgent
@@ -138,8 +137,12 @@ if __name__ == "__main__":
             pers_list.append(render_pers)
 
         # save as video
-        save_path = os.path.join('./results/sim', f"{args.agent}_{episode.img_name}.mp4")
-        save_images_as_video(pers_list, save_path)
+        images_to_video_cv2(
+            images=pers_list,
+            output_dir='./results/sim',
+            video_name=f"{args.agent}_{episode.img_name}",
+            fps=30.0,
+        )
 
         # for rot in rot_tracker.history:
         #     print(rot)

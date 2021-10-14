@@ -100,11 +100,11 @@ def images_to_video(
     images: List[np.ndarray],
     output_dir: str,
     video_name: str,
-    fps: int = 10,
-    quality: Optional[float] = 5,
+    fps: int = 30,
+    quality: int = 5,
     verbose: bool = True,
     **kwargs,
-):
+) -> None:
     """Calls imageio to run FFMPEG on a list of images. For more info on
     parameters, see https://imageio.readthedocs.io/en/stable/format_ffmpeg.html
     Args:
@@ -139,15 +139,33 @@ def images_to_video(
     writer.close()
 
 
-def save_images_as_video(images, video_path):
+def images_to_video_cv2(
+    images: List[np.ndarray],
+    output_dir: str,
+    video_name: str,
+    fps: Union[float, int] = 30.0,
+    fourcc: str = 'mp4v',
+) -> None:
+    """OpenCV version of `images_to_video`
+
+    Probably not as efficient as imageio
+    """
+    if not os.path.exists(output_dir):
+        os.makedirs(output_dir)
     assert len(images) > 0, \
         "No images in list"
     img = images[0]
     height, width = img.shape[:-1]
 
-    # NOTE: figure out other formats later
-    fourcc = cv2.VideoWriter_fourcc(*'mp4v')
-    video = cv2.VideoWriter(video_path, fourcc, 30.0, (width, height))
+    video_name = video_name.replace(" ", "_").replace("\n", "_") + ".mp4"
+    # NOTE: figure out other formats later ('mp4v' for macOS, 'H264' for linux)
+    fourcc = cv2.VideoWriter_fourcc(*fourcc)
+    video = cv2.VideoWriter(
+        os.path.join(output_dir, video_name),
+        fourcc,
+        fps,
+        (width, height),
+    )
 
     for img in images:
         video.write(img)

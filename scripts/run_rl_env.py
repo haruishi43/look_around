@@ -16,7 +16,7 @@ from tqdm import tqdm
 from LookAround.config import Config
 from LookAround.utils.random import seed
 from LookAround.FindView import RLEnvRegistry
-from LookAround.utils.visualizations import save_images_as_video
+from LookAround.utils.visualizations import images_to_video_cv2
 
 from findview_baselines.agents.single_movement import SingleMovementAgent
 from findview_baselines.agents.greedy import GreedyMovementAgent
@@ -115,5 +115,9 @@ if __name__ == "__main__":
             images.append(render['pers'])
             agent.reset()
 
-    save_path = os.path.join('./results/rlenv', f'test_{args.agent}_rl_env.mp4')
-    save_images_as_video(images, save_path)
+    images_to_video_cv2(
+        images=images,
+        output_dir='./results/rlenv',
+        video_name=f'test_{args.agent}_rl_env',
+        fps=30.0,
+    )

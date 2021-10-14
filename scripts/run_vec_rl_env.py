@@ -17,7 +17,7 @@ from tqdm import tqdm
 from LookAround.config import Config
 from LookAround.FindView.rl_env import FindViewRLEnv
 from LookAround.FindView.vec_env import construct_envs
-from LookAround.utils.visualizations import save_images_as_video
+from LookAround.utils.visualizations import images_to_video_cv2
 
 from findview_baselines.agents.single_movement import SingleMovementAgent
 from findview_baselines.agents.greedy import GreedyMovementAgent
@@ -119,5 +119,9 @@ if __name__ == "__main__":
 
                 agents[i].reset()
 
-    save_path = os.path.join('./results/vecrlenv', f'{args.agent}_test.mp4')
-    save_images_as_video(images, save_path)
+    images_to_video_cv2(
+        images=images,
+        output_dir='./results/vecrlenv',
+        video_name=f'{args.agent}_test',
+        fps=30.0,
+    )
