@@ -204,6 +204,9 @@ class FindViewBenchmark(object):
         num_episodes: Optional[int] = None,
     ) -> None:
 
+        save_video = self.bench_cfg.save_video
+        beautify = self.bench_cfg.beautify
+
         if num_episodes is None:
             num_episodes = self.bench_cfg.num_episodes
             if num_episodes == -1:
@@ -233,8 +236,15 @@ class FindViewBenchmark(object):
             agent.reset()
 
             current_episode = self.env.current_episode
-            rgb_frames = []
-            rgb_frames.append(obs2img(**observations))
+
+            if save_video:
+                if beautify:
+                    renders = self.env.render(to_bgr=False)
+                    pers = [renders['pers']]
+                    target = renders['target']
+                else:
+                    rgb_frames = []
+                    rgb_frames.append(obs2img(**observations))
 
             while not self.env.episode_over:
                 a_t = time.time()
@@ -245,7 +255,11 @@ class FindViewBenchmark(object):
                 observations = self.env.step(action)
                 env_time += time.time() - env_t
 
-                rgb_frames.append(obs2img(**observations))
+                if save_video:
+                    if beautify:
+                        pers.append(self.env.render(to_bgr=False)['pers'])
+                    else:
+                        rgb_frames.append(obs2img(**observations))
 
             metrics = self.env.get_metrics()
             episodes_metrics.append(metrics)
@@ -253,25 +267,39 @@ class FindViewBenchmark(object):
             act_time = act_time / metrics['elapsed_steps']
             env_times.append(env_time)
             act_times.append(act_time)
-
-            # save video to disk
-            video_name = (
-                f"episode-{current_episode.episode_id}_"
-                f"img-{current_episode.img_name}_"
-                f"difficulty-{current_episode.difficulty}_"
-                f"label-{current_episode.sub_label}"
-            )
-            images_to_video(
-                images=rgb_frames,
-                output_dir=self.video_dir,
-                video_name=video_name,
-                fps=10,
-                quality=5,
-                verbose=False,
-            )
-
             rot_history = self.env._rot_tracker.history
             rot_histories[current_episode.episode_id] = rot_history
+
+            # save video to disk
+            if save_video:
+                if beautify:
+                    pers_bboxs = []
+                    for rot in rot_history:
+                        pers_bboxs.append(self.env.sim.get_bounding_fov(rot))
+                    target_bbox = self.env.sim.get_bounding_fov(current_episode.target_rotation)
+                    video_name = (
+                        f"beautify_episode-{current_episode.episode_id}_"
+                        f"img-{current_episode.img_name}_"
+                        f"difficulty-{current_episode.difficulty}_"
+                        f"label-{current_episode.sub_label}"
+                    )
+                    # FIXME: add beautified image here
+
+                else:
+                    video_name = (
+                        f"episode-{current_episode.episode_id}_"
+                        f"img-{current_episode.img_name}_"
+                        f"difficulty-{current_episode.difficulty}_"
+                        f"label-{current_episode.sub_label}"
+                    )
+                    images_to_video(
+                        images=rgb_frames,
+                        output_dir=self.video_dir,
+                        video_name=video_name,
+                        fps=10,
+                        quality=5,
+                        verbose=False,
+                    )
 
             count_episodes += 1
             pbar.update()

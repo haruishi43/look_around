@@ -421,9 +421,9 @@ class FindViewEnv(object):
         self.rst = random.Random(seed)
         self.np_rst = np.random.RandomState(seed)
 
-    def render(self) -> Dict[str, np.ndarray]:
-        pers = self._sim.render_pers()
-        target = self._sim.render_target()
+    def render(self, to_bgr: bool = True) -> Dict[str, np.ndarray]:
+        pers = self._sim.render_pers(to_bgr=to_bgr)
+        target = self._sim.render_target(to_bgr=to_bgr)
         return {
             "pers": pers,
             "target": target,

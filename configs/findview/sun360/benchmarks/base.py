@@ -24,4 +24,6 @@ benchmark = dict(
     bounded=True,
     remove_labels="others",
     num_episodes_per_img=1,
+    save_video=True,
+    beautify=False,
 )
