@@ -114,6 +114,7 @@ def generate_movement_video(
     if add_text:
         # FIXME: font is ugly...
         # https://stackoverflow.com/questions/16615662/how-to-write-text-on-a-image-in-windows-using-python-opencv2
+        # https://stackoverflow.com/questions/1970807/center-middle-align-text-with-pil
         font = cv2.FONT_HERSHEY_TRIPLEX
         font_scale = 1
         font_thickness = 2
