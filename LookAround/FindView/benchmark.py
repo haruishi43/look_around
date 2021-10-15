@@ -274,6 +274,7 @@ class FindViewBenchmark(object):
             # save video to disk
             if save_video:
                 if beautify:
+                    # FIXME: OOM Killer (RAM) -> needs more than 32GB
                     # remove the last image to keep lengths consistent
                     pers.pop(-1)
                     if not self.env._called_stop:
