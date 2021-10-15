@@ -10,6 +10,7 @@ FIXME:
 """
 
 from collections import deque
+import random
 from statistics import mode
 
 import cv2
@@ -39,15 +40,21 @@ def movement_generator(size=4):
 
 class FeatureMatchingAgent(Agent):
 
+    detector = None
+    matcher = None
+    prev_action = None
+
     def __init__(
         self,
         feature_type: str = "ORB",
+        matcher_type: str = "BF",
         num_features: int = 500,
         num_matches: int = 10,
         distance_threshold: int = 30,
         stop_threshold: int = 5,
         num_track_actions: int = 50,
         num_threads: int = 1,
+        seed: int = 0,
     ) -> None:
 
         self.name = 'fm'
@@ -57,16 +64,44 @@ class FeatureMatchingAgent(Agent):
             assert action in FindViewActions.all
 
         cv2.setNumThreads(num_threads)  # FIXME: doesn't really work...
+        self.rst = random.Random(seed)
 
         # feature matching criteria
-        self.feature_type = feature_type
-        self.num_features = num_features
         self.num_matches = num_matches
         self.distance_threshold = distance_threshold
         self.stop_threshold = stop_threshold
         self.num_track_actions = num_track_actions
 
-        self.g = movement_generator(len(self.movement_actions))
+        # initialize detector
+        if feature_type == "ORB":
+            self.detector = cv2.ORB_create(nfeatures=num_features)
+            norm_type = cv2.NORM_HAMMING
+        elif feature_type == "SIFT":
+            self.detector = cv2.SIFT_create(nfeatures=num_features)
+            norm_type = cv2.NORM_L2
+        else:
+            raise ValueError()
+
+        # initialize matcher
+        if matcher_type == "BF":
+            self.matcher = cv2.BFMatcher(normType=norm_type, crossCheck=False)
+        elif matcher_type == "FLANN":
+            # FIXME: different params based on feature_type
+            FLANN_INDEX_LSH = 6
+            index_params = dict(
+                algorithm=FLANN_INDEX_LSH,
+                table_number=6,  # 12
+                key_size=12,  # 20
+                multi_probe_level=1,  # 2
+            )
+            search_params = dict(checks=50)
+            self.matcher = cv2.FlannBasedMatcher(index_params, search_params)
+        else:
+            raise ValueError()
+        self.matcher_type = matcher_type
+
+        # self.g = movement_generator(len(self.movement_actions)
+        self.prev_action = self.rst.choice(self.movement_actions)
         self.tracked_actions = deque(maxlen=self.num_track_actions)
 
     @classmethod
@@ -75,6 +110,7 @@ class FeatureMatchingAgent(Agent):
 
         return cls(
             feature_type=agent_cfg.feature_type,
+            matcher_type=agent_cfg.matcher_type,
             num_features=agent_cfg.num_features,
             num_matches=agent_cfg.num_matches,
             distance_threshold=agent_cfg.distance_threshold,
@@ -84,17 +120,20 @@ class FeatureMatchingAgent(Agent):
         )
 
     def reset(self):
-        self.reset_movement_generator()
+        # self.reset_movement_generator()
+        if self.prev_action is None:
+            self.prev_action = self.rst.choice(self.movement_actions)
         self.tracked_actions = deque(maxlen=self.num_track_actions)
 
-    def reset_movement_generator(self):
-        self.g = movement_generator(len(self.movement_actions))
+    # def reset_movement_generator(self):
+    #     self.g = movement_generator(len(self.movement_actions))
 
     def act(self, observations):
 
         pers = observations['pers']
         target = observations['target']
 
+        # 1. Preprocess
         # preprocess the images to cv2 format
         if torch.is_tensor(pers):
             # NOTE: matching by allclose is slow
@@ -114,37 +153,44 @@ class FeatureMatchingAgent(Agent):
         gray_pers = cv2.cvtColor(pers, cv2.COLOR_BGR2GRAY)
         gray_target = cv2.cvtColor(target, cv2.COLOR_BGR2GRAY)
 
-        # extract features
-        if self.feature_type == "ORB":
-            detector = cv2.ORB_create(nfeatures=self.num_features)
-            norm_type = cv2.NORM_HAMMING
-        elif self.feature_type == "SIFT":
-            detector = cv2.SIFT_create(nfeatures=self.num_features)
-            norm_type = cv2.NORM_L2
-        else:
-            raise NotImplementedError
-        (kps_pers, des_pers) = detector.detectAndCompute(gray_pers, None)
-        (kps_target, des_target) = detector.detectAndCompute(gray_target, None)
+        # 2. detect features
+        (kps_pers, des_pers) = self.detector.detectAndCompute(gray_pers, None)
+        (kps_target, des_target) = self.detector.detectAndCompute(gray_target, None)
 
         if len(kps_pers) < self.num_matches or len(kps_target) < self.num_matches:
-            print("not enough kp")
-            action = self.movement_actions[next(self.g)]
+            # action = self.movement_actions[next(self.g)]
+            action = self.prev_action
             return action
+
+        # 3. Match features descriptors
 
         # find matches
-        # FIXME: flann or knn is better?
-        matcher = cv2.BFMatcher(normType=norm_type, crossCheck=False)
-        matches = matcher.match(des_pers, des_target)
+        # matches = self.matcher.match(des_pers, des_target)
+        # matches = sorted(matches, key=lambda x: x.distance)
+        # matches = matches[:self.num_matches]
+
+        # find knn matches
+        if self.matcher_type == 'BF':
+            raw_matches = self.matcher.knnMatch(des_pers, des_target, k=2)
+            matches = []
+            for m, n in raw_matches:
+                if m.distance < 0.75 * n.distance:
+                    matches.append(m)
+        elif self.matcher_type == 'FLANN':
+            # FIXME: doesn't work...
+            matches = self.matcher.knnMatch(kps_pers, kps_target, k=2)
+            matchesMask = [[0, 0] for i in range(len(matches))]
+            for i, (m, n) in enumerate(matches):
+                if m.distance < 0.7 * n.distance:
+                    matchesMask[i] = [1, 0]
 
         if len(matches) < self.num_matches:
-            print("not enough matches")
-            action = self.movement_actions[next(self.g)]
+            # print("not enough matches")
+            # action = self.movement_actions[next(self.g)]
+            action = self.prev_action
             return action
 
-        matches = sorted(matches, key=lambda x: x.distance)
-        matches = matches[:self.num_matches]
-
-        # vote direction
+        # 4. Voting for actions
         actions = []
         for m in matches:
 
@@ -180,12 +226,13 @@ class FeatureMatchingAgent(Agent):
             actions.append(action)
 
         if len(actions) == 0:
-            action = self.movement_actions[next(self.g)]
-            print("no actions")
+            # action = self.movement_actions[next(self.g)]
+            # print("no actions")
+            action = self.prev_action
             return action
 
-        # NOTE: reset generated movement
-        self.reset_movement_generator()
+        # 5. Post processes
+        # self.reset_movement_generator()
 
         # tally up the votes and choose the best movement
         # NOTE: this only gets the first most common
@@ -202,6 +249,8 @@ class FeatureMatchingAgent(Agent):
                 action = "stop"
             elif _what_actions == set(['up', 'down']):
                 action = "stop"
+
+        self.prev_action = action
 
         return action
 
