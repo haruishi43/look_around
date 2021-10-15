@@ -48,6 +48,7 @@ class FeatureMatchingAgent(Agent):
         self,
         feature_type: str = "ORB",
         matcher_type: str = "BF",
+        knn_matching: bool = True,
         num_features: int = 500,
         num_matches: int = 10,
         distance_threshold: int = 30,
@@ -99,6 +100,7 @@ class FeatureMatchingAgent(Agent):
         else:
             raise ValueError()
         self.matcher_type = matcher_type
+        self.knn_matching = knn_matching
 
         # self.g = movement_generator(len(self.movement_actions)
         self.prev_action = self.rst.choice(self.movement_actions)
@@ -165,24 +167,25 @@ class FeatureMatchingAgent(Agent):
         # 3. Match features descriptors
 
         # find matches
-        # matches = self.matcher.match(des_pers, des_target)
-        # matches = sorted(matches, key=lambda x: x.distance)
-        # matches = matches[:self.num_matches]
-
-        # find knn matches
-        if self.matcher_type == 'BF':
-            raw_matches = self.matcher.knnMatch(des_pers, des_target, k=2)
-            matches = []
-            for m, n in raw_matches:
-                if m.distance < 0.75 * n.distance:
-                    matches.append(m)
-        elif self.matcher_type == 'FLANN':
-            # FIXME: doesn't work...
-            matches = self.matcher.knnMatch(kps_pers, kps_target, k=2)
-            matchesMask = [[0, 0] for i in range(len(matches))]
-            for i, (m, n) in enumerate(matches):
-                if m.distance < 0.7 * n.distance:
-                    matchesMask[i] = [1, 0]
+        if self.knn_matching:
+            # find knn matches
+            if self.matcher_type == 'BF':
+                raw_matches = self.matcher.knnMatch(des_pers, des_target, k=2)
+                matches = []
+                for m, n in raw_matches:
+                    if m.distance < 0.75 * n.distance:
+                        matches.append(m)
+            elif self.matcher_type == 'FLANN':
+                # FIXME: doesn't work...
+                matches = self.matcher.knnMatch(kps_pers, kps_target, k=2)
+                matchesMask = [[0, 0] for i in range(len(matches))]
+                for i, (m, n) in enumerate(matches):
+                    if m.distance < 0.7 * n.distance:
+                        matchesMask[i] = [1, 0]
+        else:
+            matches = self.matcher.match(des_pers, des_target)
+            matches = sorted(matches, key=lambda x: x.distance)
+            matches = matches[:self.num_matches]
 
         if len(matches) < self.num_matches:
             # print("not enough matches")
