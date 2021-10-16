@@ -9,18 +9,30 @@ FIXME:
 - [ ] Debug parameters for matching confidence
 """
 
-from collections import deque
-import random
-from statistics import mode
+import os
 
-import cv2
-import numpy as np
-import torch
+# Need to do this before the first numpy import
+os.environ["OMP_NUM_THREADS"] = "4"  # export OMP_NUM_THREADS=4
+os.environ["OPENBLAS_NUM_THREADS"] = "4"  # export OPENBLAS_NUM_THREADS=4
+os.environ["MKL_NUM_THREADS"] = "6"  # export MKL_NUM_THREADS=6
+os.environ["VECLIB_MAXIMUM_THREADS"] = "4"  # export VECLIB_MAXIMUM_THREADS=4
+os.environ["NUMEXPR_NUM_THREADS"] = "6"  # export NUMEXPR_NUM_THREADS=6
 
-from LookAround.config import Config
-from LookAround.core.agent import Agent
-from LookAround.core.improc import post_process_for_render, post_process_for_render_torch
-from LookAround.FindView.actions import FindViewActions
+from collections import deque  # noqa
+import random  # noqa
+from statistics import mode  # noqa
+
+import cv2  # noqa
+import numpy as np  # noqa
+import torch  # noqa
+
+from LookAround.config import Config  # noqa
+from LookAround.core.agent import Agent  # noqa
+from LookAround.core.improc import (  # noqa
+    post_process_for_render,
+    post_process_for_render_torch,
+)
+from LookAround.FindView.actions import FindViewActions  # noqa
 
 
 def movement_generator(size=4):
@@ -152,8 +164,6 @@ class FeatureMatchingAgent(Agent):
             raise ValueError("input image is not a valid type")
 
         # make it gray scale
-        n_threads = cv2.getNumThreads()
-        print('using', n_threads)
         gray_pers = cv2.cvtColor(pers, cv2.COLOR_BGR2GRAY)
         gray_target = cv2.cvtColor(target, cv2.COLOR_BGR2GRAY)
 
