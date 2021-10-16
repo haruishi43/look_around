@@ -65,9 +65,11 @@ CUDA_VISIBLE_DEVICES=0, python findview_baselines/agents/ppo.py --config configs
 Benchmark code for `feature matching`:
 
 ```Bash
-python findview_baselines/agents/feature_matching.py --config configs/findv
+OPENBLAS_NUM_THREADS=8, python findview_baselines/agents/feature_matching.py --config configs/findv
 iew/sun360/benchmarks/fm_alpha_indoor.py
 ```
+
+__NOTE__: since `numpy`'s threads are not limited, you would need to set the environment variables before running the script.
 
 ## Other scripts
 
