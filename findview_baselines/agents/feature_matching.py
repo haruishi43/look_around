@@ -65,7 +65,7 @@ class FeatureMatchingAgent(Agent):
         distance_threshold: int = 30,
         stop_threshold: int = 5,
         num_track_actions: int = 50,
-        num_threads: int = 1,
+        num_threads: int = 4,
         seed: int = 0,
     ) -> None:
 
@@ -75,7 +75,7 @@ class FeatureMatchingAgent(Agent):
         for action in self.movement_actions:
             assert action in FindViewActions.all
 
-        cv2.setNumThreads(num_threads)  # FIXME: doesn't really work...
+        cv2.setNumThreads(num_threads)
         self.rst = random.Random(seed)
 
         # feature matching criteria
