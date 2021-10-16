@@ -152,6 +152,8 @@ class FeatureMatchingAgent(Agent):
             raise ValueError("input image is not a valid type")
 
         # make it gray scale
+        n_threads = cv2.getNumThreads()
+        print('using', n_threads)
         gray_pers = cv2.cvtColor(pers, cv2.COLOR_BGR2GRAY)
         gray_target = cv2.cvtColor(target, cv2.COLOR_BGR2GRAY)
 

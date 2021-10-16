@@ -8,6 +8,7 @@ from os import PathLike
 import time
 from typing import List, Optional, Tuple, Union
 
+import cv2
 import numpy as np
 import torch
 from tqdm import tqdm
@@ -125,6 +126,7 @@ class FindViewBenchmark(object):
         os.environ["MKL_NUM_THREADS"] = "6"  # export MKL_NUM_THREADS=6
         os.environ["VECLIB_MAXIMUM_THREADS"] = "4"  # export VECLIB_MAXIMUM_THREADS=4
         os.environ["NUMEXPR_NUM_THREADS"] = "6"  # export NUMEXPR_NUM_THREADS=6
+        cv2.setNumThreads(1)
 
         self.env = FindViewEnv.from_config(
             cfg=cfg,
