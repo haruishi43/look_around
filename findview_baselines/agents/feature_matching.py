@@ -134,8 +134,7 @@ class FeatureMatchingAgent(Agent):
 
     def reset(self):
         # self.reset_movement_generator()
-        if self.prev_action is None:
-            self.prev_action = self.rst.choice(self.movement_actions)
+        self.prev_action = self.rst.choice(self.movement_actions)
         self.tracked_actions = deque(maxlen=self.num_track_actions)
 
     # def reset_movement_generator(self):
