@@ -179,6 +179,12 @@ class FindViewSim(object):
             self.is_torch = True
         elif dtype in (np.float32, np.float64):
             self.is_torch = False
+            # FIXME: warn the user that numpy will result in using all the threads
+            # unless they specifically change the environment variables
+            # https://stackoverflow.com/questions/30791550/limit-number-of-threads-in-numpy
+            # OPENBLAS_NUM_THREADS=4, python ...  for openblas
+            # MKL_NUM_THREADS=4, python ...  for mkl
+            # OMP_NUM_THREADS=4, python ...  for openmp
         else:
             raise ValueError(f"ERR: input dtype in invalid; {dtype}")
 
