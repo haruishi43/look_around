@@ -4,9 +4,9 @@
 Agent that moves in the direction where the features matches the target image
 
 FIXME:
-- [ ] Choose feature descriptors (ORB, SIFT, etc)
 - [ ] More robust movement generator
-- [ ] Debug parameters for matching confidence
+- [ ] Changing parameters
+- [ ] FLANN based matcher
 """
 
 # import os
