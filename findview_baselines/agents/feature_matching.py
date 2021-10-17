@@ -209,8 +209,8 @@ class FeatureMatchingAgent(Agent):
         for m in matches:
 
             # FIXME: add distance threshold
-            # if m.distance > self.distance_threshold:
-            #     continue
+            if m.distance > self.distance_threshold:
+                continue
 
             pers_loc = np.float32(kps_pers[m.queryIdx].pt)
             target_loc = np.float32(kps_target[m.trainIdx].pt)
