@@ -208,7 +208,7 @@ class FeatureMatchingAgent(Agent):
         actions = []
         for m in matches:
 
-            # FIXME: add distance threshold
+            # filter out matches
             if m.distance > self.distance_threshold:
                 continue
 
