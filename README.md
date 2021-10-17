@@ -90,3 +90,11 @@ python scripts/run_*.py --config <config>
 ```Bash
 mypy . --ignore-missing-imports
 ```
+
+## Jupyter Lab
+
+```Bash
+pip install jupyterlab
+
+jupyter lab --no-browser --port 8888
+```

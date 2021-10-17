@@ -114,7 +114,8 @@ class FeatureMatchingAgent(Agent):
         self.knn_matching = knn_matching
 
         # self.g = movement_generator(len(self.movement_actions)
-        self.prev_action = self.rst.choice(self.movement_actions)
+        self.initial_action_choice = ['right', 'left']
+        self.prev_action = self.rst.choice(self.initial_action_choice)
         self.tracked_actions = deque(maxlen=self.num_track_actions)
 
     @classmethod
@@ -134,7 +135,7 @@ class FeatureMatchingAgent(Agent):
 
     def reset(self):
         # self.reset_movement_generator()
-        self.prev_action = self.rst.choice(self.movement_actions)
+        self.prev_action = self.rst.choice(self.initial_action_choice)
         self.tracked_actions = deque(maxlen=self.num_track_actions)
 
     # def reset_movement_generator(self):
@@ -207,6 +208,7 @@ class FeatureMatchingAgent(Agent):
         actions = []
         for m in matches:
 
+            # FIXME: add distance threshold
             # if m.distance > self.distance_threshold:
             #     continue
 
