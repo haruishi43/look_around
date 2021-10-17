@@ -131,6 +131,7 @@ class FeatureMatchingAgent(Agent):
             stop_threshold=agent_cfg.stop_threshold,
             num_track_actions=agent_cfg.num_track_actions,
             num_threads=agent_cfg.num_threads,
+            seed=cfg.seed,
         )
 
     def reset(self):
