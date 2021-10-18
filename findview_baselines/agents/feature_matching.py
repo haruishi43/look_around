@@ -114,6 +114,7 @@ class FeatureMatchingAgent(Agent):
         self.knn_matching = knn_matching
 
         # self.g = movement_generator(len(self.movement_actions)
+        # FIXME: this prior might not be good
         self.initial_action_choice = ['right', 'left']
         self.prev_action = self.rst.choice(self.initial_action_choice)
         self.tracked_actions = deque(maxlen=self.num_track_actions)
