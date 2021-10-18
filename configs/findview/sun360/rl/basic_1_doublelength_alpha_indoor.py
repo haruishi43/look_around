@@ -2,7 +2,7 @@ _base_ = [
     './basic_1_alpha_indoor.py',
 ]
 trainer = dict(
-    identifier='half',
+    identifier='doublelength',
     num_envs=16,
     num_updates=30000,
     ckpt_interval=1000,

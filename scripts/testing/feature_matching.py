@@ -71,11 +71,10 @@ if __name__ == "__main__":
         sampling_mode=sampling_mode,
     )
     sim.inititialize_loader(
-        is_torch=True,
         dtype=dtype,
         device=torch.device('cpu'),
     )
-    sim.initialize_from_episode(
+    sim.load_episode(
         equi_path=img_path,
         initial_rotation=initial_rots,
         target_rotation=target_rots,
