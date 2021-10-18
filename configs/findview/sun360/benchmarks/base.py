@@ -1,6 +1,7 @@
 benchmark = dict(
     device='cpu',
     dtype="torch.float32",
+    num_threads=4,
     video_dir=(
         "{results_root}/benchmarks/"
         "findview_{dataset}_{version}_{category}/"
