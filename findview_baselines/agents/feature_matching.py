@@ -18,6 +18,7 @@ FIXME:
 # os.environ["NUMEXPR_NUM_THREADS"] = "6"  # export NUMEXPR_NUM_THREADS=6
 
 from collections import deque
+import math
 import random
 from statistics import mode
 
@@ -80,6 +81,9 @@ class FeatureMatchingAgent(Agent):
 
         # feature matching criteria
         self.num_matches = num_matches
+        if distance_threshold <= 0:
+            print("setting distance to inf")
+            distance_threshold = math.inf
         self.distance_threshold = distance_threshold
         self.stop_threshold = stop_threshold
         self.num_track_actions = num_track_actions
