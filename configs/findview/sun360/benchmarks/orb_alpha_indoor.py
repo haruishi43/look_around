@@ -4,9 +4,6 @@ _base_ = [
     '../agents/orb.py',
     './base.py',
 ]
-fm = dict(
-    feature_type="ORB",
-)
 benchmark = dict(
     device='cpu',
     dtype="np.float32",

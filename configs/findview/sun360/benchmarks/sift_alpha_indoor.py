@@ -4,9 +4,6 @@ _base_ = [
     '../agents/sift.py',
     './base.py',
 ]
-fm = dict(
-    feature_type="SIFT",
-)
 benchmark = dict(
     device='cpu',
     dtype="np.float32",
