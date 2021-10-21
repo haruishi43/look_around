@@ -137,6 +137,7 @@ if __name__ == "__main__":
         with open(path, 'rb') as f:
             splits[name] = pickle.load(f)
 
+    # should be 11487, 1432, 1439
     print("[train, val, test]", [len(s) for s in splits.values()])
 
     # check if the image exists
