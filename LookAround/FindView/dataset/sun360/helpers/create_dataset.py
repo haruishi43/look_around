@@ -11,6 +11,7 @@ import numpy as np
 from LookAround.FindView.dataset.sampling import (
     base_condition,
     easy_condition,
+    find_minimum,
     medium_condition,
     hard_condition,
     get_pitch_range,
@@ -120,6 +121,11 @@ def make_single_data_based_on_difficulty(
             base_cond(init_pitch, init_yaw, targ_pitch, targ_yaw)
             and cond(init_pitch, init_yaw, targ_pitch, targ_yaw)
         ):
+            # shortest path
+            diff_pitch = abs(init_pitch - targ_pitch)
+            diff_yaw = find_minimum(abs(init_yaw - targ_yaw))
+            shortest_path = int(diff_pitch + diff_yaw)  # NOTE: includes `stop` action
+
             return dict(
                 initial_rotation=dict(
                     roll=0,
@@ -132,9 +138,7 @@ def make_single_data_based_on_difficulty(
                     yaw=targ_yaw,
                 ),
                 difficulty=difficulty,
-                steps_for_shortest_path=int(
-                    np.abs(init_pitch - targ_pitch) + np.abs(init_yaw - targ_yaw)
-                ),  # NOTE: includes `stop` action
+                steps_for_shortest_path=shortest_path,
             )
         _count += 1
 
