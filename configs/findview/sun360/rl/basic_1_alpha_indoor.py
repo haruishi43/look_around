@@ -1,6 +1,6 @@
 _base_ = [
     '../agents/ppo.py',
-    '../rl_envs/basic.py',
+    '../rl_envs/basic_indoor.py',
     '../trainers/base.py',
 ]
 dataset = dict(

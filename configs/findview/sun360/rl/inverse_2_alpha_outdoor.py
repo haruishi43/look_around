@@ -1,6 +1,6 @@
 _base_ = [
     '../agents/ppo.py',
-    '../rl_envs/bell_indoor.py',
+    '../rl_envs/inverse_outdoor.py',
     '../trainers/base.py',
 ]
 dataset = dict(
@@ -8,11 +8,10 @@ dataset = dict(
     bounded=False,
 )
 rl_env = dict(
-    success_reward=10.0,
-    param=5,
+    param=10.0,
 )
 trainer = dict(
-    run_id=2,
+    run_id=1,
     num_updates=15000,
     ckpt_interval=500,
     log_interval=10,

@@ -1,23 +1,21 @@
 _base_ = [
-    '../agents/ppo.py',
-    '../rl_envs/bell_indoor.py',
-    '../trainers/base.py',
+    './inverse_1_alpha_indoor.py',
 ]
 dataset = dict(
     difficulty='easy',
     bounded=False,
 )
 rl_env = dict(
-    success_reward=10.0,
-    param=5,
+    param=10.0,
 )
 trainer = dict(
     run_id=2,
-    num_updates=15000,
-    ckpt_interval=500,
+    identifier='doublelength',
+    num_updates=30000,
+    ckpt_interval=1000,
     log_interval=10,
 )
 scheduler = dict(
     initial_difficulty='easy',
-    update_interval=5000,
+    update_interval=10000,
 )
