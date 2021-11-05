@@ -1,5 +1,5 @@
 _base_ = [
-    './bell_2_alpha_outdoor',
+    './bell_2_alpha_outdoor.py',
 ]
 trainer = dict(
     run_id=2,
