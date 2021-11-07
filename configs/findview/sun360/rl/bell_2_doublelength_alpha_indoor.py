@@ -1,16 +1,6 @@
 _base_ = [
-    '../agents/ppo.py',
-    '../rl_envs/bell_indoor.py',
-    '../trainers/base.py',
+    './bell_2_alpha_indoor.py',
 ]
-dataset = dict(
-    difficulty='easy',
-    bounded=False,
-)
-rl_env = dict(
-    success_reward=10.0,
-    param=5,
-)
 trainer = dict(
     run_id=2,
     identifier='doublelength',
@@ -22,3 +12,4 @@ scheduler = dict(
     initial_difficulty='easy',
     update_interval=10000,
 )
+
