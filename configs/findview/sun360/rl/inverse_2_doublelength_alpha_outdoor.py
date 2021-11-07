@@ -1,5 +1,5 @@
 _base_ = [
-    './inverse_2_alpha_indoor.py',
+    './inverse_2_alpha_outdoor.py',
 ]
 dataset = dict(
     difficulty='easy',
