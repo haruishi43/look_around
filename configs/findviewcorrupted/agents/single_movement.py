@@ -1,0 +1,3 @@
+sm = dict(
+    action="right",
+)
