@@ -1,13 +1,6 @@
 _base_ = [
     './inverse_2.py',
 ]
-dataset = dict(
-    difficulty='easy',
-    bounded=False,
-)
-rl_env = dict(
-    param=10.0,
-)
 trainer = dict(
     run_id=2,
     identifier='doublelength',
