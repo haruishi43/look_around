@@ -2,7 +2,6 @@
 
 """Simple script for creating SUN360 Datset for FindView
 
-Alpha is pretty much experimental, therefore the splits are random
 """
 
 import argparse
@@ -15,7 +14,7 @@ from tqdm import tqdm
 
 from LookAround.config import Config
 from LookAround.utils.random import seed
-from LookAround.FindView.dataset.sun360.helpers.alpha import (
+from LookAround.FindView.dataset.sun360.helpers.gamma import (
     gather_image_paths_in_category,
     create_splits_for_category,
     check_single_data_based_on_difficulty,
@@ -105,15 +104,16 @@ if __name__ == "__main__":
             category_path=category_path,
             data_root=sun360_root,
         )
+        total = sum([len(p) for p in img_paths.values()])
 
         # make splits
         train, val, test = create_splits_for_category(img_paths, split_ratios)
-        assert sum([len(p) for p in img_paths.values()]) == len(train) + len(val) + len(test)
 
         print("train:", len(train))
         print("val:", len(val))
         print("test:", len(test))
         print("all:", len(train) + len(val) + len(test))
+        assert total == len(train) + len(val) + len(test)
 
         # save splits
         splits = {
@@ -137,7 +137,6 @@ if __name__ == "__main__":
         with open(path, 'rb') as f:
             splits[name] = pickle.load(f)
 
-    # should be 11487, 1432, 1439
     print("[train, val, test]", [len(s) for s in splits.values()])
 
     # check if the image exists

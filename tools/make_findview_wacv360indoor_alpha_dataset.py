@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 
-"""Simple script for creating SUN360 Datset for FindView
+"""Simple script for creating 360-Indoor Datset for FindView
 
-Alpha is pretty much experimental, therefore the splits are random
+- How to deal with no `label` or `sub_label`
 """
 
 import argparse
@@ -15,9 +15,9 @@ from tqdm import tqdm
 
 from LookAround.config import Config
 from LookAround.utils.random import seed
-from LookAround.FindView.dataset.sun360.helpers.alpha import (
-    gather_image_paths_in_category,
-    create_splits_for_category,
+from LookAround.FindView.dataset.wacv360indoor.helpers.alpha import (
+    gather_image_paths,
+    create_splits,
     check_single_data_based_on_difficulty,
     make_single_data_based_on_difficulty,
 )
@@ -61,14 +61,14 @@ if __name__ == "__main__":
     print(cfg.pretty_text)
 
     # params
-    sun360_root = os.path.join(cfg.data_root, cfg.dataset.name)
-    dataset_root = os.path.join(cfg.dataset_root, cfg.dataset.name, cfg.dataset.version, cfg.dataset.category)
+    wacv360_root = os.path.join(cfg.data_root, cfg.dataset.name)
+    dataset_root = os.path.join(cfg.dataset_root, cfg.dataset.name, cfg.dataset.version)
     split_ratios = cfg.dataset.split_ratios
 
     # check params
     seed(cfg.seed)  # NOTE: should be 0
     assert sum(split_ratios) == 1.0
-    assert os.path.exists(sun360_root)
+    assert os.path.exists(wacv360_root)
     assert os.path.exists(dataset_root)
 
     # splits paths
@@ -84,36 +84,27 @@ if __name__ == "__main__":
     # 1. Create Splits (if needed)
 
     if args.rebuild_splits or not all(os.path.exists(p) for p in split_paths.values()):
-        print(f">>> BUILDING SPLITS for {cfg.dataset.category}")
-        assert cfg.dataset.category in ["indoor", "outdoor"]  # not using `others`
-        category_paths = {
-            "indoor": os.path.join(sun360_root, "indoor"),
-            "outdoor": os.path.join(sun360_root, "outdoor"),
-            "others": os.path.join(sun360_root, "others"),
-        }
+        print(">>> BUILDING SPLITS")
+        img_root = os.path.join(wacv360_root, 'images')
 
-        category_path = os.path.join(sun360_root, cfg.dataset.category)
-        assert os.path.exists(category_path)
-
-        # FIXME: better way of creating dataset
-        # sub category aware
-        # - some sub category has less than 3 images while other will have hundreds
-        # - `others` consume more than half the images
+        # TODO: use `data_list`'s split when running FindObject
+        # osplit_root = os.path.join(wacv360_root, 'data_list')
 
         # get all image paths
-        img_paths = gather_image_paths_in_category(
-            category_path=category_path,
-            data_root=sun360_root,
+        img_paths = gather_image_paths(
+            img_root=img_root,
+            data_root=wacv360_root,
         )
+        total = len(img_paths)
 
         # make splits
-        train, val, test = create_splits_for_category(img_paths, split_ratios)
-        assert sum([len(p) for p in img_paths.values()]) == len(train) + len(val) + len(test)
+        train, val, test = create_splits(img_paths, split_ratios)
 
         print("train:", len(train))
         print("val:", len(val))
         print("test:", len(test))
         print("all:", len(train) + len(val) + len(test))
+        assert total == len(train) + len(val) + len(test)
 
         # save splits
         splits = {
@@ -137,14 +128,13 @@ if __name__ == "__main__":
         with open(path, 'rb') as f:
             splits[name] = pickle.load(f)
 
-    # should be 11487, 1432, 1439
     print("[train, val, test]", [len(s) for s in splits.values()])
 
     # check if the image exists
     for name, paths in splits.items():
         print(f"checking for images in {name} with {len(paths)} images")
         for path in tqdm(paths):
-            assert os.path.exists(os.path.join(sun360_root, path)), \
+            assert os.path.exists(os.path.join(wacv360_root, path)), \
                 f"ERR: {path} doesn't exist! Did the dataset change?"
 
     # NOTE: make dataset for `val` and `test` only?
@@ -209,7 +199,7 @@ if __name__ == "__main__":
 
                 name = data["img_name"]
                 path = data["path"]
-                assert os.path.exists(os.path.join(sun360_root, path))
+                assert os.path.exists(os.path.join(wacv360_root, path))
 
                 initial_rotation = data["initial_rotation"]
                 target_rotation = data["target_rotation"]
@@ -251,20 +241,13 @@ if __name__ == "__main__":
             # FIXME: make sure that it doesn't overflow
             eps_id = 0
             for img in tqdm(img_paths):
-                assert os.path.exists(os.path.join(sun360_root, img)), f"{img} doesn't exist"
-
-                # get cat and subcat
-                # img_path is
-                s = img.split('/')
-                assert len(s) == 3, f"{img} is not valid"
-                category = s[0]
-                sub_category = s[1]
+                assert os.path.exists(os.path.join(wacv360_root, img)), f"{img} doesn't exist"
 
                 base = {
                     "img_name": os.path.splitext(os.path.split(img)[-1])[0],
                     "path": img,
-                    "label": category,
-                    "sub_label": sub_category,
+                    "label": "indoor",
+                    "sub_label": "main",  # FIXME: no sub_labels yet
                 }
 
                 # FIXME: make sure that there won't be identical episodes
@@ -345,20 +328,13 @@ if __name__ == "__main__":
 
             dataset = []
             for img in tqdm(train_imgs):
-                assert os.path.exists(os.path.join(sun360_root, img)), f"{img} doesn't exist"
-
-                # get cat and subcat
-                # img_path is
-                s = img.split('/')
-                assert len(s) == 3, f"{img} is not valid"
-                category = s[0]
-                sub_category = s[1]
+                assert os.path.exists(os.path.join(wacv360_root, img)), f"{img} doesn't exist"
 
                 base = {
                     "img_name": os.path.splitext(os.path.split(img)[-1])[0],
                     "path": img,
-                    "label": category,
-                    "sub_label": sub_category,
+                    "label": "indoor",
+                    "sub_label": "main",  # FIXME: no sub_label yet
                 }
                 dataset.append(base)
 

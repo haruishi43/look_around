@@ -1,7 +1,7 @@
 _base_ = [
     '../_base_/rl_envs/bell.py',
     '../../../agents/ppo.py',
-    '../../../_base_/trainer.py',
+    '../_base_/trainer.py',
 ]
 dataset = dict(
     difficulty='easy',

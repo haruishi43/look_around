@@ -1,6 +1,3 @@
-_base_ = [
-    '../_base_/benchmark.py',
-]
 fm = dict(
     feature_type="ORB",
     matcher_type="BF",
@@ -12,8 +9,3 @@ fm = dict(
     num_track_actions=50,
     num_threads=4,
 )
-benchmark = dict(
-    device='cpu',
-    dtype="np.float32",
-)
-

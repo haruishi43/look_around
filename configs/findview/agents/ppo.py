@@ -1,6 +1,3 @@
-_base_ = [
-    '../_base_/benchmark.py',
-]
 policy = dict(
     action_distribution_type="categorical",
     use_log_std=False,
@@ -30,8 +27,4 @@ ppo = dict(
     use_normalized_advantage=False,
     hidden_size=512,
     use_double_buffered_sampler=False,
-)
-benchmark = dict(
-    device=0,
-    dtype="torch.float32",
 )

@@ -222,4 +222,9 @@ def check_single_data_based_on_difficulty(
     )
 
     # NOTE: includes `stop` action
-    assert int(np.abs(init_pitch - targ_pitch) + np.abs(init_yaw - targ_yaw)) == short_step
+    # shortest path
+    diff_pitch = abs(init_pitch - targ_pitch)
+    diff_yaw = find_minimum(abs(init_yaw - targ_yaw))
+    shortest_path = int(diff_pitch + diff_yaw)  # NOTE: includes `stop` action
+
+    assert shortest_path == short_step

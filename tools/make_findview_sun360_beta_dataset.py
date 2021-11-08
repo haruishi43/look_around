@@ -1,13 +1,6 @@
 #!/usr/bin/env python3
 
 """Simple script for creating SUN360 Datset for FindView
-
-FIXME: change how we split the data
-- `others` should be train
-- val and test should have at least 1 images when the total of sub category images are greater than 3
-- test should be prioritized when sub category images is 2
-- when sub category images are 1, put it in test
-
 """
 
 import argparse
@@ -20,7 +13,7 @@ from tqdm import tqdm
 
 from LookAround.config import Config
 from LookAround.utils.random import seed
-from LookAround.FindView.dataset.sun360.helpers.create_dataset import (
+from LookAround.FindView.dataset.sun360.helpers.beta import (
     gather_image_paths_in_category,
     create_splits_for_category,
     check_single_data_based_on_difficulty,
@@ -100,25 +93,21 @@ if __name__ == "__main__":
         category_path = os.path.join(sun360_root, cfg.dataset.category)
         assert os.path.exists(category_path)
 
-        # FIXME: better way of creating dataset
-        # sub category aware
-        # - some sub category has less than 3 images while other will have hundreds
-        # - `others` consume more than half the images
-
         # get all image paths
         img_paths = gather_image_paths_in_category(
             category_path=category_path,
             data_root=sun360_root,
         )
+        total = sum([len(p) for p in img_paths.values()])
 
         # make splits
         train, val, test = create_splits_for_category(img_paths, split_ratios)
-        assert sum([len(p) for p in img_paths.values()]) == len(train) + len(val) + len(test)
 
         print("train:", len(train))
         print("val:", len(val))
         print("test:", len(test))
         print("all:", len(train) + len(val) + len(test))
+        assert total == len(train) + len(val) + len(test)
 
         # save splits
         splits = {
@@ -208,7 +197,7 @@ if __name__ == "__main__":
             id_count = 0  # iterating though list takes too much...
             for data in tqdm(dataset):
                 eps_id = data["episode_id"]
-                assert eps_id == id_count
+                # assert eps_id == id_count
                 id_count += 1
 
                 name = data["img_name"]

@@ -1,6 +1,4 @@
-_base_ = [
-    '../defaults.py'
-]
+_base_ = ['../dataset.py']
 dataset = dict(
     name='sun360',
     version='beta',
@@ -9,14 +7,7 @@ dataset = dict(
     num_easy=2,
     num_medium=4,
     num_hard=4,
-    difficulty='easy',
-    bounded=False,
     fov=90.0,
-    min_steps=10,
-    max_steps=5000,
-    step_size=1,
-    pitch_threshold=60,
-    max_seconds=10000000,
     json_path=(
         "{root}/"
         "{name}/"
@@ -24,7 +15,4 @@ dataset = dict(
         "{category}/"
         "{split}.json"
     ),
-    mu=0.0,
-    sigma=0.3,
-    sample_limit=100000,
 )

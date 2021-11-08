@@ -1,0 +1,52 @@
+_base_ = ['../../../_base_/trainer.py']
+trainer = dict(
+    ckpt_dir=(
+        "{results_root}/checkpoints/"
+        "findview_{dataset}_{version}/"
+        "{rlenv}/"
+        "run_{run_id}"
+    ),
+    tb_dir=(
+        "{tb_root}/"
+        "findview_{dataset}_{version}/"
+        "{rlenv}/"
+        "run_{run_id}"
+    ),
+    log_file=(
+        "{log_root}/"
+        "findview_{dataset}_{version}/"
+        "{rlenv}/"
+        "{split}/"
+        "run_{run_id}.log"
+    ),
+)
+validator = dict(
+    video_dir=(
+        "{results_root}/videos/"
+        "findview_{dataset}_{version}/"
+        "{rlenv}/"
+        "{split}/"
+        "run_{run_id}"
+    ),
+    metric_dir=(
+        "{results_root}/metrics/"
+        "findview_{dataset}_{version}/"
+        "{rlenv}/"
+        "{split}/"
+        "run_{run_id}"
+    ),
+    tb_dir=(
+        "{tb_root}/"
+        "findview_{dataset}_{version}/"
+        "{rlenv}/"
+        "{split}/"
+        "run_{run_id}"
+    ),
+    log_file=(
+        "{log_root}/"
+        "findview_{dataset}_{version}/"
+        "{rlenv}/"
+        "{split}/"
+        "run_{run_id}.log"
+    ),
+)
