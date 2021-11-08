@@ -3,7 +3,7 @@ _base_ = [
     '../../../_base_/env.py',
 ]
 sim = dict(
-    height=256,
-    width=192,
+    height=192,
+    width=256,
     fov=60.0,
 )
