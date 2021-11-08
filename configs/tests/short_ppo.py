@@ -1,7 +1,7 @@
 _base_ = [
-    '../findview/sun360/agents/ppo.py',
-    '../findview/sun360/rl_envs/basic.py',
-    '../findview/sun360/trainers/base.py',
+    '../agents/ppo.py',
+    '../findview/sun360/alpha/indoor/rl_envs/basic.py',
+    '../findview/sun360/_base_/trainer.py',
 ]
 dataset = dict(
     difficulty='easy',
