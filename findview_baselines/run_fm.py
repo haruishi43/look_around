@@ -75,7 +75,7 @@ def single(
     _cfg = deepcopy(cfg)
     _cfg.fm.distance_threshold = threshold
     print(cfg.fm.distance_threshold, _cfg.fm.distance_threshold)
-    agent = FeatureMatchingAgent.from_config(cfg)
+    agent = FeatureMatchingAgent.from_config(_cfg)
 
     # Name:
     name = f"fm_{cfg.fm.feature_type}"
