@@ -70,7 +70,7 @@ class FeatureMatchingAgent(Agent):
         seed: int = 0,
     ) -> None:
 
-        self.name = 'fm'
+        self.name = f'fm_{feature_type}'
         self.movement_actions = ["up", "right", "down", "left"]
         self.stop_action = "stop"
         for action in self.movement_actions:
@@ -320,7 +320,11 @@ def main():
         cfg=cfg,
         agent_name=name,
     )
-    benchmark.evaluate(agent)
+    num_episodes = 10  # FIXME: hardcoded for debug
+    benchmark.evaluate(
+        agent,
+        num_episodes=num_episodes,
+    )
 
 
 if __name__ == "__main__":

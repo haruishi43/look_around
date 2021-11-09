@@ -38,7 +38,7 @@ def filter_out_sub_labels(
 
 def joint_filter(
     episode: Episode,
-    remove_labels: Union[List[str]],
+    remove_labels: Union[List[str], Tuple[str]],
     difficulties: List[str],
 ) -> bool:
     return (
@@ -295,6 +295,7 @@ class FindViewBenchmark(object):
                         f"difficulty-{current_episode.difficulty}_"
                         f"label-{current_episode.sub_label}"
                     )
+
                     generate_movement_video(
                         output_dir=self.video_dir,
                         video_name=video_name,
@@ -304,6 +305,8 @@ class FindViewBenchmark(object):
                         pers_bboxs=pers_bboxs,
                         target_bbox=target_bbox,
                         actions=actions,
+                        equi_size=(512, 1024),
+                        pers_size=pers[0].shape[:2],
                         add_text=False,
                         fps=30,
                     )

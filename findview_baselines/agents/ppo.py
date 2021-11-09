@@ -94,7 +94,7 @@ class PPOAgent(Agent):
         step_id = ckpt_dict['extra_state']['num_steps_done']
         agent_name += f'_{str(step_id)}'
 
-        self.name = agent_name
+        self.name = agent_name  # NOTE: setting agent name here!
 
         # load model configuration from ckpt
         ppo_cfg = ckpt_cfg.ppo
