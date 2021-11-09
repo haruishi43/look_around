@@ -305,7 +305,7 @@ class FindViewBenchmark(object):
                         pers_bboxs=pers_bboxs,
                         target_bbox=target_bbox,
                         actions=actions,
-                        equi_size=(512, 1024),
+                        equi_size=(1024, 512),
                         pers_size=pers[0].shape[:2],
                         add_text=False,
                         fps=30,
