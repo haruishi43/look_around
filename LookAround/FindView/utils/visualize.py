@@ -147,7 +147,8 @@ def generate_movement_video(
             dtype=np.uint8,
         )
     if equi.shape[:2] != equi_size:
-        equi = cv2.resize(equi, equi_size, interpolation=cv2.INTER_LINEAR)
+        dim = (equi_size[1], equi_size[0])
+        equi = cv2.resize(equi, dim, interpolation=cv2.INTER_LINEAR)
 
     # 2. resize and put boundary on perspective images
     initial_pers = deepcopy(pers[0])
