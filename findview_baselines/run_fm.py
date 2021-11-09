@@ -52,10 +52,12 @@ def joint_filter(
 
 def single(
     cfg: Config,
+    dataset_name: str,
     threshold: int,
     difficulty: str,
     remove_labels: List[str],
     num_episodes_per_img: int = 1,
+    num_episodes: int = -1,
 ) -> float:
     filter_fn = partial(
         joint_filter,
@@ -82,20 +84,6 @@ def single(
     else:
         name += f'_{threshold}'
 
-    if _cfg.dataset.name == 'sun360':
-        dataset_name = "findview_{dataset}_{version}_{category}".format(
-            dataset=_cfg.dataset.name,
-            version=_cfg.dataset.version,
-            category=_cfg.dataset.category,
-        )
-    elif _cfg.dataset.name == 'wacv360indoor':
-        dataset_name = "findview_{dataset}_{version}".format(
-            dataset=_cfg.dataset.name,
-            version=_cfg.dataset.version,
-        )
-    else:
-        raise ValueError()
-
     save_path = os.path.join(
         'results',
         'fm_validations',
@@ -105,27 +93,20 @@ def single(
     parent_path = os.path.dirname(save_path)
     if not os.path.exists(parent_path):
         os.makedirs(parent_path, exist_ok=True)
-    log_path = os.path.join(
-        _cfg.log_root,
-        'fm_validations',
-        dataset_name,
-        f'{difficulty}_{name}.log',
-    )
-    parent_path = os.path.dirname(log_path)
-    if not os.path.exists(parent_path):
-        os.makedirs(parent_path, exist_ok=True)
+
+    logger.info(f"Evaluating Agent {name} for {difficulty}")
 
     # Evaluation
-    logger.add_filehandler(log_path)
     episodes_metrics = []
     env_times = []
     act_times = []
 
-    num_episodes = len(env.episodes)
+    if num_episodes <= 0:
+        num_episodes = len(env.episodes)
+    else:
+        assert num_episodes > 0
     pbar = tqdm(total=num_episodes)
     count_episodes = 0
-
-    logger.info(f"Evaluating Agent {name} for {difficulty}")
     while count_episodes < num_episodes:
         t = time.time()
         observations = env.reset()
@@ -209,6 +190,12 @@ def main():
         default='easy',
     )
     parser.add_argument(
+        "--num-episodes",
+        type=int,
+        default=100,
+        help='number of episodes per evaluation',
+    )
+    parser.add_argument(
         '--options',
         nargs='+',
         action=DictAction,
@@ -221,6 +208,7 @@ def main():
 def run_exp(
     config: str,
     diff: str,
+    num_episodes: int,
     options,
 ) -> None:
     cfg = Config.fromfile(config)
@@ -234,16 +222,65 @@ def run_exp(
     # Params:
     remove_labels = ["others"]  # NOTE: hard-coded
     difficulty = diff
+    num_episodes = num_episodes
+    if cfg.dataset.name == 'sun360':
+        dataset_name = "findview_{dataset}_{version}_{category}".format(
+            dataset=cfg.dataset.name,
+            version=cfg.dataset.version,
+            category=cfg.dataset.category,
+        )
+    elif cfg.dataset.name == 'wacv360indoor':
+        dataset_name = "findview_{dataset}_{version}".format(
+            dataset=cfg.dataset.name,
+            version=cfg.dataset.version,
+        )
+    else:
+        raise ValueError()
 
-    single(
+    log_path = os.path.join(
+        cfg.log_root,
+        'fm_validations',
+        dataset_name,
+        f'{difficulty}_fm_{cfg.fm.feature_type}.log',
+    )
+    parent_path = os.path.dirname(log_path)
+    if not os.path.exists(parent_path):
+        os.makedirs(parent_path, exist_ok=True)
+    logger.add_filehandler(log_path)
+
+    metrics_by_thresholds = {}
+
+    # Test infinite first
+    distance = single(
         cfg=cfg,
+        dataset_name=dataset_name,
         threshold=-1,
         difficulty=difficulty,
         remove_labels=remove_labels,
         num_episodes_per_img=1,
+        num_episodes=num_episodes,
     )
+    metrics_by_thresholds['inf'] = distance
 
-    print('end')
+    thresholds = [10, 20, 30, 40, 50, 60, 70, 80, 90, 100]
+
+    for threshold in thresholds:
+        distance = single(
+            cfg=cfg,
+            dataset_name=dataset_name,
+            threshold=threshold,
+            difficulty=difficulty,
+            remove_labels=remove_labels,
+            num_episodes_per_img=1,
+            num_episodes=num_episodes,
+        )
+        metrics_by_thresholds[threshold] = distance
+
+    for threshold, distance in metrics_by_thresholds.items():
+        logger.info(f"{threshold}: {distance}")
+
+    best_threshold = min(metrics_by_thresholds, key=metrics_by_thresholds.get)
+    logger.info(f"best threshold is... {best_threshold}")
 
 
 if __name__ == "__main__":

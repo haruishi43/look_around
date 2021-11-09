@@ -320,11 +320,7 @@ def main():
         cfg=cfg,
         agent_name=name,
     )
-    num_episodes = 10  # FIXME: hardcoded for debug
-    benchmark.evaluate(
-        agent,
-        num_episodes=num_episodes,
-    )
+    benchmark.evaluate(agent)
 
 
 if __name__ == "__main__":
