@@ -176,6 +176,7 @@ def main():
     from LookAround.config import DictAction
     from LookAround.FindView.benchmark import FindViewBenchmark
     from LookAround.FindView.benchmark import CorruptedFindViewBenchmark
+    from LookAround.FindView.corruptions import get_corruption_names
 
     parser = argparse.ArgumentParser()
     parser.add_argument(
@@ -197,6 +198,11 @@ def main():
         '--corrupted',
         action='store_true',
         help='use corrupted',
+    )
+    parser.add_argument(
+        '--all',
+        action='store_true',
+        help='benchmark all corruptions'
     )
     parser.add_argument(
         '--options',
@@ -235,19 +241,29 @@ def main():
     # Benchmark
     print(f"Benchmarking {name}")
     if args.corrupted:
-        benchmark = CorruptedFindViewBenchmark(
-            cfg=cfg,
-            agent_name=name,
-        )
-        num_episodes = 50
+        num_episodes = 60
         # TODO: create a script that evaluates each corruptions
+        if args.all:
+            corruptions = get_corruption_names('all')
+            for corruption in corruptions:
+                cfg.benchmark.corruption = corruption
+                benchmark = CorruptedFindViewBenchmark(
+                    cfg=cfg,
+                    agent_name=name,
+                )
+                benchmark.evaluate(agent, num_episodes)
+        else:
+            benchmark = CorruptedFindViewBenchmark(
+                cfg=cfg,
+                agent_name=name,
+            )
+            benchmark.evaluate(agent, num_episodes)
     else:
         benchmark = FindViewBenchmark(
             cfg=cfg,
             agent_name=name,
         )
-        num_episodes = None
-    benchmark.evaluate(agent, num_episodes)
+        benchmark.evaluate(agent)
 
 
 if __name__ == "__main__":
