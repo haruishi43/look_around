@@ -157,7 +157,7 @@ class CorruptionModule(object):
             # NOTE: assume target type is float
             # convert to chw and float
             if is_torch:
-                corrupted = to_tensor(corrupted)
+                corrupted = to_tensor(np.array(corrupted))
                 corrupted = corrupted.type(dtype)
                 corrupted = corrupted.to(device)
             else:
