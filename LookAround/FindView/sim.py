@@ -156,6 +156,11 @@ class FindViewSim(object):
         """Make sure that access to target is always a clone"""
         return copy_tensor(self._target)
 
+    @target.setter
+    def target(self, image: Tensor):
+        """This is used to change target image (for corruption)"""
+        self._target = image
+
     @property
     def pers(self) -> Tensor:
         """Make sure that access to pers is always a clone"""
