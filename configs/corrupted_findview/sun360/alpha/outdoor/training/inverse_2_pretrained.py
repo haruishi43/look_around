@@ -2,21 +2,18 @@ _base_ = [
     './inverse_2.py',
 ]
 trainer = dict(
-    identifier='half',
-    num_envs=8,
-    num_updates=30000,
-    ckpt_interval=1000,
+    identifier='adapted',
+    num_updates=15000,
+    ckpt_interval=500,
     log_interval=10,
-)
-validator = dict(
-    num_envs=8,
+    pretrained='./pretrained/run_2/ckpt.best.pth',
 )
 scheduler = dict(
     initial_difficulty='easy',
-    update_interval=10000,
+    update_interval=2500,
 )
 corruption_scheduler = dict(
     initial_severity=0,
     max_severity=5,
-    update_interval=5000,
+    update_interval=2500,
 )

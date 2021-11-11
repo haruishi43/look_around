@@ -3,3 +3,6 @@ pyequilib
 imageio
 imageio-ffmpeg
 moviepy
+scikit-image
+scipy
+numba

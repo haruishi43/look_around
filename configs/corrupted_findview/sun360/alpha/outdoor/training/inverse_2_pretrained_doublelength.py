@@ -1,16 +1,16 @@
 _base_ = [
-    './bell_2.py',
+    './inverse_2.py',
 ]
 trainer = dict(
-    run_id=2,
-    identifier='doublelength',
+    identifier='adapted_doublelength',
     num_updates=30000,
     ckpt_interval=1000,
     log_interval=10,
+    pretrained='./pretrained/run_2_doublelength/ckpt.28.pth',
 )
 scheduler = dict(
     initial_difficulty='easy',
-    update_interval=10000,
+    update_interval=5000,
 )
 corruption_scheduler = dict(
     initial_severity=0,
