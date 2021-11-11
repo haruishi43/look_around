@@ -23,25 +23,25 @@ class CorruptionModule(object):
     severity_levels = (0, 1, 2, 3, 4, 5)
 
     _corruptions: List[str]
-    _severity: int
+    _severity: Union[int, List[int]]
+    _use_clear: bool
     _bounded: bool
 
     def __init__(
         self,
         corruptions: Union[List[str], Tuple[str], str],
-        severity: int = 0,
+        severity: int = 1,
         bounded: bool = True,
+        use_clear: bool = True,
         seed: int = 0,
         deterministic: bool = True,
     ) -> None:
 
-        assert severity in self.severity_levels, \
-            f"ERR: given severity is {severity}"
-        self._severity = severity
+        self._use_clear = use_clear
         self._bounded = bounded
+        self.severity = severity
 
         _names = get_corruption_names(subset='all')
-
         if isinstance(corruptions, str):
             corruptions = [corruptions]
         assert len(corruptions) > 0
@@ -71,6 +71,7 @@ class CorruptionModule(object):
             corruptions=corruptions,
             severity=cfg.corrupter.severity,
             bounded=cfg.corrupter.bounded,
+            use_clear=cfg.corrupter.use_clear,
             seed=cfg.seed,
             deterministic=cfg.corrupter.deterministic,
         )
@@ -80,15 +81,25 @@ class CorruptionModule(object):
         return self._corruptions
 
     @property
-    def severity(self) -> int:
+    def severity(self) -> Union[int, List[int]]:
         assert self._severity is not None
         return self._severity
 
     @severity.setter
-    def severity(self, level: int):
-        assert level in self.severity_levels, \
-            f"ERR: given severity is {level}"
-        self._severity = level
+    def severity(self, severity: int):
+        assert severity in self.severity_levels, \
+            f"ERR: given severity is {severity}"
+        if self._use_clear:
+            if self._bounded:
+                self._severity = severity
+            else:
+                self._severity = list(range(severity + 1))
+        else:
+            assert severity > 0
+            if self._bounded:
+                self._severity = severity
+            else:
+                self._serverity = list(range(1, severity + 1))
 
     def corrupt(
         self,
@@ -102,57 +113,61 @@ class CorruptionModule(object):
         else:
             name = self.rst.choice(self._corruptions)
 
-        if self._bounded:
+        if isinstance(self._severity, list):
+            severity = self.rst.choice(self._severity)
+        elif isinstance(self._severity, int):
             severity = self._severity
         else:
-            # FIXME: we assume that severities are indexed in order from 0
-            severities = self.severity_levels[:self._severity + 1]
-            severity = self.rst.choice(severities)
+            raise ValueError()
 
-        # convert to rgb numpy hwc
-        if torch.is_tensor(img):
-            is_torch = True
-            device = img.device
-            dtype = img.dtype
-            assert dtype in (torch.float16, torch.float32, torch.float64)
-            img = post_process_for_render_torch(
-                img=img,
-                to_bgr=False,
-            )
+        if severity > 0:
+            # convert to rgb numpy hwc
+            if torch.is_tensor(img):
+                is_torch = True
+                device = img.device
+                dtype = img.dtype
+                assert dtype in (torch.float16, torch.float32, torch.float64)
+                img = post_process_for_render_torch(
+                    img=img,
+                    to_bgr=False,
+                )
+            else:
+                is_torch = False
+                dtype = img.dtype
+                assert dtype in (np.float32, np.float64)
+                img = post_process_for_render(
+                    img=img,
+                    to_bgr=False,
+                )
+
+            # FIXME: might fail miserably in threaded...
+            if self.deterministic:
+                state = np.random.get_state()
+                np.random.seed(self.seed_value)
+
+            corrupted = corrupt(
+                image=img,
+                severity=severity,
+                corruption_name=name,
+            )  # output is np.uint8
+
+            if self.deterministic:
+                np.random.set_state(state)
+
+            # NOTE: assume target type is float
+            # convert to chw and float
+            if is_torch:
+                corrupted = to_tensor(corrupted)
+                corrupted = corrupted.type(dtype)
+                corrupted = corrupted.to(device)
+            else:
+                corrupted = np.transpose(corrupted, (2, 0, 1))
+                corrupted = corrupted / 255.0
+                corrupted = corrupted.astype(dtype)
+
+            return corrupted, name, severity
         else:
-            is_torch = False
-            dtype = img.dtype
-            assert dtype in (np.float32, np.float64)
-            img = post_process_for_render(
-                img=img,
-                to_bgr=False,
-            )
-
-        if self.deterministic:
-            state = np.random.get_state()
-            np.random.seed(self.seed_value)
-
-        corrupted = corrupt(
-            image=img,
-            severity=severity,
-            corruption_name=name,
-        )  # output is np.uint8
-
-        if self.deterministic:
-            np.random.set_state(state)
-
-        # NOTE: assume target type is float
-        # convert to chw and float
-        if is_torch:
-            corrupted = to_tensor(corrupted)
-            corrupted = corrupted.type(dtype)
-            corrupted = corrupted.to(device)
-        else:
-            corrupted = np.transpose(corrupted, (2, 0, 1))
-            corrupted = corrupted / 255.0
-            corrupted = corrupted.astype(dtype)
-
-        return corrupted, name, severity
+            return img, name, severity
 
     def seed(self, seed: int) -> None:
         # multi-thread safe
@@ -269,7 +284,7 @@ class CorruptedFindViewEnv(FindViewEnv):
     def get_corruption_names(self) -> List[str]:
         return self._corruptor._corruptions
 
-    def change_corruption_levels(
+    def change_severity(
         self,
         severity: int,
     ) -> None:

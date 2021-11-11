@@ -10,7 +10,8 @@ episode_iterator_kwargs = dict(
 )
 corrupter = dict(
     corruptions='all',
-    severity=3,
+    severity=1,
     bounded=True,
+    use_clear=True,
     deterministic=True,
 )

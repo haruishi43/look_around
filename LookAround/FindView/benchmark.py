@@ -13,10 +13,12 @@ import numpy as np
 import torch
 from tqdm import tqdm
 
+
 from LookAround.config import Config
 from LookAround.core.agent import Agent
 from LookAround.core.logging import logger
 from LookAround.FindView.env import FindViewEnv
+from LookAround.FindView.corrupted_env import CorruptedFindViewEnv
 from LookAround.FindView.dataset import Episode
 from LookAround.FindView.utils import generate_movement_video, obs2img
 from LookAround.utils.visualizations import images_to_video
@@ -370,3 +372,115 @@ class FindViewBenchmark(object):
         logger.info("act time: {:.3f}".format(act_time))
 
         self.env.close()
+
+
+class CorruptedFindViewBenchmark(FindViewBenchmark):
+
+    env: CorruptedFindViewEnv
+
+    def __init__(
+        self,
+        cfg: Config,
+        agent_name: str,
+    ) -> None:
+
+        # NOTE: before running the scripts, make sure to set the number of threads for numpy
+        # correctly or else you will end up using all of the cores
+        # os.environ["OMP_NUM_THREADS"] = "4"  # export OMP_NUM_THREADS=4
+        # os.environ["OPENBLAS_NUM_THREADS"] = "4"  # export OPENBLAS_NUM_THREADS=4
+        # os.environ["MKL_NUM_THREADS"] = "6"  # export MKL_NUM_THREADS=6
+        # os.environ["VECLIB_MAXIMUM_THREADS"] = "4"  # export VECLIB_MAXIMUM_THREADS=4
+        # os.environ["NUMEXPR_NUM_THREADS"] = "6"  # export NUMEXPR_NUM_THREADS=6
+
+        self.cfg = cfg
+        self.bench_cfg = cfg.benchmark
+
+        # filter difficulties
+        difficulty = self.bench_cfg.difficulty
+        bounded = self.bench_cfg.bounded
+
+        if bounded:
+            difficulties = (difficulty,)
+            bench_name = f"bounded_{difficulty}"
+        else:
+            if difficulty == "easy":
+                difficulties = (difficulty,)
+            elif difficulty == "medium":
+                difficulties = ("easy", "medium")
+            elif difficulty == "hard":
+                difficulties = ("easy", "medium", "hard")
+            else:
+                raise ValueError()
+            bench_name = f"unbounded_{difficulty}"
+
+        for diff in difficulties:
+            assert diff in ("easy", "medium", "hard")
+
+        # corruption type
+        corruption = self.bench_cfg.corruption
+        severity = self.bench_cfg.severity
+        bounded_severity = self.bench_cfg.bounded_severity
+
+        if bounded_severity:
+            bench_name += f'-bounded{severity}_{corruption}'
+        else:
+            bench_name += f'-unbounded{severity}_{corruption}'
+
+        # overwrite config with bench configurations
+        cfg.corrupter.corruptions = [corruption]
+        cfg.corrupter.severity = severity
+        cfg.corrupter.bounded = bounded_severity
+        cfg.corrupter.use_clear = False
+        cfg.corrupter.deterministic = True
+
+        # filter sub labels
+        remove_labels = self.bench_cfg.remove_labels
+        if remove_labels is not None:
+            if isinstance(remove_labels, str):
+                remove_labels = [remove_labels]
+            assert (
+                len(remove_labels) > 0
+                and (isinstance(remove_labels, list) or isinstance(remove_labels, tuple))
+            )
+            filter_fn = partial(
+                joint_filter,
+                remove_labels=remove_labels,
+                difficulties=difficulties,
+            )
+        else:
+            bench_name += "_all"  # identify when running all sub labels
+            filter_fn = partial(filter_by_difficulty, difficulties=difficulties)
+
+        # setting up environment
+        torch.set_num_threads(self.bench_cfg.num_threads)
+        cv2.setNumThreads(self.bench_cfg.num_threads)
+
+        if torch.cuda.is_available():
+            device = torch.device(self.bench_cfg.device)
+        else:
+            device = torch.device("cpu")
+
+        if cfg.benchmark.dtype == 'torch.float32':
+            dtype = torch.float32
+        elif cfg.benchmark.dtype == 'torch.float64':
+            dtype = torch.float64
+        elif cfg.benchmark.dtype == 'np.float32':
+            dtype = np.float32
+        elif cfg.benchmark.dtype == 'np.float64':
+            dtype = np.float64
+        else:
+            raise ValueError()
+
+        self.env = CorruptedFindViewEnv.from_config(
+            cfg=cfg,
+            split="test",
+            filter_fn=filter_fn,
+            num_episodes_per_img=self.bench_cfg.num_episodes_per_img,
+            dtype=dtype,
+            device=device,
+        )
+
+        # setting bench info
+        self.bench_name = bench_name
+        assert len(agent_name) > 0
+        self.agent_name = agent_name

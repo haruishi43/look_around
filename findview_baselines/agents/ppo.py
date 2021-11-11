@@ -175,6 +175,7 @@ def main():
 
     from LookAround.config import DictAction
     from LookAround.FindView.benchmark import FindViewBenchmark
+    from LookAround.FindView.benchmark import CorruptedFindViewBenchmark
 
     parser = argparse.ArgumentParser()
     parser.add_argument(
@@ -191,6 +192,11 @@ def main():
         '--name',
         type=str,
         help='name of the agent (used for naming save directory)'
+    )
+    parser.add_argument(
+        '--corrupted',
+        action='store_true',
+        help='use corrupted',
     )
     parser.add_argument(
         '--options',
@@ -228,11 +234,20 @@ def main():
 
     # Benchmark
     print(f"Benchmarking {name}")
-    benchmark = FindViewBenchmark(
-        cfg=cfg,
-        agent_name=name,
-    )
-    benchmark.evaluate(agent)
+    if args.corrupted:
+        benchmark = CorruptedFindViewBenchmark(
+            cfg=cfg,
+            agent_name=name,
+        )
+        num_episodes = 50
+        # TODO: create a script that evaluates each corruptions
+    else:
+        benchmark = FindViewBenchmark(
+            cfg=cfg,
+            agent_name=name,
+        )
+        num_episodes = None
+    benchmark.evaluate(agent, num_episodes)
 
 
 if __name__ == "__main__":
