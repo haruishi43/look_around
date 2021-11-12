@@ -16,7 +16,14 @@ scheduler = dict(
     initial_difficulty='hard',
 )
 corruption_scheduler = dict(
-    initial_severity=0,
+    initial_severity=2,
     max_severity=5,
     update_interval=20,
+)
+corrupter = dict(
+    corruptions='all',
+    severity=2,
+    bounded=False,
+    use_clear=True,
+    deterministic=False,
 )
