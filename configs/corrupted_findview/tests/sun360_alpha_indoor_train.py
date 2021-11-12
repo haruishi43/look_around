@@ -5,7 +5,7 @@ trainer = dict(
     identifier='half_test',
     num_envs=8,
     num_updates=120,
-    ckpt_interval=10,
+    ckpt_interval=60,
     log_interval=10,
     pretrained='./pretrained/run_2_doublelength/ckpt.28.pth',
 )
