@@ -2,7 +2,7 @@ _base_ = [
     './inverse_2.py',
 ]
 trainer = dict(
-    identifier='adapted',
+    identifier='adapted_max_severity',
     num_envs=32,
     num_updates=15000,
     ckpt_interval=500,
