@@ -568,7 +568,7 @@ class CorruptedMPVecEnv(CorruptedVecEnv):
             write_fn(
                 (
                     CHANGE_SEVERITY_COMMAND,
-                    dict(difficulty=severity)
+                    dict(severity=severity)
                 )
             )
         # NOTE: need to read before another write
