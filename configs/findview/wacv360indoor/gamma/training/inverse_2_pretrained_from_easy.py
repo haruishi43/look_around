@@ -7,7 +7,7 @@ trainer = dict(
     num_updates=15000,
     ckpt_interval=500,
     log_interval=10,
-    pretrained='./pretrained/findview_sun360_alpha_indoor/run_2_doublelength/ckpt.28.pth',
+    pretrained='./pretrained/findview_sun360_gamma_indoor/run_2_doublelength/ckpt.29.pth',
 )
 validator = dict(
     num_envs=16,
