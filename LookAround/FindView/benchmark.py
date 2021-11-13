@@ -421,10 +421,13 @@ class CorruptedFindViewBenchmark(FindViewBenchmark):
         severity = self.bench_cfg.severity
         bounded_severity = self.bench_cfg.bounded_severity
 
-        if bounded_severity:
-            bench_name += f'-bounded{severity}_{corruption}'
+        if corruption == 'clear':
+            bench_name += '-clear'
         else:
-            bench_name += f'-unbounded{severity}_{corruption}'
+            if bounded_severity:
+                bench_name += f'-bounded{severity}_{corruption}'
+            else:
+                bench_name += f'-unbounded{severity}_{corruption}'
 
         # overwrite config with bench configurations
         cfg.corrupter.corruptions = [corruption]
@@ -471,14 +474,25 @@ class CorruptedFindViewBenchmark(FindViewBenchmark):
         else:
             raise ValueError()
 
-        self.env = CorruptedFindViewEnv.from_config(
-            cfg=cfg,
-            split="test",
-            filter_fn=filter_fn,
-            num_episodes_per_img=self.bench_cfg.num_episodes_per_img,
-            dtype=dtype,
-            device=device,
-        )
+        if corruption == 'clear':
+            logger.info('benchmarking clear!')
+            self.env = FindViewEnv.from_config(
+                cfg=cfg,
+                split="test",
+                filter_fn=filter_fn,
+                num_episodes_per_img=self.bench_cfg.num_episodes_per_img,
+                dtype=dtype,
+                device=device,
+            )
+        else:
+            self.env = CorruptedFindViewEnv.from_config(
+                cfg=cfg,
+                split="test",
+                filter_fn=filter_fn,
+                num_episodes_per_img=self.bench_cfg.num_episodes_per_img,
+                dtype=dtype,
+                device=device,
+            )
 
         # setting bench info
         self.bench_name = bench_name
