@@ -341,13 +341,6 @@ def main():
                 )
                 benchmark.evaluate(agent, num_episodes)
 
-            # test clear
-            cfg.benchmark.corruption = 'clear'
-            benchmark = CorruptedFindViewBenchmark(
-                cfg=cfg,
-                agent_name=name,
-            )
-            benchmark.evaluate(agent, num_episodes)
         else:
             benchmark = CorruptedFindViewBenchmark(
                 cfg=cfg,
