@@ -111,10 +111,16 @@ def medium_condition(
 ) -> bool:
     diff_pitch = np.abs(init_pitch - targ_pitch)
     diff_yaw = find_minimum(np.abs(init_yaw - targ_yaw))
+
+    l1 = l1_dist(diff_pitch, diff_yaw)
+    # return (
+    #     diff_yaw > fov / 2
+    #     and diff_yaw <= fov
+    #     and diff_pitch <= fov
+    # )
     return (
-        diff_yaw > fov / 2
-        and diff_yaw <= fov
-        and diff_pitch <= fov
+        fov / 2 < l1
+        and l1 < fov
     )
 
 
