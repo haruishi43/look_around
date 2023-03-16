@@ -1,6 +1,17 @@
 # LookAround
 
-Agents looking around to find "something".
+FindView Environment for Look-Around Agents.
+Agents looking around to find "something". 
+
+```
+@article{ishikawa2023findview,
+  title={FindView: Precise Target View Localization Task for Look Around Agents},
+  author={Ishikawa, Haruya and Aoki Yoshimitsu},
+  journal={arXiv preprint arXiv:},
+  year={2023}
+}
+
+```
 
 ## Installation
 
