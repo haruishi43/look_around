@@ -7,7 +7,7 @@ Agents looking around to find "something".
 @article{ishikawa2023findview,
   title={FindView: Precise Target View Localization Task for Look Around Agents},
   author={Ishikawa, Haruya and Aoki Yoshimitsu},
-  journal={arXiv preprint arXiv:},
+  journal={arXiv preprint arXiv: http://arxiv.org/abs/2303.09054},
   year={2023}
 }
 
