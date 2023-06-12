@@ -30,8 +30,8 @@ from typing import (
 import warnings
 
 import attr
-import gym
-from gym import spaces
+import gymnasium as gym
+from gymnasium import spaces
 import numpy as np
 import torch
 from torch import multiprocessing as mp  # type:ignore
@@ -893,8 +893,8 @@ def make_corrupted_rl_env_fn(
     # Lower threads the better
     torch.set_num_threads(1)  # NOTE: this is needed for multiprocessing?
     rlenv: CorruptedFindViewRLEnv = CorruptedRLEnvRegistry.build(
-        cfg.rl_env.name,
-        cfg=cfg,
+        cfg,
+        name=cfg.rl_env.name,
         filter_fn=filter_fn,
         num_episodes_per_img=num_episodes_per_img,
         split=split,
@@ -952,7 +952,7 @@ def construct_corrupted_envs(
     env_fn_kwargs = []
     for i in range(num_envs):
 
-        _cfg = Config(deepcopy(cfg))  # make sure to clone
+        _cfg = deepcopy(cfg)  # make sure to clone
         _cfg.seed = _cfg.seed + i  # iterator and sampler depends on this
 
         # print(">>>", i)

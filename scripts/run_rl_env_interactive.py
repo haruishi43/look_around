@@ -55,8 +55,8 @@ if __name__ == "__main__":
     filter_by_names = partial(filter_episodes_by_img_names, names=img_names)
 
     rlenv = RLEnvRegistry.build(
-        cfg.rl_env.name,
-        cfg=cfg,
+        cfg,
+        name=cfg.rl_env.name,
         split=split,
         filter_fn=filter_by_names,
         dtype=dtype,

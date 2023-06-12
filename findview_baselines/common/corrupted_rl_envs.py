@@ -123,7 +123,7 @@ def construct_corrupted_envs_for_validation(
     env_fn_kwargs = []
     for i in range(num_envs):
 
-        _cfg = Config(deepcopy(cfg))  # make sure to clone
+        _cfg = deepcopy(cfg)  # make sure to clone
         _cfg.seed = _cfg.seed + i  # iterator and sampler depends on this
 
         # print(">>>", i)

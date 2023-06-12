@@ -13,8 +13,8 @@ def test_rlenv():
     num_steps = 4000
 
     rlenv: FindViewRLEnv = RLEnvRegistry.build(
-        cfg.rl_env.name,
-        cfg=cfg,
+        cfg,
+        name=cfg.rl_env.name,
         split="train",
         filter_fn=None,
         dtype=torch.float32,

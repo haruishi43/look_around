@@ -2,7 +2,7 @@
 
 from typing import Callable, Optional, Union
 
-import gym
+import gymnasium as gym
 import numpy as np
 import torch
 
@@ -146,7 +146,7 @@ class CorruptedFindViewRLEnv(gym.Env):
         self.close()
 
 
-def build_func(name: str, registry: Registry, cfg: Config, **kwargs):
+def build_func(cfg: Config, name: str, registry: Registry , **kwargs):
     rlenv_cls = registry.get(name)
     assert rlenv_cls is not None, \
         f"{name} is not in the {registry.name} registry"
@@ -161,7 +161,7 @@ def build_func(name: str, registry: Registry, cfg: Config, **kwargs):
 CorruptedRLEnvRegistry = Registry('corrupted_rlenvs', build_func=build_func)
 
 
-@CorruptedRLEnvRegistry.register_module(name='basic')
+@CorruptedRLEnvRegistry.register_module(name='Basic')
 class BasicCorruptedFindviewRLEnv(CorruptedFindViewRLEnv):
 
     def __init__(

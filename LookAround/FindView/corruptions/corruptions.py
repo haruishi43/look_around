@@ -18,7 +18,7 @@ from skimage.filters import gaussian
 from io import BytesIO
 import cv2
 from scipy.ndimage import zoom as scizoom
-from scipy.ndimage.interpolation import map_coordinates
+from scipy.ndimage import map_coordinates
 # import warnings
 import os
 # from pathlib import Path
