@@ -6,7 +6,7 @@ import os
 from os import PathLike
 from typing import Any, Dict, List, Optional
 
-from gym import spaces
+from gymnasium import spaces
 import numpy as np
 import torch
 
@@ -274,7 +274,7 @@ class BaseRLTrainer(BaseTrainer):
         cfg: Optional[Config] = None,
     ) -> None:
         if cfg is None:
-            cfg = Config(deepcopy(self.cfg))
+            cfg = deepcopy(self.cfg)
 
         if cfg.trainer.dtype == "torch.float32":
             dtype = torch.float32

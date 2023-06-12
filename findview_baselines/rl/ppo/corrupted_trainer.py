@@ -1,17 +1,15 @@
 #!/usr/bin/env python3
 
+import os
 import time
 from collections import defaultdict, deque
 from copy import deepcopy
-import os
 from typing import Any, Dict, Optional
+
+from mmengine import symlink
 
 import torch
 from torch.optim.lr_scheduler import LambdaLR
-try:
-    from mycv import symlink
-except ImportError:
-    from mmcv import symlink
 
 from LookAround.config import Config
 from LookAround.core import logger
@@ -58,7 +56,7 @@ class CorruptedPPOTrainer(BaseRLTrainer):
         cfg: Optional[Config] = None,
     ) -> None:
         if cfg is None:
-            cfg = Config(deepcopy(self.cfg))
+            cfg = deepcopy(self.cfg)
 
         if cfg.trainer.dtype == "torch.float32":
             dtype = torch.float32

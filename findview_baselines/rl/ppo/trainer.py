@@ -5,12 +5,10 @@ from collections import defaultdict, deque
 import os
 from typing import Any, Dict, Optional
 
+from mmengine import symlink
+
 import torch
 from torch.optim.lr_scheduler import LambdaLR
-try:
-    from mycv import symlink
-except ImportError:
-    from mmcv import symlink
 
 from LookAround.config import Config
 from LookAround.core import logger

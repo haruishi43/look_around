@@ -4,7 +4,7 @@ import random
 import time
 from typing import Any, Callable, Dict, List, Optional, Union
 
-from gym import spaces
+from gymnasium import spaces
 import numpy as np
 import torch
 

@@ -5,7 +5,7 @@ import os
 
 import torch
 
-from mmcv import Config
+from mmengine import Config
 
 
 if __name__ == '__main__':

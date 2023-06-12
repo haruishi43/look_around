@@ -21,7 +21,7 @@ import attr
 import cv2
 import numpy as np
 import torch
-from gym.spaces import Box
+from gymnasium.spaces import Box
 from torch import Size, Tensor
 from torch import nn as nn
 

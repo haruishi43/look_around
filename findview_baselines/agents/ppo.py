@@ -10,9 +10,11 @@ import random
 from typing import Any, Dict, Optional
 
 import torch
-from gym.spaces import Box
-from gym.spaces import Dict as SpaceDict
-from gym.spaces import Discrete
+from gymnasium.spaces import (
+    Box,
+    Dict as SpaceDict,
+    Discrete,
+)
 
 from LookAround.config import Config
 from LookAround.core.agent import Agent

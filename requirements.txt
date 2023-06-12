@@ -1,4 +1,4 @@
-gym
+gymnasium
 pyequilib
 imageio
 imageio-ffmpeg

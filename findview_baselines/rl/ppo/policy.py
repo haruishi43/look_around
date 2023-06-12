@@ -3,7 +3,7 @@
 import abc
 
 import torch
-from gym import spaces
+from gymnasium import spaces
 from torch import nn as nn
 
 from findview_baselines.rl.models.rnn_state_encoder import (
