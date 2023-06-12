@@ -90,7 +90,13 @@ pip install jupyterlab
 jupyter lab --no-browser --port 8888
 ```
 
-## Type Checking
+### Tensorboard
+
+```Bash
+tensorboard --logdir tb --port 8888 --bind_all
+```
+
+### Type Checking
 
 ```Bash
 mypy . --ignore-missing-imports
