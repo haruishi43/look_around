@@ -1,15 +1,13 @@
-_base_ = [
-    '../_base_/defaults.py'
-]
+_base_ = ["../_base_/defaults.py"]
 dataset = dict(
-    name='sun360',
-    version='test',
-    category='outdoor',
+    name="sun360",
+    version="test",
+    category="outdoor",
     split_ratios=[0.5, 0.25, 0.25],
     num_easy=3,
     num_medium=4,
     num_hard=3,
-    difficulty='easy',
+    difficulty="easy",
     bounded=False,
     fov=90.0,
     min_steps=10,

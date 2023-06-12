@@ -17,7 +17,9 @@ from LookAround.FindView.utils import obs2img
 
 from findview_baselines.common.tensorboard_utils import TensorboardWriter
 from findview_baselines.common.base_validator import BaseRLValidator
-from findview_baselines.common.corrupted_rl_envs import construct_corrupted_envs_for_validation
+from findview_baselines.common.corrupted_rl_envs import (
+    construct_corrupted_envs_for_validation,
+)
 from findview_baselines.rl.ppo.ppo import PPO
 from findview_baselines.rl.ppo.policy import FindViewBaselinePolicy
 from findview_baselines.utils.common import (
@@ -28,7 +30,6 @@ from findview_baselines.utils.common import (
 
 
 class CorruptedPPOValidator(BaseRLValidator):
-
     def __init__(self, cfg: Config) -> None:
         assert cfg is not None, "ERR: needs config file to initialize validator"
         super().__init__(cfg=cfg)
@@ -73,7 +74,7 @@ class CorruptedPPOValidator(BaseRLValidator):
         bounded: bool,
         severity: int,
     ) -> float:
-        self.split = 'val'
+        self.split = "val"
 
         if torch.cuda.is_available():
             self.device = torch.device("cuda", self.cfg.trainer.device)
@@ -165,7 +166,6 @@ class CorruptedPPOValidator(BaseRLValidator):
         step_id: int,
         num_episodes: int,
     ) -> float:
-
         # isolate actor_critic
         actor_critic = agent.actor_critic
 
@@ -188,8 +188,8 @@ class CorruptedPPOValidator(BaseRLValidator):
 
             for i in range(envs.num_envs):
                 frame = obs2img(
-                    pers=observations[i]['pers'],
-                    target=observations[i]['target'],
+                    pers=observations[i]["pers"],
+                    target=observations[i]["target"],
                     to_bgr=False,
                 )
                 rgb_frames[i].append(frame)
@@ -240,12 +240,13 @@ class CorruptedPPOValidator(BaseRLValidator):
                 )
                 logger.warn(f"Evaluating with {total_num_eps} instead.")
                 number_of_eval_episodes = total_num_eps
-        logger.info(f"evaluating {number_of_eval_episodes}/{sum(envs.number_of_episodes)}")
+        logger.info(
+            f"evaluating {number_of_eval_episodes}/{sum(envs.number_of_episodes)}"
+        )
 
         pbar = tqdm.tqdm(total=number_of_eval_episodes)
         while (
-            len(stats_episodes) < number_of_eval_episodes
-            and envs.num_envs > 0
+            len(stats_episodes) < number_of_eval_episodes and envs.num_envs > 0
         ):
             current_episodes: List[Episode] = envs.current_episodes()
 
@@ -280,12 +281,11 @@ class CorruptedPPOValidator(BaseRLValidator):
 
             # 3. Reset when done
             for i, done in enumerate(dones):
-
                 # add to `rgb_frames` for every step
                 if len(self.video_option) > 0:
                     frame = obs2img(
-                        pers=observations[i]['pers'],
-                        target=observations[i]['target'],
+                        pers=observations[i]["pers"],
+                        target=observations[i]["target"],
                         to_bgr=False,
                     )
                     rgb_frames[i].append(frame)
@@ -331,8 +331,8 @@ class CorruptedPPOValidator(BaseRLValidator):
                         # add first frame (since we just reset the env)
                         rgb_frames[i] = [
                             obs2img(
-                                pers=observations[i]['pers'],
-                                target=observations[i]['target'],
+                                pers=observations[i]["pers"],
+                                target=observations[i]["target"],
                                 to_bgr=False,
                             )
                         ]
@@ -387,8 +387,7 @@ class CorruptedPPOValidator(BaseRLValidator):
         aggregated_stats = {}
         for stat_key in next(iter(stats_episodes.values())).keys():
             aggregated_stats[stat_key] = (
-                sum(v[stat_key] for v in stats_episodes.values())
-                / num_episodes
+                sum(v[stat_key] for v in stats_episodes.values()) / num_episodes
             )
 
         # log
@@ -405,7 +404,7 @@ class CorruptedPPOValidator(BaseRLValidator):
                 self.metric_dir,
                 f"{step_id}_distance-{aggregated_stats['l1_distance']:.4f}.json",
             )
-            with open(save_path, 'w') as f:
+            with open(save_path, "w") as f:
                 json.dump(save_dict, f, indent=2)
 
         # tensorboard
@@ -416,7 +415,9 @@ class CorruptedPPOValidator(BaseRLValidator):
                 step_id,
             )
 
-            metrics = {k: v for k, v in aggregated_stats.items() if k != "reward"}
+            metrics = {
+                k: v for k, v in aggregated_stats.items() if k != "reward"
+            }
             if len(metrics) > 0:
                 writer.add_scalars("test_metrics", metrics, step_id)
 
@@ -436,6 +437,6 @@ class CorruptedPPOValidator(BaseRLValidator):
         # }
 
         # NOTE: for now use l1 distance
-        metric = aggregated_stats['l1_distance']
+        metric = aggregated_stats["l1_distance"]
 
         return metric

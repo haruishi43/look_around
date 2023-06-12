@@ -40,8 +40,8 @@ def parse_args():
         "--agent",
         required=True,
         type=str,
-        choices=['single', 'greedy', 'fm'],
-        help="name of the agent"
+        choices=["single", "greedy", "fm"],
+        help="name of the agent",
     )
     return parser.parse_args()
 
@@ -55,9 +55,9 @@ if __name__ == "__main__":
     print(cfg.pretty_text)
 
     # params:
-    split = 'test'
+    split = "test"
     dtype = torch.float32
-    device = torch.device('cpu')
+    device = torch.device("cpu")
     num_steps = 5000
     img_names = ["pano_awotqqaapbgcaf", "pano_asxxieiyhiqchw"]
     sub_labels = ["restaurant"]
@@ -88,36 +88,38 @@ if __name__ == "__main__":
     obs = rlenv.reset()
     print(obs.keys())
     render = rlenv.render()
-    images.append(render['target'])
-    images.append(render['pers'])
+    images.append(render["target"])
+    images.append(render["pers"])
 
     for i in tqdm(range(num_steps)):
         action = agent.act(obs)
         obs, reward, done, info = rlenv.step(action)
 
         # print("reward", reward, action, done)
-        pers = rlenv.render()['pers']
+        pers = rlenv.render()["pers"]
         images.append(pers)
         if done:
             if action == "stop":
                 print("called stop")
-                assert info['called_stop']
+                assert info["called_stop"]
             print(">>> next episode!")
             print("saving results")
-            save_path = os.path.join('./results/rlenv', f"{info['img_name']}.json")
-            with open(save_path, 'w') as f:
+            save_path = os.path.join(
+                "./results/rlenv", f"{info['img_name']}.json"
+            )
+            with open(save_path, "w") as f:
                 json.dump(info, f, indent=2)
 
             # NEED TO RESET!
             obs = rlenv.reset()
             render = rlenv.render()
-            images.append(render['target'])
-            images.append(render['pers'])
+            images.append(render["target"])
+            images.append(render["pers"])
             agent.reset()
 
     images_to_video_cv2(
         images=images,
-        output_dir='./results/rlenv',
-        video_name=f'test_{args.agent}_rl_env',
+        output_dir="./results/rlenv",
+        video_name=f"test_{args.agent}_rl_env",
         fps=30.0,
     )

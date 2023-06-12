@@ -1,4 +1,4 @@
-_base_ = ['../../../_base_/trainer.py']
+_base_ = ["../../../_base_/trainer.py"]
 trainer = dict(
     ckpt_dir=(
         "{results_root}/checkpoints/"
@@ -7,10 +7,7 @@ trainer = dict(
         "run_{run_id}"
     ),
     tb_dir=(
-        "{tb_root}/"
-        "findview_{dataset}_{version}/"
-        "{rlenv}/"
-        "run_{run_id}"
+        "{tb_root}/" "findview_{dataset}_{version}/" "{rlenv}/" "run_{run_id}"
     ),
     log_file=(
         "{log_root}/"

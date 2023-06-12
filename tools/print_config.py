@@ -6,18 +6,18 @@ from LookAround.config import Config, DictAction
 
 
 def parse_args():
-    parser = argparse.ArgumentParser(description='Print the whole config')
-    parser.add_argument('config', help='config file path')
+    parser = argparse.ArgumentParser(description="Print the whole config")
+    parser.add_argument("config", help="config file path")
     parser.add_argument(
-        '--options',
-        nargs='+',
+        "--options",
+        nargs="+",
         action=DictAction,
-        help='arguments in dict',
+        help="arguments in dict",
     )
     parser.add_argument(
-        '--dump',
-        action='store_true',
-        help='dump the config as `example.py`',
+        "--dump",
+        action="store_true",
+        help="dump the config as `example.py`",
     )
     args = parser.parse_args()
 
@@ -30,12 +30,12 @@ def main():
     cfg = Config.fromfile(args.config)
     if args.options is not None:
         cfg.merge_from_dict(args.options)
-    print(f'Config:\n{cfg.pretty_text}')
+    print(f"Config:\n{cfg.pretty_text}")
 
     if args.dump:
         # dump config
-        cfg.dump('configs/example.py')
+        cfg.dump("configs/example.py")
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

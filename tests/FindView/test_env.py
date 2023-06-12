@@ -14,7 +14,7 @@ def test_env():
         cfg=cfg,
         split="test",
         dtype=torch.float32,
-        device=torch.device('cpu'),
+        device=torch.device("cpu"),
     )
 
     assert len(env.episodes) == env.number_of_episodes
@@ -38,7 +38,7 @@ def test_env_2():
         cfg=cfg,
         split="test",
         dtype=torch.float32,
-        device=torch.device('cpu'),
+        device=torch.device("cpu"),
     )
 
     assert len(env.episodes) == env.number_of_episodes
@@ -59,7 +59,7 @@ def test_env_3():
         cfg=cfg,
         split="train",
         dtype=torch.float32,
-        device=torch.device('cpu'),
+        device=torch.device("cpu"),
     )
 
     num_episodes = 10
@@ -75,7 +75,7 @@ def test_env_3():
             _ = env.step(action)
 
     # change difficulty
-    env.change_difficulty('hard', bounded=True)
+    env.change_difficulty("hard", bounded=True)
 
     action = "stop"
     for i in range(num_episodes):

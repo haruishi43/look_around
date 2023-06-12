@@ -1,8 +1,8 @@
 _base_ = [
-    './bell_2.py',
+    "./bell_2.py",
 ]
 trainer = dict(
-    identifier='double',
+    identifier="double",
     num_envs=32,
     num_updates=15000,
     ckpt_interval=500,
@@ -12,6 +12,6 @@ validator = dict(
     num_envs=16,
 )
 scheduler = dict(
-    initial_difficulty='easy',
+    initial_difficulty="easy",
     update_interval=5000,
 )

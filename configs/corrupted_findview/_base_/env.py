@@ -9,7 +9,7 @@ episode_iterator_kwargs = dict(
     num_episode_sample=-1,
 )
 corrupter = dict(
-    corruptions='all',
+    corruptions="all",
     severity=1,
     bounded=True,
     use_clear=True,

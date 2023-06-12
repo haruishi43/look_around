@@ -71,9 +71,9 @@ def test_vec_env():
 
     # params:
     vec_type = "threaded"
-    split = 'train'
+    split = "train"
     dtype = torch.float32
-    device = torch.device('cpu')
+    device = torch.device("cpu")
     num_steps = 500
 
     envs = construct_envs(
@@ -86,7 +86,9 @@ def test_vec_env():
         auto_reset_done=False,  # since auto_reset_done leads to tail observation disappearing
     )
 
-    agents = [GreedyMovementAgent(seed=cfg.seed) for _ in range(cfg.trainer.num_envs)]
+    agents = [
+        GreedyMovementAgent(seed=cfg.seed) for _ in range(cfg.trainer.num_envs)
+    ]
 
     assert envs.num_envs == cfg.trainer.num_envs
 
@@ -94,7 +96,6 @@ def test_vec_env():
     _ = envs.reset()
 
     for _ in tqdm(range(num_steps)):
-
         actions = [agent.act() for agent in agents]
 
         out = envs.step(actions)
@@ -116,11 +117,11 @@ def test_vec_env():
 
         for i in range(envs.num_envs):
             if i in new_obs.keys():
-                assert torch.equal(obs[i]['pers'], new_obs[i]['pers'])
-                assert torch.equal(obs[i]['target'], new_obs[i]['target'])
+                assert torch.equal(obs[i]["pers"], new_obs[i]["pers"])
+                assert torch.equal(obs[i]["target"], new_obs[i]["target"])
             else:
-                assert torch.equal(obs[i]['pers'], old_obs[i]['pers'])
-                assert torch.equal(obs[i]['target'], old_obs[i]['target'])
+                assert torch.equal(obs[i]["pers"], old_obs[i]["pers"])
+                assert torch.equal(obs[i]["target"], old_obs[i]["target"])
 
 
 def test_rl_vec_env():
@@ -129,9 +130,9 @@ def test_rl_vec_env():
 
     # params:
     vec_type = "threaded"
-    split = 'train'
+    split = "train"
     dtype = torch.float32
-    device = torch.device('cpu')
+    device = torch.device("cpu")
     num_steps = 500
 
     envs = construct_envs(
@@ -143,7 +144,9 @@ def test_rl_vec_env():
         vec_type=vec_type,
     )
 
-    agents = [GreedyMovementAgent(seed=cfg.seed) for _ in range(cfg.trainer.num_envs)]
+    agents = [
+        GreedyMovementAgent(seed=cfg.seed) for _ in range(cfg.trainer.num_envs)
+    ]
 
     assert envs.num_envs == cfg.trainer.num_envs
 
@@ -151,7 +154,6 @@ def test_rl_vec_env():
     _ = envs.reset()
 
     for _ in tqdm(range(num_steps)):
-
         actions = [agent.act() for agent in agents]
 
         outputs = envs.step(actions)
@@ -161,7 +163,7 @@ def test_rl_vec_env():
             if done:
                 if actions[i] == "stop":
                     print(f"{i} called stop")
-                    assert infos[i]['called_stop']
+                    assert infos[i]["called_stop"]
 
                 print(f"Loading next episode for {i}")
                 agents[i].reset()
@@ -174,9 +176,9 @@ def test_rl_vec_env_reproducibility():
 
     # params:
     vec_type = "threaded"
-    split = 'train'
+    split = "train"
     dtype = torch.float32
-    device = torch.device('cpu')
+    device = torch.device("cpu")
     num_steps = 500
 
     envs = construct_envs(
@@ -188,7 +190,9 @@ def test_rl_vec_env_reproducibility():
         vec_type=vec_type,
     )
 
-    agents = [GreedyMovementAgent(seed=cfg.seed) for _ in range(cfg.trainer.num_envs)]
+    agents = [
+        GreedyMovementAgent(seed=cfg.seed) for _ in range(cfg.trainer.num_envs)
+    ]
 
     assert envs.num_envs == cfg.trainer.num_envs
 
@@ -201,7 +205,6 @@ def test_rl_vec_env_reproducibility():
         print("\t", episode.initial_rotation, episode.target_rotation)
 
     for _ in tqdm(range(num_steps)):
-
         actions = [agent.act() for agent in agents]
 
         outputs = envs.step(actions)
@@ -211,7 +214,7 @@ def test_rl_vec_env_reproducibility():
             if done:
                 if actions[i] == "stop":
                     print(f"{i} called stop")
-                    assert infos[i]['called_stop']
+                    assert infos[i]["called_stop"]
 
                 print(f"Loading next episode for {i}")
                 agents[i].reset()

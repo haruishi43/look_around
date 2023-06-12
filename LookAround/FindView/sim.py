@@ -32,14 +32,13 @@ def copy_tensor(t: Tensor) -> Tensor:
 def deg2rad(rot: Rots):
     # NOTE: asserts that `pitch` and `yaw` are in rot
     return {
-        "roll": 0.,
-        "pitch": rot['pitch'] * np.pi / 180,
-        "yaw": rot['yaw'] * np.pi / 180,
+        "roll": 0.0,
+        "pitch": rot["pitch"] * np.pi / 180,
+        "yaw": rot["yaw"] * np.pi / 180,
     }
 
 
 class FindViewSim(object):
-
     is_torch: bool
 
     _equi: Tensor
@@ -84,8 +83,9 @@ class FindViewSim(object):
         NOTE: calling other methods externally could result in bugs
         """
 
-        assert height <= width, \
-            "unsupported image format, height must be equal or shorter than width"
+        assert (
+            height <= width
+        ), "unsupported image format, height must be equal or shorter than width"
 
         self.equi2pers = Equi2Pers(
             height=height,
@@ -169,7 +169,7 @@ class FindViewSim(object):
     def inititialize_loader(
         self,
         dtype: Dtypes,
-        device: torch.device = torch.device('cpu'),
+        device: torch.device = torch.device("cpu"),
     ) -> None:
         """Initialize the loader for equirectangular image
 
@@ -198,7 +198,9 @@ class FindViewSim(object):
         self._device = device
 
         if self.is_torch:
-            print(f"NOTE: Using loading to {device.type} with index: {device.index}")
+            print(
+                f"NOTE: Using loading to {device.type} with index: {device.index}"
+            )
             self._load_func = partial(
                 load2torch,
                 dtype=dtype,
@@ -206,11 +208,7 @@ class FindViewSim(object):
                 is_cv2=False,
             )
         else:
-            self._load_func = partial(
-                load2numpy,
-                dtype=dtype,
-                is_cv2=False
-            )
+            self._load_func = partial(load2numpy, dtype=dtype, is_cv2=False)
 
     def load_episode(
         self,
@@ -231,8 +229,9 @@ class FindViewSim(object):
         - rotations are in degrees (not radians)
         """
 
-        assert self._load_func is not None, \
-            "ERR: loading function is not initialized"
+        assert (
+            self._load_func is not None
+        ), "ERR: loading function is not initialized"
 
         if equi_path != self._equi_path:
             # NOTE: only load equi when the equi_path differs
@@ -273,8 +272,7 @@ class FindViewSim(object):
         initial_rotation: Rots,
         target_rotation: Rots,
     ) -> Tensor:
-        """Reset episode and returns perspective and target images
-        """
+        """Reset episode and returns perspective and target images"""
         self.load_episode(
             equi_path=equi_path,
             initial_rotation=initial_rotation,
@@ -283,31 +281,30 @@ class FindViewSim(object):
         return self.pers, self.target
 
     def render_pers(self, to_bgr: bool = True) -> np.ndarray:
-        """Return view (converted for cv2.imshow)
-        """
+        """Return view (converted for cv2.imshow)"""
         if self.is_torch:
             return post_process_for_render_torch(self.pers, to_bgr=to_bgr)
         else:
             return post_process_for_render(self.pers, to_bgr=to_bgr)
 
     def render_target(self, to_bgr: bool = True) -> np.ndarray:
-        """Return view (converted for cv2.imshow)
-        """
+        """Return view (converted for cv2.imshow)"""
         if self.is_torch:
             return post_process_for_render_torch(self.target, to_bgr=to_bgr)
         else:
             return post_process_for_render(self.target, to_bgr=to_bgr)
 
     def render_equi(self, to_bgr: bool = True) -> np.ndarray:
-        """Return view (converted for cv2.imshow)
-        """
+        """Return view (converted for cv2.imshow)"""
         if self.is_torch:
             return post_process_for_render_torch(self.equi, to_bgr=to_bgr)
         else:
             return post_process_for_render(self.equi, to_bgr=to_bgr)
 
     def get_bounding_fov(self, rot: Rots) -> np.ndarray:
-        return self.equi2pers.get_bounding_fov(equi=self.equi, rots=deg2rad(rot))
+        return self.equi2pers.get_bounding_fov(
+            equi=self.equi, rots=deg2rad(rot)
+        )
 
     def __del__(self):
         del self._equi

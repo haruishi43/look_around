@@ -1,4 +1,4 @@
-_base_ = ['../defaults.py']
+_base_ = ["../defaults.py"]
 rl_env = dict(
     name="inverse",
     success_reward=100.0,

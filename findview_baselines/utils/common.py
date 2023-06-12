@@ -35,9 +35,7 @@ from LookAround.core import logger
 
 
 class CustomFixedCategorical(torch.distributions.Categorical):  # type: ignore
-    def sample(
-        self, sample_shape: Size = torch.Size()  # noqa: B008
-    ) -> Tensor:
+    def sample(self, sample_shape: Size = torch.Size()) -> Tensor:  # noqa: B008
         return super().sample(sample_shape).unsqueeze(-1)
 
     def log_probs(self, actions: Tensor) -> Tensor:
@@ -68,9 +66,7 @@ class CategoricalNet(nn.Module):
 
 
 class CustomNormal(torch.distributions.normal.Normal):
-    def sample(
-        self, sample_shape: Size = torch.Size()  # noqa: B008
-    ) -> Tensor:
+    def sample(self, sample_shape: Size = torch.Size()) -> Tensor:  # noqa: B008
         return super().rsample(sample_shape)
 
     def log_probs(self, actions) -> Tensor:
@@ -141,6 +137,7 @@ class ObservationBatchingCache:
     """Helper for batching observations that maintains a cpu-side tensor
     that is the right size and is pinned to cuda memory
     """
+
     _pool: Dict[Any, Union[torch.Tensor, np.ndarray]] = attr.Factory(dict)
 
     def get(
@@ -312,8 +309,7 @@ def poll_checkpoint_folder(
 def get_last_checkpoint_folder(
     checkpoint_folder: str,
 ) -> Optional[str]:
-    """Return last checkpoint file if there are any
-    """
+    """Return last checkpoint file if there are any"""
     assert os.path.isdir(checkpoint_folder), (
         f"invalid checkpoint root " f"path {checkpoint_folder}"
     )
@@ -321,9 +317,9 @@ def get_last_checkpoint_folder(
         filter(os.path.isfile, glob.glob(checkpoint_folder + "/*"))
     )
     checkpoint_paths.sort(key=os.path.getmtime)
-    assert len(checkpoint_paths) > 0, (
-        f"no checkpoints in path {checkpoint_folder}"
-    )
+    assert (
+        len(checkpoint_paths) > 0
+    ), f"no checkpoints in path {checkpoint_folder}"
     return checkpoint_paths[len(checkpoint_paths) - 1]  # return last
 
 

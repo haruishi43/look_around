@@ -43,14 +43,12 @@ def joint_filter(
     remove_labels: Union[List[str], Tuple[str]],
     difficulties: List[str],
 ) -> bool:
-    return (
-        filter_by_difficulty(episode, difficulties)
-        and filter_out_sub_labels(episode, remove_labels)
-    )
+    return filter_by_difficulty(
+        episode, difficulties
+    ) and filter_out_sub_labels(episode, remove_labels)
 
 
 class FindViewBenchmark(object):
-
     # Properties
     cfg: Config
     bench_cfg: Config
@@ -61,7 +59,6 @@ class FindViewBenchmark(object):
         cfg: Config,
         agent_name: str,
     ) -> None:
-
         # NOTE: before running the scripts, make sure to set the number of threads for numpy
         # correctly or else you will end up using all of the cores
         # os.environ["OMP_NUM_THREADS"] = "4"  # export OMP_NUM_THREADS=4
@@ -99,9 +96,9 @@ class FindViewBenchmark(object):
         if remove_labels is not None:
             if isinstance(remove_labels, str):
                 remove_labels = [remove_labels]
-            assert (
-                len(remove_labels) > 0
-                and (isinstance(remove_labels, list) or isinstance(remove_labels, tuple))
+            assert len(remove_labels) > 0 and (
+                isinstance(remove_labels, list)
+                or isinstance(remove_labels, tuple)
             )
             filter_fn = partial(
                 joint_filter,
@@ -121,13 +118,13 @@ class FindViewBenchmark(object):
         else:
             device = torch.device("cpu")
 
-        if cfg.benchmark.dtype == 'torch.float32':
+        if cfg.benchmark.dtype == "torch.float32":
             dtype = torch.float32
-        elif cfg.benchmark.dtype == 'torch.float64':
+        elif cfg.benchmark.dtype == "torch.float64":
             dtype = torch.float64
-        elif cfg.benchmark.dtype == 'np.float32':
+        elif cfg.benchmark.dtype == "np.float32":
             dtype = np.float32
-        elif cfg.benchmark.dtype == 'np.float64':
+        elif cfg.benchmark.dtype == "np.float64":
             dtype = np.float64
         else:
             raise ValueError()
@@ -156,8 +153,8 @@ class FindViewBenchmark(object):
             bench_name=self.bench_name,
             agent_name=self.agent_name,
         )
-        assert '{' not in video_dir, video_dir
-        assert '}' not in video_dir, video_dir
+        assert "{" not in video_dir, video_dir
+        assert "}" not in video_dir, video_dir
         if not os.path.exists(video_dir):
             os.makedirs(video_dir, exist_ok=True)
         return video_dir
@@ -172,8 +169,8 @@ class FindViewBenchmark(object):
             bench_name=self.bench_name,
             agent_name=self.agent_name,
         )
-        assert '{' not in metric_path, metric_path
-        assert '}' not in metric_path, metric_path
+        assert "{" not in metric_path, metric_path
+        assert "}" not in metric_path, metric_path
         parent_path = os.path.dirname(metric_path)
         if not os.path.exists(parent_path):
             os.makedirs(parent_path, exist_ok=True)
@@ -189,8 +186,8 @@ class FindViewBenchmark(object):
             bench_name=self.bench_name,
             agent_name=self.agent_name,
         )
-        assert '{' not in log_path, log_path
-        assert '}' not in log_path, log_path
+        assert "{" not in log_path, log_path
+        assert "}" not in log_path, log_path
         parent_path = os.path.dirname(log_path)
         if not os.path.exists(parent_path):
             os.makedirs(parent_path, exist_ok=True)
@@ -207,7 +204,6 @@ class FindViewBenchmark(object):
         agent: "Agent",
         num_episodes: Optional[int] = None,
     ) -> None:
-
         save_video = self.bench_cfg.save_video
         beautify = self.bench_cfg.beautify
 
@@ -218,9 +214,7 @@ class FindViewBenchmark(object):
         assert num_episodes > 0, "num_episodes should be greater than 0"
         assert num_episodes <= len(self.env.episodes), (
             "num_episodes({}) is larger than number of episodes "
-            "in environment ({})".format(
-                num_episodes, len(self.env.episodes)
-            )
+            "in environment ({})".format(num_episodes, len(self.env.episodes))
         )
 
         logger.add_filehandler(self.log_path)
@@ -236,7 +230,7 @@ class FindViewBenchmark(object):
             t = time.time()
             observations = self.env.reset()
             env_time = time.time() - t
-            act_time = 0.
+            act_time = 0.0
             agent.reset()
 
             current_episode = self.env.current_episode
@@ -244,8 +238,8 @@ class FindViewBenchmark(object):
             if save_video:
                 if beautify:
                     renders = self.env.render(to_bgr=True)
-                    pers = [renders['pers']]
-                    target = renders['target']
+                    pers = [renders["pers"]]
+                    target = renders["target"]
                     actions = []
                 else:
                     rgb_frames = []
@@ -263,15 +257,15 @@ class FindViewBenchmark(object):
                 if save_video:
                     # NOTE: the observation is still being added after stop is called
                     if beautify:
-                        pers.append(self.env.render(to_bgr=True)['pers'])
+                        pers.append(self.env.render(to_bgr=True)["pers"])
                         actions.append(action)
                     else:
                         rgb_frames.append(obs2img(**observations))
 
             metrics = self.env.get_metrics()
             episodes_metrics.append(metrics)
-            env_time = env_time / metrics['elapsed_steps']
-            act_time = act_time / metrics['elapsed_steps']
+            env_time = env_time / metrics["elapsed_steps"]
+            act_time = act_time / metrics["elapsed_steps"]
             env_times.append(env_time)
             act_times.append(act_time)
             rot_history = self.env._rot_tracker.history
@@ -290,7 +284,9 @@ class FindViewBenchmark(object):
                     pers_bboxs = []
                     for rot in rot_history:
                         pers_bboxs.append(self.env.sim.get_bounding_fov(rot))
-                    target_bbox = self.env.sim.get_bounding_fov(current_episode.target_rotation)
+                    target_bbox = self.env.sim.get_bounding_fov(
+                        current_episode.target_rotation
+                    )
                     video_name = (
                         f"beautify_episode-{current_episode.episode_id}_"
                         f"img-{current_episode.img_name}_"
@@ -362,7 +358,7 @@ class FindViewBenchmark(object):
             ),
             rot_histories=rot_histories,
         )
-        with open(self.metric_path, 'w') as f:
+        with open(self.metric_path, "w") as f:
             json.dump(save_dict, f, indent=2)
 
         # logging
@@ -375,7 +371,6 @@ class FindViewBenchmark(object):
 
 
 class CorruptedFindViewBenchmark(FindViewBenchmark):
-
     env: CorruptedFindViewEnv
 
     def __init__(
@@ -383,7 +378,6 @@ class CorruptedFindViewBenchmark(FindViewBenchmark):
         cfg: Config,
         agent_name: str,
     ) -> None:
-
         # NOTE: before running the scripts, make sure to set the number of threads for numpy
         # correctly or else you will end up using all of the cores
         # os.environ["OMP_NUM_THREADS"] = "4"  # export OMP_NUM_THREADS=4
@@ -421,13 +415,13 @@ class CorruptedFindViewBenchmark(FindViewBenchmark):
         severity = self.bench_cfg.severity
         bounded_severity = self.bench_cfg.bounded_severity
 
-        if corruption == 'clear':
-            bench_name += '-clear'
+        if corruption == "clear":
+            bench_name += "-clear"
         else:
             if bounded_severity:
-                bench_name += f'-bounded{severity}_{corruption}'
+                bench_name += f"-bounded{severity}_{corruption}"
             else:
-                bench_name += f'-unbounded{severity}_{corruption}'
+                bench_name += f"-unbounded{severity}_{corruption}"
 
         # overwrite config with bench configurations
         cfg.corrupter.corruptions = [corruption]
@@ -441,9 +435,9 @@ class CorruptedFindViewBenchmark(FindViewBenchmark):
         if remove_labels is not None:
             if isinstance(remove_labels, str):
                 remove_labels = [remove_labels]
-            assert (
-                len(remove_labels) > 0
-                and (isinstance(remove_labels, list) or isinstance(remove_labels, tuple))
+            assert len(remove_labels) > 0 and (
+                isinstance(remove_labels, list)
+                or isinstance(remove_labels, tuple)
             )
             filter_fn = partial(
                 joint_filter,
@@ -463,19 +457,19 @@ class CorruptedFindViewBenchmark(FindViewBenchmark):
         else:
             device = torch.device("cpu")
 
-        if cfg.benchmark.dtype == 'torch.float32':
+        if cfg.benchmark.dtype == "torch.float32":
             dtype = torch.float32
-        elif cfg.benchmark.dtype == 'torch.float64':
+        elif cfg.benchmark.dtype == "torch.float64":
             dtype = torch.float64
-        elif cfg.benchmark.dtype == 'np.float32':
+        elif cfg.benchmark.dtype == "np.float32":
             dtype = np.float32
-        elif cfg.benchmark.dtype == 'np.float64':
+        elif cfg.benchmark.dtype == "np.float64":
             dtype = np.float64
         else:
             raise ValueError()
 
-        if corruption == 'clear':
-            logger.info('benchmarking clear!')
+        if corruption == "clear":
+            logger.info("benchmarking clear!")
             self.env = FindViewEnv.from_config(
                 cfg=cfg,
                 split="test",

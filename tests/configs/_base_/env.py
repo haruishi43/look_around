@@ -1,4 +1,4 @@
-_base_ = ['./sim.py']
+_base_ = ["./sim.py"]
 episode_generator_kwargs = dict(
     shuffle=True,
     num_repeat_pseudo=-1,

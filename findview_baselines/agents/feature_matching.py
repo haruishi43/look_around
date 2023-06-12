@@ -51,7 +51,6 @@ def movement_generator(size=4):
 
 
 class FeatureMatchingAgent(Agent):
-
     detector = None
     matcher = None
     prev_action = None
@@ -69,8 +68,7 @@ class FeatureMatchingAgent(Agent):
         num_threads: int = 4,
         seed: int = 0,
     ) -> None:
-
-        self.name = f'fm_{feature_type}'
+        self.name = f"fm_{feature_type}"
         self.movement_actions = ["up", "right", "down", "left"]
         self.stop_action = "stop"
         for action in self.movement_actions:
@@ -119,7 +117,7 @@ class FeatureMatchingAgent(Agent):
 
         # self.g = movement_generator(len(self.movement_actions)
         # FIXME: this prior might not be good
-        self.initial_action_choice = ['right', 'left']
+        self.initial_action_choice = ["right", "left"]
         self.prev_action = self.rst.choice(self.initial_action_choice)
         self.tracked_actions = deque(maxlen=self.num_track_actions)
 
@@ -148,9 +146,8 @@ class FeatureMatchingAgent(Agent):
     #     self.g = movement_generator(len(self.movement_actions))
 
     def act(self, observations):
-
-        pers = observations['pers']
-        target = observations['target']
+        pers = observations["pers"]
+        target = observations["target"]
 
         # 1. Preprocess
         # preprocess the images to cv2 format
@@ -174,9 +171,14 @@ class FeatureMatchingAgent(Agent):
 
         # 2. detect features
         (kps_pers, des_pers) = self.detector.detectAndCompute(gray_pers, None)
-        (kps_target, des_target) = self.detector.detectAndCompute(gray_target, None)
+        (kps_target, des_target) = self.detector.detectAndCompute(
+            gray_target, None
+        )
 
-        if len(kps_pers) < self.num_matches or len(kps_target) < self.num_matches:
+        if (
+            len(kps_pers) < self.num_matches
+            or len(kps_target) < self.num_matches
+        ):
             # action = self.movement_actions[next(self.g)]
             action = self.prev_action
             return action
@@ -186,13 +188,13 @@ class FeatureMatchingAgent(Agent):
         # find matches
         if self.knn_matching:
             # find knn matches
-            if self.matcher_type == 'BF':
+            if self.matcher_type == "BF":
                 raw_matches = self.matcher.knnMatch(des_pers, des_target, k=2)
                 matches = []
                 for m, n in raw_matches:
                     if m.distance < 0.75 * n.distance:
                         matches.append(m)
-            elif self.matcher_type == 'FLANN':
+            elif self.matcher_type == "FLANN":
                 # FIXME: doesn't work...
                 matches = self.matcher.knnMatch(kps_pers, kps_target, k=2)
                 matchesMask = [[0, 0] for i in range(len(matches))]
@@ -202,7 +204,7 @@ class FeatureMatchingAgent(Agent):
         else:
             matches = self.matcher.match(des_pers, des_target)
             matches = sorted(matches, key=lambda x: x.distance)
-            matches = matches[:self.num_matches]
+            matches = matches[: self.num_matches]
 
         if len(matches) < self.num_matches:
             # print("not enough matches")
@@ -213,7 +215,6 @@ class FeatureMatchingAgent(Agent):
         # 4. Voting for actions
         actions = []
         for m in matches:
-
             # filter out matches
             if m.distance > self.distance_threshold:
                 continue
@@ -224,7 +225,10 @@ class FeatureMatchingAgent(Agent):
             x_displacement = np.abs(pers_loc[0] - target_loc[0])
             y_displacement = np.abs(pers_loc[1] - target_loc[1])
 
-            if 0 <= x_displacement < self.stop_threshold and 0 <= y_displacement < self.stop_threshold:
+            if (
+                0 <= x_displacement < self.stop_threshold
+                and 0 <= y_displacement < self.stop_threshold
+            ):
                 action = "stop"
             else:
                 if x_displacement > y_displacement:
@@ -266,9 +270,9 @@ class FeatureMatchingAgent(Agent):
         # NOTE: make track actions large enough
         if len(self.tracked_actions) == self.num_track_actions:
             _what_actions = set(self.tracked_actions)
-            if _what_actions == set(['right', 'left']):
+            if _what_actions == set(["right", "left"]):
                 action = "stop"
-            elif _what_actions == set(['up', 'down']):
+            elif _what_actions == set(["up", "down"]):
                 action = "stop"
 
         self.prev_action = action
@@ -277,7 +281,6 @@ class FeatureMatchingAgent(Agent):
 
 
 def main():
-
     import argparse
 
     from LookAround.config import DictAction
@@ -292,25 +295,23 @@ def main():
         required=True,
     )
     parser.add_argument(
-        '--name',
+        "--name",
         type=str,
-        help='name of the agent (used for naming save directory)'
+        help="name of the agent (used for naming save directory)",
     )
     parser.add_argument(
-        '--corrupted',
-        action='store_true',
-        help='use corrupted',
+        "--corrupted",
+        action="store_true",
+        help="use corrupted",
     )
     parser.add_argument(
-        '--all',
-        action='store_true',
-        help='benchmark all corruptions'
+        "--all", action="store_true", help="benchmark all corruptions"
     )
     parser.add_argument(
-        '--options',
-        nargs='+',
+        "--options",
+        nargs="+",
         action=DictAction,
-        help='arguments in dict',
+        help="arguments in dict",
     )
     args = parser.parse_args()
     cfg = Config.fromfile(args.config)
@@ -324,7 +325,7 @@ def main():
     agent = FeatureMatchingAgent.from_config(cfg)
     name = agent.name
     if args.name is not None:
-        name += '_' + args.name
+        name += "_" + args.name
 
     # Benchmark
     print(f"Benchmarking {name}")
@@ -332,7 +333,7 @@ def main():
         num_episodes = 60
         # TODO: create a script that evaluates each corruptions
         if args.all:
-            corruptions = get_corruption_names('all')
+            corruptions = get_corruption_names("all")
             for corruption in corruptions:
                 cfg.benchmark.corruption = corruption
                 benchmark = CorruptedFindViewBenchmark(

@@ -29,7 +29,7 @@ def parse_args():
         "--config",
         required=True,
         type=str,
-        help="config file for creating dataset"
+        help="config file for creating dataset",
     )
     parser.add_argument(
         "--rebuild-splits",
@@ -51,7 +51,6 @@ def parse_args():
 
 
 if __name__ == "__main__":
-
     args = parse_args()
     config_path = args.config
     assert os.path.exists(config_path)
@@ -62,7 +61,12 @@ if __name__ == "__main__":
 
     # params
     sun360_root = os.path.join(cfg.data_root, cfg.dataset.name)
-    dataset_root = os.path.join(cfg.dataset_root, cfg.dataset.name, cfg.dataset.version, cfg.dataset.category)
+    dataset_root = os.path.join(
+        cfg.dataset_root,
+        cfg.dataset.name,
+        cfg.dataset.version,
+        cfg.dataset.category,
+    )
     split_ratios = cfg.dataset.split_ratios
 
     # check params
@@ -83,9 +87,14 @@ if __name__ == "__main__":
 
     # 1. Create Splits (if needed)
 
-    if args.rebuild_splits or not all(os.path.exists(p) for p in split_paths.values()):
+    if args.rebuild_splits or not all(
+        os.path.exists(p) for p in split_paths.values()
+    ):
         print(f">>> BUILDING SPLITS for {cfg.dataset.category}")
-        assert cfg.dataset.category in ["indoor", "outdoor"]  # not using `others`
+        assert cfg.dataset.category in [
+            "indoor",
+            "outdoor",
+        ]  # not using `others`
         category_paths = {
             "indoor": os.path.join(sun360_root, "indoor"),
             "outdoor": os.path.join(sun360_root, "outdoor"),
@@ -108,7 +117,9 @@ if __name__ == "__main__":
 
         # make splits
         train, val, test = create_splits_for_category(img_paths, split_ratios)
-        assert sum([len(p) for p in img_paths.values()]) == len(train) + len(val) + len(test)
+        assert sum([len(p) for p in img_paths.values()]) == len(train) + len(
+            val
+        ) + len(test)
 
         print("train:", len(train))
         print("val:", len(val))
@@ -123,7 +134,7 @@ if __name__ == "__main__":
         }
         for name, values in splits.items():
             save_path = split_paths[name]
-            with open(save_path, 'wb') as f:
+            with open(save_path, "wb") as f:
                 pickle.dump(values, f)
 
         print("saved splits data file")
@@ -134,7 +145,7 @@ if __name__ == "__main__":
     print("reading splits data files...")
     splits = {}
     for name, path in tqdm(split_paths.items()):
-        with open(path, 'rb') as f:
+        with open(path, "rb") as f:
             splits[name] = pickle.load(f)
 
     # should be 11487, 1432, 1439
@@ -144,8 +155,9 @@ if __name__ == "__main__":
     for name, paths in splits.items():
         print(f"checking for images in {name} with {len(paths)} images")
         for path in tqdm(paths):
-            assert os.path.exists(os.path.join(sun360_root, path)), \
-                f"ERR: {path} doesn't exist! Did the dataset change?"
+            assert os.path.exists(
+                os.path.join(sun360_root, path)
+            ), f"ERR: {path} doesn't exist! Did the dataset change?"
 
     # NOTE: make dataset for `val` and `test` only?
     # around >500mb for training json file
@@ -164,10 +176,10 @@ if __name__ == "__main__":
     #   }
     # ]
 
-    use_splits = ['val', 'test']
+    use_splits = ["val", "test"]
     if args.static_train:
         print(">>> adding static train to this script")
-        use_splits = ['train'] + use_splits
+        use_splits = ["train"] + use_splits
 
     # params from config
     fov = cfg.dataset.fov
@@ -196,7 +208,7 @@ if __name__ == "__main__":
             dataset_path = dataset_paths[split_name]
             assert os.path.exists(dataset_path)
 
-            with open(dataset_path, 'r') as f:
+            with open(dataset_path, "r") as f:
                 dataset = json.load(f)
 
             assert len(dataset) > 0 and isinstance(dataset, list)
@@ -234,14 +246,14 @@ if __name__ == "__main__":
             # there will be higher likelihood
 
     else:
-
         # create a new dataset
         for split_name in use_splits:
-
             # save path for dataset
             save_path = dataset_paths[split_name]
             if os.path.exists(save_path):
-                print(f"ALREADY HAVE DATASET for {split_name}; consider removing before continuing")
+                print(
+                    f"ALREADY HAVE DATASET for {split_name}; consider removing before continuing"
+                )
                 continue
 
             img_paths = splits[split_name]
@@ -251,11 +263,13 @@ if __name__ == "__main__":
             # FIXME: make sure that it doesn't overflow
             eps_id = 0
             for img in tqdm(img_paths):
-                assert os.path.exists(os.path.join(sun360_root, img)), f"{img} doesn't exist"
+                assert os.path.exists(
+                    os.path.join(sun360_root, img)
+                ), f"{img} doesn't exist"
 
                 # get cat and subcat
                 # img_path is
-                s = img.split('/')
+                s = img.split("/")
                 assert len(s) == 3, f"{img} is not valid"
                 category = s[0]
                 sub_category = s[1]
@@ -282,7 +296,9 @@ if __name__ == "__main__":
                         sigma=sigma,
                         sample_limit=sample_limit,
                     )
-                    dataset.append({**{"episode_id": eps_id}, **base, **data})  # update dict
+                    dataset.append(
+                        {**{"episode_id": eps_id}, **base, **data}
+                    )  # update dict
                     eps_id += 1
 
                 for _ in range(num_medium):
@@ -299,7 +315,9 @@ if __name__ == "__main__":
                         sigma=sigma,
                         sample_limit=sample_limit,
                     )
-                    dataset.append({**{"episode_id": eps_id}, **base, **data})  # update dict
+                    dataset.append(
+                        {**{"episode_id": eps_id}, **base, **data}
+                    )  # update dict
                     eps_id += 1
 
                 for _ in range(num_hard):
@@ -316,7 +334,9 @@ if __name__ == "__main__":
                         sigma=sigma,
                         sample_limit=sample_limit,
                     )
-                    dataset.append({**{"episode_id": eps_id}, **base, **data})  # update dict
+                    dataset.append(
+                        {**{"episode_id": eps_id}, **base, **data}
+                    )  # update dict
                     eps_id += 1
 
             if not args.no_shuffle:
@@ -333,23 +353,29 @@ if __name__ == "__main__":
 
     # if training mode is dynamic, we just save the essentials in `train.json`
     if not args.static_train and not args.check_dataset:
-        print(">>> making train.json with only essential items (img_name, etc...)")
+        print(
+            ">>> making train.json with only essential items (img_name, etc...)"
+        )
 
         # save path for train
         save_path = dataset_paths["train"]
 
         if os.path.exists(save_path):
-            print("ALREADY HAVE DATASET for train; consider removing before continuing")
+            print(
+                "ALREADY HAVE DATASET for train; consider removing before continuing"
+            )
         else:
             train_imgs = splits["train"]
 
             dataset = []
             for img in tqdm(train_imgs):
-                assert os.path.exists(os.path.join(sun360_root, img)), f"{img} doesn't exist"
+                assert os.path.exists(
+                    os.path.join(sun360_root, img)
+                ), f"{img} doesn't exist"
 
                 # get cat and subcat
                 # img_path is
-                s = img.split('/')
+                s = img.split("/")
                 assert len(s) == 3, f"{img} is not valid"
                 category = s[0]
                 sub_category = s[1]

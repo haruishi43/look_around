@@ -29,7 +29,6 @@ class PPO(nn.Module):
         use_normalized_advantage: bool = True,
         **kwargs,
     ) -> None:
-
         super().__init__()
 
         self.actor_critic = actor_critic

@@ -19,13 +19,12 @@ from LookAround.FindView.sim import FindViewSim
 DATA_ROOT = "tests/data/sun360"
 
 
-@pytest.mark.parametrize('inc', [1, 2, 5])
-@pytest.mark.parametrize('threshold', [60, 90])
+@pytest.mark.parametrize("inc", [1, 2, 5])
+@pytest.mark.parametrize("threshold", [60, 90])
 def test_rotation_tracker(
     inc: int,
     threshold: int,
 ) -> None:
-
     initial_rotation = dict(
         roll=0,
         pitch=0,
@@ -39,72 +38,75 @@ def test_rotation_tracker(
 
     # move up until it hits the threshold
     rot_tracker.reset(initial_rotation=initial_rotation)
-    ex_pitch = initial_rotation['pitch']  # should be a copy right?
+    ex_pitch = initial_rotation["pitch"]  # should be a copy right?
     while True:
-        rot = rot_tracker.move('up')
-        pitch = rot['pitch']
+        rot = rot_tracker.move("up")
+        pitch = rot["pitch"]
         if pitch == threshold:
             break
 
         ex_pitch += inc
-        assert ex_pitch != threshold, \
-            f"pitch ({pitch}) should have reached threshold already"
+        assert (
+            ex_pitch != threshold
+        ), f"pitch ({pitch}) should have reached threshold already"
 
     # move down until it hits the threshold
     rot_tracker.reset(initial_rotation=initial_rotation)
-    ex_pitch = initial_rotation['pitch']
+    ex_pitch = initial_rotation["pitch"]
     while True:
-        rot = rot_tracker.move('down')
-        pitch = rot['pitch']
+        rot = rot_tracker.move("down")
+        pitch = rot["pitch"]
         if pitch == -threshold:
             break
 
         ex_pitch -= inc
-        assert ex_pitch != -threshold, \
-            f"pitch ({pitch}) should have reached threshold already"
+        assert (
+            ex_pitch != -threshold
+        ), f"pitch ({pitch}) should have reached threshold already"
 
     # move right, it should wrap around to the original position
     rot_tracker.reset(initial_rotation=initial_rotation)
-    ex_yaw = initial_rotation['yaw']
+    ex_yaw = initial_rotation["yaw"]
     while True:
-        rot = rot_tracker.move('right')
-        yaw = rot['yaw']
-        if yaw == initial_rotation['yaw']:
+        rot = rot_tracker.move("right")
+        yaw = rot["yaw"]
+        if yaw == initial_rotation["yaw"]:
             break
 
         ex_yaw += inc
         if ex_yaw > 180:
             ex_yaw -= 2 * 180
-        assert ex_yaw != initial_rotation['yaw'], \
-            f"yaw ({yaw}) should have went full circles already"
+        assert (
+            ex_yaw != initial_rotation["yaw"]
+        ), f"yaw ({yaw}) should have went full circles already"
 
     # move left, it should wrap around to the original position
     rot_tracker.reset(initial_rotation=initial_rotation)
-    ex_yaw = initial_rotation['yaw']
+    ex_yaw = initial_rotation["yaw"]
     while True:
-        rot = rot_tracker.move('left')
-        yaw = rot['yaw']
-        if yaw == initial_rotation['yaw']:
+        rot = rot_tracker.move("left")
+        yaw = rot["yaw"]
+        if yaw == initial_rotation["yaw"]:
             break
 
         ex_yaw -= inc
         if ex_yaw <= -180:
             ex_yaw += 2 * 180
-        assert ex_yaw != initial_rotation['yaw'], \
-            f"yaw ({yaw}) should have went full circles already"
+        assert (
+            ex_yaw != initial_rotation["yaw"]
+        ), f"yaw ({yaw}) should have went full circles already"
 
 
-@pytest.mark.parametrize('height', [128])
-@pytest.mark.parametrize('width', [128, 256])
-@pytest.mark.parametrize('fov', [90.0])
-@pytest.mark.parametrize('dtype', [torch.float32, np.float32])
+@pytest.mark.parametrize("height", [128])
+@pytest.mark.parametrize("width", [128, 256])
+@pytest.mark.parametrize("fov", [90.0])
+@pytest.mark.parametrize("dtype", [torch.float32, np.float32])
 def test_cpu_sim(
     height: int,
     width: int,
     fov: float,
     dtype: Union[np.dtype, torch.dtype],
 ) -> None:
-
     cv_write = False
 
     if dtype in (np.float32, np.float64):
@@ -207,15 +209,14 @@ def test_cpu_sim(
         cv2.imwrite(os.path.join(save_root, "pers2.jpg"), cv_pers2)
 
 
-@pytest.mark.parametrize('height', [128])
-@pytest.mark.parametrize('width', [128, 256])
-@pytest.mark.parametrize('fov', [90.0])
+@pytest.mark.parametrize("height", [128])
+@pytest.mark.parametrize("width", [128, 256])
+@pytest.mark.parametrize("fov", [90.0])
 def test_gpu_sim(
     height: int,
     width: int,
     fov: float,
 ) -> None:
-
     cv_write = False
     dtype = torch.float32
     device = torch.device(0)

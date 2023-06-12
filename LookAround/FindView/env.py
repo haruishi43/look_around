@@ -20,12 +20,17 @@ from LookAround.FindView.sim import FindViewSim, Tensor
 from LookAround.FindView.actions import FindViewActions
 from LookAround.FindView.rotation_tracker import RotationTracker
 from LookAround.FindView.dataset import Episode, make_dataset
-from LookAround.FindView.dataset.static_dataset import StaticDataset, StaticIterator
-from LookAround.FindView.dataset.dynamic_dataset import DynamicDataset, DynamicGenerator
+from LookAround.FindView.dataset.static_dataset import (
+    StaticDataset,
+    StaticIterator,
+)
+from LookAround.FindView.dataset.dynamic_dataset import (
+    DynamicDataset,
+    DynamicGenerator,
+)
 
 
 class FindViewEnv(object):
-
     # Properties
     action_space: ActionSpace
     observation_space: spaces.Dict
@@ -52,8 +57,7 @@ class FindViewEnv(object):
         sim: FindViewSim,
         seed: Optional[int] = None,
     ) -> None:
-        """FindView Environment
-        """
+        """FindView Environment"""
 
         assert sim.fov == dataset.fov
 
@@ -79,10 +83,7 @@ class FindViewEnv(object):
 
         # gym spaces
         self.action_space = ActionSpace(
-            {
-                action_name: EmptySpace()
-                for action_name in FindViewActions.all
-            }
+            {action_name: EmptySpace() for action_name in FindViewActions.all}
         )
         dtype = self._sim.dtype
         if self._sim.is_torch:
@@ -152,10 +153,9 @@ class FindViewEnv(object):
         filter_fn: Optional[Callable[..., bool]] = None,
         num_episodes_per_img: int = -1,
         dtype: Union[np.dtype, torch.dtype] = torch.float32,
-        device: torch.device = torch.device('cpu'),
+        device: torch.device = torch.device("cpu"),
     ):
-        """Initialization from Config
-        """
+        """Initialization from Config"""
 
         # Initialize dataset
         dataset = make_dataset(
@@ -166,13 +166,13 @@ class FindViewEnv(object):
         )
 
         # Initialize episode iterator
-        if split in ('train'):
+        if split in ("train"):
             iter_options = cfg.episode_generator_kwargs
-            iter_options['seed'] = cfg.seed
+            iter_options["seed"] = cfg.seed
             episode_iterator = dataset.get_generator(**iter_options)
-        elif split in ('val', 'test'):
+        elif split in ("val", "test"):
             iter_options = cfg.episode_iterator_kwargs
-            iter_options['seed'] = cfg.seed
+            iter_options["seed"] = cfg.seed
             episode_iterator = dataset.get_iterator(**iter_options)
         else:
             raise ValueError(f"got {split} as split which is unsupported")
@@ -239,8 +239,7 @@ class FindViewEnv(object):
         }
 
     def get_metrics(self) -> Dict[str, Any]:
-        """should return dict of metrics for reward calculation, etc...
-        """
+        """should return dict of metrics for reward calculation, etc..."""
 
         # NOTE: Only put the calculations needed by Benchmark and RLEnv
         # for RLEnv, do their own calculation by extending
@@ -266,8 +265,8 @@ class FindViewEnv(object):
             current_rotation=self._rot_tracker.current_rotation,
         )
         distances_dict = dict(
-            l1_distance=distances['l1_distance'],
-            l2_distance=distances['l2_distance'],
+            l1_distance=distances["l1_distance"],
+            l2_distance=distances["l2_distance"],
         )
 
         # FIXME: might need to edit this metrics...
@@ -276,8 +275,8 @@ class FindViewEnv(object):
         # if efficiency is large, it means that the agent is looking around too much or struggling
         efficiency_dict = dict(
             efficiency=path_efficiency(
-                shortest_path=info['steps_for_shortest_path'],
-                steps=info['elapsed_steps'],
+                shortest_path=info["steps_for_shortest_path"],
+                steps=info["elapsed_steps"],
             ),
         )
 
@@ -320,11 +319,12 @@ class FindViewEnv(object):
         return obs
 
     def reset(self) -> Dict[str, Tensor]:
-
         self._reset_stats()
 
         self._current_episode = next(self._episode_iterator)
-        assert self._current_episode is not None, "ERR: called reset, but there are no more episodes in the iterator"
+        assert (
+            self._current_episode is not None
+        ), "ERR: called reset, but there are no more episodes in the iterator"
 
         initial_rotation = self._current_episode.initial_rotation
         target_rotation = self._current_episode.target_rotation
@@ -349,15 +349,17 @@ class FindViewEnv(object):
             self._episode_over = True
 
     def step_before(self, action: str):
-        assert self._episode_start_time is not None, \
-            "Cannot call step before calling reset"
+        assert (
+            self._episode_start_time is not None
+        ), "Cannot call step before calling reset"
 
-        assert self._episode_over is False, \
-            "ERR: Episode is over, call reset before calling step"
+        assert (
+            self._episode_over is False
+        ), "ERR: Episode is over, call reset before calling step"
 
         # unwrap actions
         if isinstance(action, dict):
-            action = action['action']
+            action = action["action"]
 
         if isinstance(action, int):
             action = FindViewActions.all[action]
@@ -384,16 +386,17 @@ class FindViewEnv(object):
         return obs
 
     def step(self, action: Union[Dict[str, str], str]) -> Dict[str, Tensor]:
+        assert (
+            self._episode_start_time is not None
+        ), "Cannot call step before calling reset"
 
-        assert self._episode_start_time is not None, \
-            "Cannot call step before calling reset"
-
-        assert self._episode_over is False, \
-            "ERR: Episode is over, call reset before calling step"
+        assert (
+            self._episode_over is False
+        ), "ERR: Episode is over, call reset before calling step"
 
         # unwrap actions
         if isinstance(action, dict):
-            action = action['action']
+            action = action["action"]
 
         if isinstance(action, int):
             action = FindViewActions.all[action]
@@ -430,9 +433,12 @@ class FindViewEnv(object):
         }
 
     def change_difficulty(self, difficulty: str, bounded: bool) -> None:
-        assert isinstance(self._dataset, DynamicDataset) \
-            and isinstance(self._episode_iterator, DynamicGenerator)
-        self._episode_iterator.set_difficulty(difficulty=difficulty, bounded=bounded)
+        assert isinstance(self._dataset, DynamicDataset) and isinstance(
+            self._episode_iterator, DynamicGenerator
+        )
+        self._episode_iterator.set_difficulty(
+            difficulty=difficulty, bounded=bounded
+        )
 
     def close(self) -> None:
         self._sim.close()

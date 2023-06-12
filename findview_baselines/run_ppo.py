@@ -19,14 +19,14 @@ def main():
     parser.add_argument(
         "--mode",
         type=str,
-        choices=('train', 'eval'),
-        default='train',
+        choices=("train", "eval"),
+        default="train",
     )
     parser.add_argument(
-        '--options',
-        nargs='+',
+        "--options",
+        nargs="+",
         action=DictAction,
-        help='arguments in dict',
+        help="arguments in dict",
     )
 
     args = parser.parse_args()

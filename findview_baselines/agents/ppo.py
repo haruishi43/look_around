@@ -23,7 +23,6 @@ from findview_baselines.rl.ppo.policy import FindViewBaselinePolicy
 
 
 class PPOAgent(Agent):
-
     def __init__(
         self,
         cfg: Config,
@@ -31,14 +30,12 @@ class PPOAgent(Agent):
         dtype: torch.dtype = torch.float32,
         device: torch.device = torch.device(0),
     ) -> None:
-
-        assert os.path.exists(ckpt_path), \
-            f"ERR: {ckpt_path} doesn't exist!"
+        assert os.path.exists(ckpt_path), f"ERR: {ckpt_path} doesn't exist!"
 
         if torch.cuda.is_available():
             self.device = torch.device(device)
         else:
-            self.device = torch.device('cpu')
+            self.device = torch.device("cpu")
 
         observation_space = SpaceDict(
             {
@@ -72,29 +69,29 @@ class PPOAgent(Agent):
         # loading values from ckpt dict
         ckpt_dict = torch.load(ckpt_path, map_location=self.device)
 
-        agent_name = 'ppo'
-        ckpt_cfg = ckpt_dict['cfg']
+        agent_name = "ppo"
+        ckpt_cfg = ckpt_dict["cfg"]
 
         # try to get trainer
-        trainer = ckpt_cfg.get('trainer', None)
+        trainer = ckpt_cfg.get("trainer", None)
         if trainer is None:
             # backward compatibility
-            trainer = ckpt_cfg.get('base_trainer', None)
+            trainer = ckpt_cfg.get("base_trainer", None)
             assert trainer is not None, ckpt_cfg.pretty_text
-            agent_name += f'_compat_{str(trainer.run_id)}'
+            agent_name += f"_compat_{str(trainer.run_id)}"
         else:
-            agent_name += f'_{str(trainer.run_id)}'
+            agent_name += f"_{str(trainer.run_id)}"
 
         # add rl_env name
-        agent_name += f'_{ckpt_cfg.rl_env.name}'
+        agent_name += f"_{ckpt_cfg.rl_env.name}"
 
         # add identifier
-        identifier = trainer.get('identifier', None)
+        identifier = trainer.get("identifier", None)
         if identifier is not None:
-            agent_name += f'_{identifier}'
+            agent_name += f"_{identifier}"
 
-        step_id = ckpt_dict['extra_state']['num_steps_done']
-        agent_name += f'_{str(step_id)}'
+        step_id = ckpt_dict["extra_state"]["num_steps_done"]
+        agent_name += f"_{str(step_id)}"
 
         self.name = agent_name  # NOTE: setting agent name here!
 
@@ -144,7 +141,6 @@ class PPOAgent(Agent):
         )
 
     def act(self, observations: Dict[str, Any]) -> Dict[str, int]:
-
         # NOTE: need to extend observation to 4 dims if not 4 dim
         for name, value in observations.items():
             if torch.is_tensor(value):
@@ -172,7 +168,6 @@ class PPOAgent(Agent):
 
 
 def main():
-
     import argparse
 
     from LookAround.config import DictAction
@@ -182,35 +177,33 @@ def main():
 
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        '--config',
+        "--config",
         type=str,
         required=True,
     )
     parser.add_argument(
-        '--ckpt-path',
+        "--ckpt-path",
         type=str,
         required=True,
     )
     parser.add_argument(
-        '--name',
+        "--name",
         type=str,
-        help='name of the agent (used for naming save directory)'
+        help="name of the agent (used for naming save directory)",
     )
     parser.add_argument(
-        '--corrupted',
-        action='store_true',
-        help='use corrupted',
+        "--corrupted",
+        action="store_true",
+        help="use corrupted",
     )
     parser.add_argument(
-        '--all',
-        action='store_true',
-        help='benchmark all corruptions'
+        "--all", action="store_true", help="benchmark all corruptions"
     )
     parser.add_argument(
-        '--options',
-        nargs='+',
+        "--options",
+        nargs="+",
         action=DictAction,
-        help='arguments in dict',
+        help="arguments in dict",
     )
     args = parser.parse_args()
     cfg = Config.fromfile(args.config)
@@ -222,8 +215,7 @@ def main():
 
     # Intializing the agent
     ckpt_path = args.ckpt_path
-    assert os.path.exists(ckpt_path), \
-        f"ERR: {ckpt_path} doesn't exist!"
+    assert os.path.exists(ckpt_path), f"ERR: {ckpt_path} doesn't exist!"
 
     if torch.cuda.is_available():
         device = torch.device(cfg.benchmark.device)
@@ -238,7 +230,7 @@ def main():
 
     name = agent.name
     if args.name is not None:
-        name += '_' + args.name
+        name += "_" + args.name
 
     # Benchmark
     print(f"Benchmarking {name}")
@@ -246,7 +238,7 @@ def main():
         num_episodes = 60
         # TODO: create a script that evaluates each corruptions
         if args.all:
-            corruptions = get_corruption_names('all')
+            corruptions = get_corruption_names("all")
             for corruption in corruptions:
                 cfg.benchmark.corruption = corruption
                 benchmark = CorruptedFindViewBenchmark(

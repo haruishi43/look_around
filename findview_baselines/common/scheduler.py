@@ -7,10 +7,13 @@ from LookAround.FindView.corrupted_vec_env import CorruptedVecEnv
 
 
 class DifficultyScheduler(object):
-
     # Properties
     current_level: int = 0
-    difficulties: Tuple[str] = ('easy', 'medium', 'hard')  # NOTE: notice the order
+    difficulties: Tuple[str] = (
+        "easy",
+        "medium",
+        "hard",
+    )  # NOTE: notice the order
 
     def __init__(
         self,
@@ -20,7 +23,6 @@ class DifficultyScheduler(object):
         bounded: bool = False,
         difficulties: Optional[Tuple[str]] = None,
     ) -> None:
-
         if difficulties is not None:
             assert isinstance(difficulties, tuple) and len(difficulties) > 0
             self.difficulties = difficulties
@@ -45,15 +47,16 @@ class DifficultyScheduler(object):
                 # set new level
                 self.current_level = _level
 
-                print(f"setting difficulty to {self.difficulties[self.current_level]}")
+                print(
+                    f"setting difficulty to {self.difficulties[self.current_level]}"
+                )
 
             return True
         else:
             return False
 
     def update(self, envs: VecEnv, num_updates_done: int) -> None:
-        """Update based on `num_updates_done` and scheduler's `update_interval`
-        """
+        """Update based on `num_updates_done` and scheduler's `update_interval`"""
         if self._update_difficulty(num_updates_done=num_updates_done):
             envs.change_difficulty(
                 difficulty=self.difficulties[self.current_level],
@@ -74,7 +77,6 @@ class DifficultyScheduler(object):
 
 
 class SeverityScheduler(object):
-
     # Properties
     current_level: int = 0
     severities: List[int] = (0, 1, 2, 3, 4, 5)
@@ -87,7 +89,6 @@ class SeverityScheduler(object):
         num_updates_done: int = 0,
         bounded: bool = False,
     ) -> None:
-
         self.update_interval = update_interval
         assert initial_severity in self.severities
         self.severities = list(range(initial_severity, max_severity + 1))
@@ -109,15 +110,16 @@ class SeverityScheduler(object):
                 # set new severity
                 self.current_level = _level
 
-                print(f"setting severity to {self.severities[self.current_level]}")
+                print(
+                    f"setting severity to {self.severities[self.current_level]}"
+                )
 
             return True
         else:
             return False
 
     def update(self, envs: CorruptedVecEnv, num_updates_done: int) -> None:
-        """Update based on `num_updates_done` and scheduler's `update_interval`
-        """
+        """Update based on `num_updates_done` and scheduler's `update_interval`"""
         if self._update_severity(num_updates_done=num_updates_done):
             envs.change_severity(
                 severity=self.severities[self.current_level],

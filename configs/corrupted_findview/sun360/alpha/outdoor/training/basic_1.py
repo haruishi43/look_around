@@ -1,10 +1,10 @@
 _base_ = [
-    '../_base_/rl_envs/basic.py',
-    '../../../../agents/ppo.py',
-    '../../../../_base_/trainer.py',
+    "../_base_/rl_envs/basic.py",
+    "../../../../agents/ppo.py",
+    "../../../../_base_/trainer.py",
 ]
 dataset = dict(
-    difficulty='easy',
+    difficulty="easy",
     bounded=False,
 )
 trainer = dict(
@@ -14,7 +14,7 @@ trainer = dict(
     log_interval=10,
 )
 scheduler = dict(
-    initial_difficulty='easy',
+    initial_difficulty="easy",
     update_interval=5000,
 )
 corruption_scheduler = dict(

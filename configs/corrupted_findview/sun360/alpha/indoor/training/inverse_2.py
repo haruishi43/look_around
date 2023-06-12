@@ -1,8 +1,8 @@
 _base_ = [
-    './inverse_1.py',
+    "./inverse_1.py",
 ]
 dataset = dict(
-    difficulty='easy',
+    difficulty="easy",
     bounded=False,
 )
 rl_env = dict(
@@ -15,7 +15,7 @@ trainer = dict(
     log_interval=10,
 )
 scheduler = dict(
-    initial_difficulty='easy',
+    initial_difficulty="easy",
     update_interval=5000,
 )
 corruption_scheduler = dict(

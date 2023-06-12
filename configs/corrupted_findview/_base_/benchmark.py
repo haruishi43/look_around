@@ -1,5 +1,5 @@
 benchmark = dict(
-    device='cpu',
+    device="cpu",
     dtype="torch.float32",
     num_threads=4,
     video_dir=(
@@ -23,7 +23,7 @@ benchmark = dict(
     num_episodes=-1,
     difficulty="hard",
     bounded=False,
-    corruption='gaussian_blur',
+    corruption="gaussian_blur",
     severity=1,
     bounded_severity=True,
     remove_labels="others",

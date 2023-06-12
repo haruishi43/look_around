@@ -17,17 +17,11 @@ from LookAround.FindView.rotation_tracker import RotationTracker
 
 def parse_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument(
-        "--config",
-        required=True,
-        type=str,
-        help="config file"
-    )
+    parser.add_argument("--config", required=True, type=str, help="config file")
     return parser.parse_args()
 
 
 if __name__ == "__main__":
-
     # args = parse_args()
     # cfg = Config.fromfile(args.config)
     # print(f">>> Config:\n{cfg.pretty_text}")
@@ -62,7 +56,7 @@ if __name__ == "__main__":
     sim.inititialize_loader(
         is_torch=True,
         dtype=dtype,
-        device=torch.device('cpu'),
+        device=torch.device("cpu"),
     )
     sim.initialize_from_episode(
         equi_path=img_path,
@@ -98,8 +92,8 @@ if __name__ == "__main__":
     (kps_target, des_target) = detector.detectAndCompute(gray_target, None)
     tmp_target = cv2.drawKeypoints(gray_target, kps_target, target)
 
-    cv2.imshow('kps_pers', tmp_pers)
-    cv2.imshow('kps_target', tmp_target)
+    cv2.imshow("kps_pers", tmp_pers)
+    cv2.imshow("kps_target", tmp_target)
 
     # match features
     # bf = cv2.BFMatcher(normType=cv2.NORM_HAMMING, crossCheck=True)
@@ -111,12 +105,24 @@ if __name__ == "__main__":
     matches = matches[:10]
 
     # draw matches
-    tmp_match = cv2.drawMatches(gray_pers, kps_pers, gray_target, kps_target, matches, None, flags=cv2.DrawMatchesFlags_NOT_DRAW_SINGLE_POINTS)
-    cv2.imshow('maches', tmp_match)
+    tmp_match = cv2.drawMatches(
+        gray_pers,
+        kps_pers,
+        gray_target,
+        kps_target,
+        matches,
+        None,
+        flags=cv2.DrawMatchesFlags_NOT_DRAW_SINGLE_POINTS,
+    )
+    cv2.imshow("maches", tmp_match)
 
     # FIXME: are query and train, src and target?
-    pts_pers = np.float32([kps_pers[m.queryIdx].pt for m in matches]).reshape(-1, 1, 2)
-    pts_target = np.float32([kps_target[m.trainIdx].pt for m in matches]).reshape(-1, 1, 2)
+    pts_pers = np.float32([kps_pers[m.queryIdx].pt for m in matches]).reshape(
+        -1, 1, 2
+    )
+    pts_target = np.float32(
+        [kps_target[m.trainIdx].pt for m in matches]
+    ).reshape(-1, 1, 2)
 
     # homography matrix
     M, mask = cv2.findHomography(pts_pers, pts_target, cv2.RANSAC, 5.0)

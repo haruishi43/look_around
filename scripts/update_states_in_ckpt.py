@@ -16,8 +16,8 @@ from findview_baselines.rl.ppo.ppo_trainer import PPOTrainer
 
 
 def parse_args():
-    parser = argparse.ArgumentParser(description='Print the whole config')
-    parser.add_argument('config', help='config file path')
+    parser = argparse.ArgumentParser(description="Print the whole config")
+    parser.add_argument("config", help="config file path")
     args = parser.parse_args()
     return args
 
@@ -52,15 +52,15 @@ if __name__ == "__main__":
     d = trainer.load_checkpoint(ckpt_path, map_location="cpu")
 
     print(d.keys())
-    print(d['extra_state'])
+    print(d["extra_state"])
 
     print(os.path.basename(ckpt_path))
 
     trainer.save_checkpoint(
         os.path.basename(ckpt_path),
         dict(
-            state_dict=d['state_dict'],
-            cfg=d['cfg'],
+            state_dict=d["state_dict"],
+            cfg=d["cfg"],
         ),
         extra_state=new_extra_state,
     )

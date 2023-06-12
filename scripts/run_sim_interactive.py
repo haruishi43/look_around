@@ -21,7 +21,6 @@ from LookAround.FindView.utils.visualize import generate_movement_video
 
 
 class Human(object):
-
     def __init__(self):
         ...
 
@@ -44,11 +43,11 @@ class Human(object):
 
 
 def rot2coord(rot: dict, h: int, w: int):
-    pitch = rot['pitch']
-    yaw = rot['yaw']
+    pitch = rot["pitch"]
+    yaw = rot["yaw"]
 
-    pitch = (-pitch + 90)
-    yaw = (yaw + 180)
+    pitch = -pitch + 90
+    yaw = yaw + 180
 
     y = int(h * pitch / 180 + 0.5)
     x = int(w * yaw / 360 + 0.5)
@@ -63,7 +62,6 @@ def draw_movements(
     history: list,
     target: dict,
 ) -> np.ndarray:
-
     # params:
     radius = 8
     thickness = -1
@@ -98,7 +96,6 @@ def draw_movements(
 
 
 if __name__ == "__main__":
-
     # initialize data path
     save_root = "./results/interactive/"
     data_root = "./data/sun360/indoor/bedroom"
@@ -135,7 +132,7 @@ if __name__ == "__main__":
     )
     sim.inititialize_loader(
         dtype=dtype,
-        device=torch.device('cpu'),
+        device=torch.device("cpu"),
     )
     sim.reset(
         equi_path=img_path,
@@ -207,7 +204,9 @@ if __name__ == "__main__":
     if will_write:
         if not is_video:
             for i, frame in enumerate(pers):
-                cv2.imwrite(os.path.join(save_root, f"{img_name}_{i}.jpg"), frame)
+                cv2.imwrite(
+                    os.path.join(save_root, f"{img_name}_{i}.jpg"), frame
+                )
         else:
             images_to_video_cv2(
                 images=pers,

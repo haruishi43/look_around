@@ -1,8 +1,8 @@
 _base_ = [
-    './inverse_2.py',
+    "./inverse_2.py",
 ]
 dataset = dict(
-    difficulty='easy',
+    difficulty="easy",
     bounded=False,
 )
 rl_env = dict(
@@ -10,12 +10,12 @@ rl_env = dict(
 )
 trainer = dict(
     run_id=2,
-    identifier='longer',
+    identifier="longer",
     num_updates=36000,
     ckpt_interval=1000,
     log_interval=10,
 )
 scheduler = dict(
-    initial_difficulty='easy',
+    initial_difficulty="easy",
     update_interval=12000,
 )

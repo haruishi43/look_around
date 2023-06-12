@@ -17,7 +17,10 @@ from tqdm import tqdm
 from LookAround.config import Config
 from LookAround.utils.random import seed
 from LookAround.FindView.corrupted_env import CorruptedFindViewEnv
-from LookAround.utils.visualizations import images_to_video_cv2, renders_to_image
+from LookAround.utils.visualizations import (
+    images_to_video_cv2,
+    renders_to_image,
+)
 
 from findview_baselines.agents.single_movement import SingleMovementAgent
 from findview_baselines.agents.greedy import GreedyMovementAgent
@@ -41,17 +44,17 @@ def parse_args():
         "--agent",
         required=True,
         type=str,
-        choices=['single', 'greedy', 'fm'],
-        help="name of the agent"
+        choices=["single", "greedy", "fm"],
+        help="name of the agent",
     )
     parser.add_argument(
         "--name",
         type=str,
-        default='0',
+        default="0",
     )
     parser.add_argument(
         "--corruption",
-        default='all',
+        default="all",
         type=str,
     )
     return parser.parse_args()
@@ -66,9 +69,9 @@ if __name__ == "__main__":
     print(cfg.pretty_text)
 
     # params:
-    split = 'test'
+    split = "test"
     dtype = torch.float32
-    device = torch.device('cpu')
+    device = torch.device("cpu")
     num_steps = 1000
 
     # indoor specific
@@ -116,8 +119,10 @@ if __name__ == "__main__":
             # save stats to file
             stats = env.get_metrics()
             img_name = env.current_episode.img_name
-            save_path = os.path.join('./results/tests/corrupted_env', f'{img_name}_{args.name}.json')
-            with open(save_path, 'w') as f:
+            save_path = os.path.join(
+                "./results/tests/corrupted_env", f"{img_name}_{args.name}.json"
+            )
+            with open(save_path, "w") as f:
                 json.dump(stats, f, indent=2)
 
             # NEED TO RESET!
@@ -130,7 +135,7 @@ if __name__ == "__main__":
 
     images_to_video_cv2(
         images=images,
-        output_dir='./results/tests/corrupted_env',
-        video_name=f'{args.agent}_{args.name}',
+        output_dir="./results/tests/corrupted_env",
+        video_name=f"{args.agent}_{args.name}",
         fps=30.0,
     )

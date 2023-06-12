@@ -1,5 +1,19 @@
 # Setup Notes
 
+## Dependencies
+
+- Pin protobuf to 3.20.1
+- Don't install the latest tensorflow2
+
+
+```Bash
+pip install -U protobuf==3.20.1
+pip install tensorboard==2.8.0
+```
+
+
+## Project
+
 Setting up `data` directory:
 
 ```Bash

@@ -74,7 +74,7 @@ validator = dict(
     num_episodes_per_img=1,
 )
 scheduler = dict(
-    initial_difficulty='easy',
-    difficulties=('easy', 'medium', 'hard'),
+    initial_difficulty="easy",
+    difficulties=("easy", "medium", "hard"),
     update_interval=2500,
 )

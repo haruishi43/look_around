@@ -1,19 +1,19 @@
 _base_ = [
-    '../sun360/alpha/indoor/training/inverse_2_half.py',
+    "../sun360/alpha/indoor/training/inverse_2_half.py",
 ]
 trainer = dict(
-    identifier='half_test',
+    identifier="half_test",
     num_envs=8,
     num_updates=120,
     ckpt_interval=60,
     log_interval=10,
-    pretrained='./pretrained/run_2_doublelength/ckpt.28.pth',
+    pretrained="./pretrained/run_2_doublelength/ckpt.28.pth",
 )
 validator = dict(
     num_envs=8,
 )
 scheduler = dict(
-    initial_difficulty='hard',
+    initial_difficulty="hard",
 )
 corruption_scheduler = dict(
     initial_severity=2,
@@ -21,7 +21,7 @@ corruption_scheduler = dict(
     update_interval=20,
 )
 corrupter = dict(
-    corruptions='all',
+    corruptions="all",
     severity=2,
     bounded=False,
     use_clear=True,

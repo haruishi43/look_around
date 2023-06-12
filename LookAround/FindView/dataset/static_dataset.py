@@ -22,7 +22,6 @@ T = TypeVar("T", bound=Episode)
 
 
 class StaticDataset(Generic[T]):
-
     episodes: List[T]
 
     _fov: float
@@ -67,10 +66,10 @@ class StaticDataset(Generic[T]):
 
         """
 
-        assert os.path.exists(dataset_json_path), \
-            f"ERR: {dataset_json_path} doesn't exist"
-        assert os.path.exists(data_dir), \
-            f"ERR: {data_dir} doesn't exist"
+        assert os.path.exists(
+            dataset_json_path
+        ), f"ERR: {dataset_json_path} doesn't exist"
+        assert os.path.exists(data_dir), f"ERR: {data_dir} doesn't exist"
 
         self.episodes = []
 
@@ -161,18 +160,17 @@ class StaticDataset(Generic[T]):
         json_str: str,
         data_dir: os.PathLike,
     ) -> None:
-        """Load json data to Episodes
-        """
+        """Load json data to Episodes"""
         deserialized = json.loads(json_str)
-        assert len(deserialized) > 0 and isinstance(deserialized, list), \
-            "ERR: contents of json string unreadable"
+        assert len(deserialized) > 0 and isinstance(
+            deserialized, list
+        ), "ERR: contents of json string unreadable"
 
         for d in deserialized:
             # make sure that full path is loaded
             d["path"] = os.path.join(os.getcwd(), data_dir, d["path"])
             # FIXME: do we need this check before hand?
-            assert os.path.exists(d["path"]), \
-                f"ERR: {d['path']} doesn't exist"
+            assert os.path.exists(d["path"]), f"ERR: {d['path']} doesn't exist"
             episode = Episode(**d)
             self.episodes.append(episode)
 
@@ -190,8 +188,9 @@ class StaticDataset(Generic[T]):
         for episode in self.episodes:
             if filter_fn(episode):
                 new_episodes.append(episode)
-        assert len(new_episodes) > 0, \
-            "ERR: filtered all episodes; no episode for dataset"
+        assert (
+            len(new_episodes) > 0
+        ), "ERR: filtered all episodes; no episode for dataset"
         new_dataset = copy(self)  # copies all attributes
         new_dataset.episodes = new_episodes
         return new_dataset
@@ -208,15 +207,15 @@ class StaticDataset(Generic[T]):
         new_episodes = []
         for episodes in dataset.values():
             new_episodes += episodes
-        assert len(new_episodes) > 0, \
-            "ERR: filtered all episodes; no episode for dataset"
+        assert (
+            len(new_episodes) > 0
+        ), "ERR: filtered all episodes; no episode for dataset"
         new_dataset = copy(self)  # copies all attributes
         new_dataset.episodes = new_episodes
         return new_dataset
 
 
 class StaticIterator(Iterator):
-
     def __init__(
         self,
         episodes: Sequence[T],
@@ -225,7 +224,6 @@ class StaticIterator(Iterator):
         num_episode_sample: int = -1,
         seed: int = 0,
     ) -> None:
-
         # FIXME: is this necessary?
         # making it multi-thread safe
         self.rst = random.Random(seed)
@@ -256,8 +254,7 @@ class StaticIterator(Iterator):
         return self
 
     def __next__(self) -> Episode:
-        """The main logic for handling how episodes will be iterated.
-        """
+        """The main logic for handling how episodes will be iterated."""
         next_episode = next(self._iterator, None)
         if next_episode is None:
             if not self.cycle:

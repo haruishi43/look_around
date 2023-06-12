@@ -1,5 +1,5 @@
 _base_ = [
-    '../defaults.py',
+    "../defaults.py",
 ]
 rl_env = dict(
     name="inverse",

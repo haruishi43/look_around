@@ -32,8 +32,10 @@ def post_process_for_render(img: np.ndarray, to_bgr: bool = True) -> np.ndarray:
     return img
 
 
-def post_process_for_render_torch(img: torch.Tensor, to_bgr: bool = True) -> np.ndarray:
-    img = img.to('cpu')
+def post_process_for_render_torch(
+    img: torch.Tensor, to_bgr: bool = True
+) -> np.ndarray:
+    img = img.to("cpu")
     img *= 255
     img = img.type(torch.uint8)
     img = img.numpy()
@@ -68,7 +70,6 @@ def load2numpy(
     dtype: np.dtype,
     is_cv2: bool = False,
 ) -> np.ndarray:
-
     assert os.path.exists(img_path), f"{img_path} doesn't exist"
     if is_cv2:
         # FIXME: currently only supports RGB
@@ -95,10 +96,9 @@ def load2numpy(
 def load2torch(
     img_path: str,
     dtype: torch.dtype,
-    device: torch.device = torch.device('cpu'),
+    device: torch.device = torch.device("cpu"),
     is_cv2: bool = False,
 ) -> torch.Tensor:
-
     assert os.path.exists(img_path), f"{img_path} doesn't exist"
     if is_cv2:
         # FIXME: currently only supports RGB

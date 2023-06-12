@@ -26,7 +26,6 @@ class RolloutStorage:
         action_shape: Optional[Tuple[int]] = None,
         discrete_actions: bool = True,
     ) -> None:
-
         if action_shape is None:
             if action_space.__class__.__name__ == "ActionSpace":
                 action_shape = (1,)
@@ -112,7 +111,6 @@ class RolloutStorage:
         rewards=None,
         next_masks=None,
     ) -> None:
-
         next_step = dict(
             observations=next_observations,
             recurrent_hidden_states=next_recurrent_hidden_states,
@@ -148,7 +146,6 @@ class RolloutStorage:
         self.current_rollout_step_idx += 1
 
     def after_update(self) -> None:
-
         # put the last rollout in the beginning
         self.buffers[0] = self.buffers[self.current_rollout_step_idx]
 
@@ -207,8 +204,8 @@ class RolloutStorage:
             batch["advantages"] = advantages[
                 0 : self.current_rollout_step_idx, inds
             ]
-            batch["recurrent_hidden_states"] = batch[
-                "recurrent_hidden_states"
-            ][0:1]
+            batch["recurrent_hidden_states"] = batch["recurrent_hidden_states"][
+                0:1
+            ]
 
             yield batch.map(lambda v: v.flatten(0, 1))

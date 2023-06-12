@@ -23,7 +23,9 @@ from LookAround.FindView.vec_env import (
 )
 
 
-def filter_out_sub_labels(episode: Episode, sub_labels: Union[List[str], Tuple[str]]) -> bool:
+def filter_out_sub_labels(
+    episode: Episode, sub_labels: Union[List[str], Tuple[str]]
+) -> bool:
     return episode.sub_label not in sub_labels
 
 
@@ -32,9 +34,8 @@ def joint_filter_fn(
     names: List[str],
     difficulties: List[str],
 ) -> bool:
-    return (
-        filter_by_difficulty(episode, difficulties)
-        and filter_by_name(episode, names)
+    return filter_by_difficulty(episode, difficulties) and filter_by_name(
+        episode, names
     )
 
 
@@ -44,7 +45,7 @@ def construct_envs_for_validation(
     split: str,
     is_rlenv: bool = True,
     dtype: Union[np.dtype, torch.dtype] = torch.float32,
-    device: torch.device = torch.device('cpu'),
+    device: torch.device = torch.device("cpu"),
     vec_type: str = "threaded",
     difficulty: Optional[str] = None,
     bounded: Optional[bool] = None,
@@ -121,7 +122,6 @@ def construct_envs_for_validation(
     # 2. create initialization arguments for each environment
     env_fn_kwargs = []
     for i in range(num_envs):
-
         _cfg = deepcopy(cfg)  # make sure to clone
         _cfg.seed = _cfg.seed + i  # iterator and sampler depends on this
 
@@ -177,9 +177,7 @@ def construct_envs_for_validation(
 
 @RLEnvRegistry.register_module(name="inverse")
 class InverseFindViewRLEnv(FindViewRLEnv):
-
     def __init__(self, cfg: Config, **kwargs) -> None:
-
         self._rl_env_cfg = cfg.rl_env
         self._slack_reward = self._rl_env_cfg.slack_reward
         self._success_reward = self._rl_env_cfg.success_reward
@@ -194,10 +192,9 @@ class InverseFindViewRLEnv(FindViewRLEnv):
         )
 
     def _end_rewards(self, measures):
-
         reward_success = 0
-        if self._env.episode_over and measures['called_stop']:
-            l1 = measures['l1_distance']
+        if self._env.episode_over and measures["called_stop"]:
+            l1 = measures["l1_distance"]
             # l2 = measures['l2_distance']
             reward_success = self._success_reward / (l1 + self._param)
         elif self._env.episode_over:
@@ -209,13 +206,13 @@ class InverseFindViewRLEnv(FindViewRLEnv):
     def _same_view_penalty(self, measures):
         # Penality: Looked in the same spot
         # value is in the range of (0 ~ 1)
-        num_same_rots = measures['num_same_view']
+        num_same_rots = measures["num_same_view"]
         reward_same_view = -num_same_rots
         return reward_same_view
 
     def get_reward(self, observations):
         measures = self._env.get_metrics()
-        curr_dist = measures['l1_distance']
+        curr_dist = measures["l1_distance"]
 
         # Penalty: slack reward for every step it takes
         # value is small
@@ -236,9 +233,7 @@ class InverseFindViewRLEnv(FindViewRLEnv):
 
 @RLEnvRegistry.register_module(name="bell")
 class BellFindViewRLEnv(FindViewRLEnv):
-
     def __init__(self, cfg: Config, **kwargs) -> None:
-
         self._rl_env_cfg = cfg.rl_env
         self._slack_reward = self._rl_env_cfg.slack_reward
         self._success_reward = self._rl_env_cfg.success_reward
@@ -253,15 +248,14 @@ class BellFindViewRLEnv(FindViewRLEnv):
         )
 
     def _end_rewards(self, measures):
-
         def bell_curve(x, threshold_steps):
             """Bell curve"""
             # NOTE: when x/threshold_steps == 1, the output is 0.36787944117144233
-            return (np.e)**(-(x / threshold_steps)**2)
+            return (np.e) ** (-((x / threshold_steps) ** 2))
 
         reward_success = 0
-        if self._env.episode_over and measures['called_stop']:
-            l1 = measures['l1_distance']
+        if self._env.episode_over and measures["called_stop"]:
+            l1 = measures["l1_distance"]
             # l2 = measures['l2_distance']
             reward_success = self._success_reward * bell_curve(l1, self._param)
         elif self._env.episode_over:
@@ -273,13 +267,13 @@ class BellFindViewRLEnv(FindViewRLEnv):
     def _same_view_penalty(self, measures):
         # Penality: Looked in the same spot
         # value is in the range of (0 ~ 1)
-        num_same_rots = measures['num_same_view']
+        num_same_rots = measures["num_same_view"]
         reward_same_view = -num_same_rots
         return reward_same_view
 
     def get_reward(self, observations):
         measures = self._env.get_metrics()
-        curr_dist = measures['l1_distance']
+        curr_dist = measures["l1_distance"]
 
         # Penalty: slack reward for every step it takes
         # value is small

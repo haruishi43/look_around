@@ -29,15 +29,23 @@ def gather_image_paths_in_category(
 
     # make sure that we only get directories
     subcats = [
-        c for c in os.listdir(category_path)
+        c
+        for c in os.listdir(category_path)
         if os.path.isdir(os.path.join(category_path, c))
     ]
     # make a dictionary of paths for sub categories
     subcat_paths = {n: os.path.join(category_path, n) for n in subcats}
 
     for subcat_name, subcat_path in subcat_paths.items():
-        subcat_img_names = [i for i in os.listdir(subcat_path) if os.path.splitext(i)[-1] == ".jpg"]
-        subcat_img_paths = [os.path.relpath(os.path.join(subcat_path, i), data_root) for i in subcat_img_names]
+        subcat_img_names = [
+            i
+            for i in os.listdir(subcat_path)
+            if os.path.splitext(i)[-1] == ".jpg"
+        ]
+        subcat_img_paths = [
+            os.path.relpath(os.path.join(subcat_path, i), data_root)
+            for i in subcat_img_names
+        ]
         assert len(subcat_img_paths) > 0, f"ERR: {subcat_name} has no images"
         img_paths[subcat_name] = subcat_img_paths
 
@@ -87,14 +95,18 @@ def make_single_data_based_on_difficulty(
     sigma: float = 0.3,
     sample_limit: int = 100000,
 ) -> Dict[str, Any]:
-
     # FIXME: Optimize since it does take a bit of time...
 
     # return initial and target rotations based on difficulty
     pitches, prob = get_pitch_range(threshold=threshold, mu=mu, sigma=sigma)
     yaws = get_yaw_range()
 
-    base_cond = partial(base_condition, min_steps=min_steps, max_steps=max_steps, step_size=step_size)
+    base_cond = partial(
+        base_condition,
+        min_steps=min_steps,
+        max_steps=max_steps,
+        step_size=step_size,
+    )
 
     cond = None
     if difficulty == "easy":
@@ -117,14 +129,15 @@ def make_single_data_based_on_difficulty(
         targ_pitch = int(np.random.choice(pitches, p=prob))
         targ_yaw = int(np.random.choice(yaws))
 
-        if (
-            base_cond(init_pitch, init_yaw, targ_pitch, targ_yaw)
-            and cond(init_pitch, init_yaw, targ_pitch, targ_yaw)
+        if base_cond(init_pitch, init_yaw, targ_pitch, targ_yaw) and cond(
+            init_pitch, init_yaw, targ_pitch, targ_yaw
         ):
             # shortest path
             diff_pitch = abs(init_pitch - targ_pitch)
             diff_yaw = find_minimum(abs(init_yaw - targ_yaw))
-            shortest_path = int(diff_pitch + diff_yaw)  # NOTE: includes `stop` action
+            shortest_path = int(
+                diff_pitch + diff_yaw
+            )  # NOTE: includes `stop` action
 
             return dict(
                 initial_rotation=dict(
@@ -165,12 +178,14 @@ def check_single_data_based_on_difficulty(
     for d in target_rotation.values():
         assert isinstance(d, int)
 
-    init_pitch = initial_rotation['pitch']
-    init_yaw = initial_rotation['yaw']
-    targ_pitch = target_rotation['pitch']
-    targ_yaw = target_rotation['yaw']
+    init_pitch = initial_rotation["pitch"]
+    init_yaw = initial_rotation["yaw"]
+    targ_pitch = target_rotation["pitch"]
+    targ_yaw = target_rotation["yaw"]
 
-    assert (np.abs(init_pitch) <= threshold) and (np.abs(targ_pitch) <= threshold)
+    assert (np.abs(init_pitch) <= threshold) and (
+        np.abs(targ_pitch) <= threshold
+    )
 
     # check basic condition
     assert base_condition(

@@ -26,7 +26,6 @@ from findview_baselines.utils.common import (
 
 
 class PPOValidator(BaseRLValidator):
-
     def __init__(self, cfg: Config) -> None:
         assert cfg is not None, "ERR: needs config file to initialize validator"
         super().__init__(cfg=cfg)
@@ -39,7 +38,7 @@ class PPOValidator(BaseRLValidator):
         difficulty: str,
         bounded: bool,
     ) -> float:
-        self.split = 'val'
+        self.split = "val"
 
         if torch.cuda.is_available():
             self.device = torch.device("cuda", self.cfg.trainer.device)
@@ -129,7 +128,6 @@ class PPOValidator(BaseRLValidator):
         step_id: int,
         num_episodes: int,
     ) -> float:
-
         # isolate actor_critic
         actor_critic = agent.actor_critic
 
@@ -152,8 +150,8 @@ class PPOValidator(BaseRLValidator):
 
             for i in range(envs.num_envs):
                 frame = obs2img(
-                    pers=observations[i]['pers'],
-                    target=observations[i]['target'],
+                    pers=observations[i]["pers"],
+                    target=observations[i]["target"],
                     to_bgr=False,
                 )
                 rgb_frames[i].append(frame)
@@ -204,12 +202,13 @@ class PPOValidator(BaseRLValidator):
                 )
                 logger.warn(f"Evaluating with {total_num_eps} instead.")
                 number_of_eval_episodes = total_num_eps
-        logger.info(f"evaluating {number_of_eval_episodes}/{sum(envs.number_of_episodes)}")
+        logger.info(
+            f"evaluating {number_of_eval_episodes}/{sum(envs.number_of_episodes)}"
+        )
 
         pbar = tqdm.tqdm(total=number_of_eval_episodes)
         while (
-            len(stats_episodes) < number_of_eval_episodes
-            and envs.num_envs > 0
+            len(stats_episodes) < number_of_eval_episodes and envs.num_envs > 0
         ):
             current_episodes: List[Episode] = envs.current_episodes()
 
@@ -244,12 +243,11 @@ class PPOValidator(BaseRLValidator):
 
             # 3. Reset when done
             for i, done in enumerate(dones):
-
                 # add to `rgb_frames` for every step
                 if len(self.video_option) > 0:
                     frame = obs2img(
-                        pers=observations[i]['pers'],
-                        target=observations[i]['target'],
+                        pers=observations[i]["pers"],
+                        target=observations[i]["target"],
                         to_bgr=False,
                     )
                     rgb_frames[i].append(frame)
@@ -295,8 +293,8 @@ class PPOValidator(BaseRLValidator):
                         # add first frame (since we just reset the env)
                         rgb_frames[i] = [
                             obs2img(
-                                pers=observations[i]['pers'],
-                                target=observations[i]['target'],
+                                pers=observations[i]["pers"],
+                                target=observations[i]["target"],
                                 to_bgr=False,
                             )
                         ]
@@ -351,8 +349,7 @@ class PPOValidator(BaseRLValidator):
         aggregated_stats = {}
         for stat_key in next(iter(stats_episodes.values())).keys():
             aggregated_stats[stat_key] = (
-                sum(v[stat_key] for v in stats_episodes.values())
-                / num_episodes
+                sum(v[stat_key] for v in stats_episodes.values()) / num_episodes
             )
 
         # log
@@ -369,7 +366,7 @@ class PPOValidator(BaseRLValidator):
                 self.metric_dir,
                 f"{step_id}_distance-{aggregated_stats['l1_distance']:.4f}.json",
             )
-            with open(save_path, 'w') as f:
+            with open(save_path, "w") as f:
                 json.dump(save_dict, f, indent=2)
 
         # tensorboard
@@ -380,7 +377,9 @@ class PPOValidator(BaseRLValidator):
                 step_id,
             )
 
-            metrics = {k: v for k, v in aggregated_stats.items() if k != "reward"}
+            metrics = {
+                k: v for k, v in aggregated_stats.items() if k != "reward"
+            }
             if len(metrics) > 0:
                 writer.add_scalars("test_metrics", metrics, step_id)
 
@@ -400,6 +399,6 @@ class PPOValidator(BaseRLValidator):
         # }
 
         # NOTE: for now use l1 distance
-        metric = aggregated_stats['l1_distance']
+        metric = aggregated_stats["l1_distance"]
 
         return metric

@@ -142,7 +142,7 @@ def images_to_video_cv2(
     output_dir: str,
     video_name: str,
     fps: Union[float, int] = 30.0,
-    fourcc: str = 'mp4v',
+    fourcc: str = "mp4v",
 ) -> None:
     """OpenCV version of `images_to_video`
 
@@ -151,8 +151,7 @@ def images_to_video_cv2(
     """
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
-    assert len(images) > 0, \
-        "No images in list"
+    assert len(images) > 0, "No images in list"
     img = images[0]
     height, width = img.shape[:-1]
 
@@ -252,8 +251,8 @@ def renders_to_image(render: Dict, info: Dict = None) -> np.ndarray:
     Returns:
         generated image of a single frame.
     """
-    pers = render['pers']
-    target = render['target']
+    pers = render["pers"]
+    target = render["target"]
     render_frame = np.concatenate([pers, target], axis=1)
     return render_frame
 

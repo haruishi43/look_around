@@ -14,7 +14,6 @@ from LookAround.FindView.actions import FindViewActions
 
 
 class RotationTracker(object):
-
     _rot: Dict[str, int]
     _history: List[Dict[str, int]]
 
@@ -52,22 +51,19 @@ class RotationTracker(object):
         return deepcopy(self._rot)
 
     def reset(self, initial_rotation: Dict[str, int]) -> None:
-        """Reset the tracker; initialize rotation and history
-        """
+        """Reset the tracker; initialize rotation and history"""
         self._rot = initial_rotation
         self._history = [initial_rotation]
 
     def move(self, action: str) -> Dict[str, int]:
-        """Alias for `action2rot`
-        """
+        """Alias for `action2rot`"""
         return self.action2rot(action)
 
     def action2rot(self, action: str) -> Dict[str, int]:
-        """Convert `action` to simulator friendly `rotation`
-        """
+        """Convert `action` to simulator friendly `rotation`"""
         assert self._rot is not None
-        pitch = self._rot['pitch']
-        yaw = self._rot['yaw']
+        pitch = self._rot["pitch"]
+        yaw = self._rot["yaw"]
 
         # shift according to input action
         if action == FindViewActions.UP:

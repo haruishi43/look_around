@@ -31,7 +31,6 @@ from findview_baselines.utils.common import (
 
 
 class PPOTrainer(BaseRLTrainer):
-
     # Properties
     agent: Optional[PPO]
     actor_critic: Optional[Policy]
@@ -49,8 +48,7 @@ class PPOTrainer(BaseRLTrainer):
         self._obs_batching_cache = ObservationBatchingCache()
 
     def _setup_actor_critic_agent(self) -> None:
-        """Sets up actor critic and agent for PPO.
-        """
+        """Sets up actor critic and agent for PPO."""
 
         # FIXME: seems that more work is needed for setting seeds
         # torch.random.manual_seed(self.cfg.seed)
@@ -62,7 +60,9 @@ class PPOTrainer(BaseRLTrainer):
         torch.random.manual_seed(self.cfg.seed)
         if torch.cuda.is_available():
             torch.cuda.manual_seed(self.cfg.seed)
-            torch.cuda.manual_seed_all(self.cfg.seed)  # this might not be necessary
+            torch.cuda.manual_seed_all(
+                self.cfg.seed
+            )  # this might not be necessary
             torch.backends.cudnn.deterministic = True  # type: ignore
             # torch.backends.cudnn.benchmark = False
 
@@ -83,7 +83,9 @@ class PPOTrainer(BaseRLTrainer):
 
         # 1. sample actions
         with torch.no_grad():
-            step_batch = self.rollouts.buffers[self.rollouts.current_rollout_step_idx]
+            step_batch = self.rollouts.buffers[
+                self.rollouts.current_rollout_step_idx
+            ]
 
             (
                 values,
@@ -104,10 +106,10 @@ class PPOTrainer(BaseRLTrainer):
 
         # 2. step environment
         t_step_env = time.time()
-        outputs = self.envs.step([action.item() for action in actions.unbind(0)])
-        observations, rewards_l, dones, infos = [
-            list(x) for x in zip(*outputs)
-        ]
+        outputs = self.envs.step(
+            [action.item() for action in actions.unbind(0)]
+        )
+        observations, rewards_l, dones, infos = [list(x) for x in zip(*outputs)]
         self.env_time += time.time() - t_step_env
 
         # 3. update stats
@@ -194,9 +196,7 @@ class PPOTrainer(BaseRLTrainer):
         # NOTE: set agent for training
         self.agent.train()
 
-        value_loss, action_loss, dist_entropy = self.agent.update(
-            self.rollouts
-        )
+        value_loss, action_loss, dist_entropy = self.agent.update(self.rollouts)
 
         self.rollouts.after_update()
         self.pth_time += time.time() - t_update_model
@@ -232,9 +232,7 @@ class PPOTrainer(BaseRLTrainer):
     ):
         deltas = {
             k: (
-                (v[-1] - v[0]).sum().item()
-                if len(v) > 1
-                else v[0].sum().item()
+                (v[-1] - v[0]).sum().item() if len(v) > 1 else v[0].sum().item()
             )
             for k, v in self.window_episode_stats.items()
         }
@@ -296,8 +294,7 @@ class PPOTrainer(BaseRLTrainer):
             )
 
     def train(self) -> None:
-        """Main method for training PPO.
-        """
+        """Main method for training PPO."""
 
         if torch.cuda.is_available():
             self.device = torch.device("cuda", self.trainer_cfg.device)
@@ -366,31 +363,37 @@ class PPOTrainer(BaseRLTrainer):
         # resumed from checkpoint
         if self.trainer_cfg.resume:
             if self.trainer_cfg.pretrained:
-                logger.warn(f'{self.trainer_cfg.pretrained} would not be loaded since `resume` is `True`')
+                logger.warn(
+                    f"{self.trainer_cfg.pretrained} would not be loaded since `resume` is `True`"
+                )
 
             ckpt_path = get_last_checkpoint_folder(self.ckpt_dir)
             ckpt_dict = self.load_checkpoint(ckpt_path, map_location="cpu")
 
             # load model state
-            state_dict = ckpt_dict.get('state_dict')
-            assert state_dict is not None, f"ERR: {ckpt_path} doesn't have `state_dict`"
+            state_dict = ckpt_dict.get("state_dict")
+            assert (
+                state_dict is not None
+            ), f"ERR: {ckpt_path} doesn't have `state_dict`"
             self.agent.load_state_dict(state_dict)
 
-            optim_state = ckpt_dict.get('optim_state')
+            optim_state = ckpt_dict.get("optim_state")
             if optim_state is None:
-                logger.warn(f'{ckpt_path} has no `optim_state`')
+                logger.warn(f"{ckpt_path} has no `optim_state`")
             else:
                 self.agent.optimizer.load_state_dict(optim_state)
 
-            lr_sched_state = ckpt_dict.get('lr_sched_state')
+            lr_sched_state = ckpt_dict.get("lr_sched_state")
             if lr_sched_state is None:
-                logger.warn(f'{ckpt_path} has no `lr_sched_state`')
+                logger.warn(f"{ckpt_path} has no `lr_sched_state`")
             else:
                 lr_scheduler.load_state_dict(lr_sched_state)
 
             extra_state: Dict[str, Any] = ckpt_dict.get("extra_state")
             if extra_state is None:
-                logger.warn(f'{ckpt_path} has no `extra_state`; may impact stats')
+                logger.warn(
+                    f"{ckpt_path} has no `extra_state`; may impact stats"
+                )
             else:
                 self.env_time = extra_state["env_time"]
                 self.pth_time = extra_state["pth_time"]
@@ -402,23 +405,31 @@ class PPOTrainer(BaseRLTrainer):
                 count_checkpoints = extra_state["count_checkpoints"]
                 prev_time = extra_state["prev_time"]
 
-                self.running_episode_stats = extra_state["running_episode_stats"]
-                window_episode_stats = extra_state.get('window_episode_stats')
+                self.running_episode_stats = extra_state[
+                    "running_episode_stats"
+                ]
+                window_episode_stats = extra_state.get("window_episode_stats")
                 if window_episode_stats is None:
-                    logger.warn(f'{ckpt_path} has no `window_episode_stats`')
+                    logger.warn(f"{ckpt_path} has no `window_episode_stats`")
                 else:
                     self.window_episode_stats.update(
                         extra_state["window_episode_stats"]
                     )
 
-            logger.info(f"resuming from {ckpt_path} starting with {self.num_steps_done} steps")
+            logger.info(
+                f"resuming from {ckpt_path} starting with {self.num_steps_done} steps"
+            )
 
         elif self.trainer_cfg.pretrained:
             assert os.path.exists(self.trainer_cfg.pretrained)
-            ckpt_dict = self.load_checkpoint(self.trainer_cfg.pretrained, map_location="cpu")
-            self.agent.load_state_dict(ckpt_dict.get('state_dict'))
+            ckpt_dict = self.load_checkpoint(
+                self.trainer_cfg.pretrained, map_location="cpu"
+            )
+            self.agent.load_state_dict(ckpt_dict.get("state_dict"))
 
-            logger.info(f"loading pretrained weights from {self.trainer_cfg.pretrained}")
+            logger.info(
+                f"loading pretrained weights from {self.trainer_cfg.pretrained}"
+            )
 
         # account keeping stuff
         validator = PPOValidator(cfg=self.cfg)
@@ -430,9 +441,10 @@ class PPOTrainer(BaseRLTrainer):
         )
         checkpoint_distances = []
 
-        with TensorboardWriter(self.tb_dir, flush_secs=self.flush_secs) as writer:
+        with TensorboardWriter(
+            self.tb_dir, flush_secs=self.flush_secs
+        ) as writer:
             while not self.is_done():
-
                 # clip decay
                 if ppo_cfg.use_linear_clip_decay:
                     self.agent.clip_param = ppo_cfg.clip_param * (
@@ -472,7 +484,6 @@ class PPOTrainer(BaseRLTrainer):
 
                 # checkpoint model
                 if self.should_checkpoint():
-
                     # validate
                     # FIXME: difficulty changes so `is_best` is not reliable...
                     # FIXME: validation takes long when agent starts to not call stop
@@ -521,8 +532,13 @@ class PPOTrainer(BaseRLTrainer):
                     # FIXME: need to add 'difficulty-aware' checkpoint mechanism
                     if is_best:
                         symlink(
-                            os.path.join(os.path.abspath(self.ckpt_dir), f"ckpt.{count_checkpoints}.pth"),
-                            os.path.join(os.path.abspath(self.ckpt_dir), "ckpt.best.pth"),
+                            os.path.join(
+                                os.path.abspath(self.ckpt_dir),
+                                f"ckpt.{count_checkpoints}.pth",
+                            ),
+                            os.path.join(
+                                os.path.abspath(self.ckpt_dir), "ckpt.best.pth"
+                            ),
                         )
 
                     count_checkpoints += 1

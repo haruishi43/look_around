@@ -16,7 +16,7 @@ def normal_distribution(
     probs = (
         1
         / (sigma * np.sqrt(2 * np.pi))
-        * np.exp(-((normalized_arr - mu) ** 2) / (2 * sigma ** 2))
+        * np.exp(-((normalized_arr - mu) ** 2) / (2 * sigma**2))
     )
     probs = probs / probs.sum()
     return probs
@@ -44,8 +44,7 @@ def get_yaw_range() -> np.ndarray:
 
 
 def find_minimum(diff_yaw):
-    """Because yaw wraps around, we have to take the minimum distance
-    """
+    """Because yaw wraps around, we have to take the minimum distance"""
     if diff_yaw > 180:
         diff_yaw = 360 - diff_yaw
     return diff_yaw
@@ -61,7 +60,6 @@ def l2_dist(abs_x, abs_y):
 
 
 class Sampler(object):
-
     def __call__(self, pseudo) -> Episode:
         raise NotImplementedError
 
@@ -118,10 +116,7 @@ def medium_condition(
     #     and diff_yaw <= fov
     #     and diff_pitch <= fov
     # )
-    return (
-        fov / 2 < l1
-        and l1 < fov
-    )
+    return fov / 2 < l1 and l1 < fov
 
 
 def hard_condition(
@@ -134,16 +129,12 @@ def hard_condition(
     diff_pitch = np.abs(init_pitch - targ_pitch)
     diff_yaw = find_minimum(np.abs(init_yaw - targ_yaw))
 
-    return (
-        diff_yaw > fov
-        or diff_pitch > fov
-    )
+    return diff_yaw > fov or diff_pitch > fov
 
 
 class DifficultySampler(Sampler):
-
     # Properties
-    AVAIL_DIFF: Tuple[str] = ('easy', 'medium', 'hard')
+    AVAIL_DIFF: Tuple[str] = ("easy", "medium", "hard")
     difficulties: Tuple[str]
 
     def __init__(
@@ -179,7 +170,7 @@ class DifficultySampler(Sampler):
         self.set_difficulty(difficulty=difficulty, bounded=bounded)
         self.fov = fov
         self.min_steps = min_steps
-        self.max_steps = max_steps,
+        self.max_steps = (max_steps,)
         self.step_size = step_size
         self.threshold = threshold
         self.num_tries = num_tries
@@ -201,7 +192,6 @@ class DifficultySampler(Sampler):
         self.seed(seed)
 
     def __call__(self, pseudo: PseudoEpisode) -> Episode:
-
         kwargs = self.sample()
         self.prev_kwargs = kwargs
 
@@ -237,14 +227,15 @@ class DifficultySampler(Sampler):
             targ_pitch = int(self.rst.choice(self.pitches, p=self.prob))
             targ_yaw = int(self.rst.choice(self.yaws))
 
-            if (
-                self.base_cond(init_pitch, init_yaw, targ_pitch, targ_yaw)
-                and cond(init_pitch, init_yaw, targ_pitch, targ_yaw)
-            ):
+            if self.base_cond(
+                init_pitch, init_yaw, targ_pitch, targ_yaw
+            ) and cond(init_pitch, init_yaw, targ_pitch, targ_yaw):
                 # shortest path
                 diff_pitch = abs(init_pitch - targ_pitch)
                 diff_yaw = find_minimum(abs(init_yaw - targ_yaw))
-                shortest_path = int(diff_pitch + diff_yaw)  # NOTE: includes `stop` action
+                shortest_path = int(
+                    diff_pitch + diff_yaw
+                )  # NOTE: includes `stop` action
 
                 kwargs = dict(
                     initial_rotation=dict(
@@ -264,8 +255,9 @@ class DifficultySampler(Sampler):
 
             _count += 1
             if _count > self.num_tries:
-                assert self.prev_kwargs is not None, \
-                    f"ERR: criteria is hard from the beginning; couldn't smaple in {self.num_tries}"
+                assert (
+                    self.prev_kwargs is not None
+                ), f"ERR: criteria is hard from the beginning; couldn't smaple in {self.num_tries}"
                 kwargs = self.prev_kwargs
 
         return kwargs
@@ -277,8 +269,9 @@ class DifficultySampler(Sampler):
 
     def set_difficulty(self, difficulty: str, bounded: bool) -> None:
         assert isinstance(difficulty, str)
-        assert difficulty in self.AVAIL_DIFF, \
-            f"ERR: {difficulty} is not in {self.AVAIL_DIFF}"
+        assert (
+            difficulty in self.AVAIL_DIFF
+        ), f"ERR: {difficulty} is not in {self.AVAIL_DIFF}"
 
         if bounded:
             difficulties = (difficulty,)
@@ -286,9 +279,9 @@ class DifficultySampler(Sampler):
             if difficulty == "easy":
                 difficulties = (difficulty,)
             elif difficulty == "medium":
-                difficulties = ('easy', 'medium')
+                difficulties = ("easy", "medium")
             elif difficulty == "hard":
-                difficulties = ('easy', 'medium', 'hard')
+                difficulties = ("easy", "medium", "hard")
 
         for diff in difficulties:
             assert diff in self.AVAIL_DIFF

@@ -1,7 +1,7 @@
 _base_ = [
-    '../_base_/defaults.py',
-    '../../../../agents/greedy.py',
-    '../../../../_base_/benchmark.py',
+    "../_base_/defaults.py",
+    "../../../../agents/greedy.py",
+    "../../../../_base_/benchmark.py",
 ]
 benchmark = dict(
     device=0,

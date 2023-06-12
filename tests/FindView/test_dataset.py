@@ -13,7 +13,6 @@ from LookAround.FindView.dataset.sampling import DifficultySampler
 
 
 def test_static_dataset():
-
     data_dir = "tests/data/sun360"
     dataset_json_path = "tests/dataset/sun360/test/indoor/test.json"
     fov = 90.0
@@ -49,7 +48,6 @@ def test_static_dataset():
 
 
 def test_dynamic_dataset():
-
     data_dir = "tests/data/sun360"
     dataset_json_path = "tests/dataset/sun360/test/indoor/train.json"
     fov = 90.0
@@ -92,7 +90,6 @@ def test_dynamic_dataset():
 
 
 def test_iterator():
-
     cfg_path = os.path.join("tests/configs/datasets", "sun360_indoor.py")
     assert os.path.exists(cfg_path)
     cfg = Config.fromfile(cfg_path)
@@ -148,7 +145,7 @@ def test_iterator():
     def get_under_hard(episodes):
         new_episodes = []
         for episode in episodes:
-            if episode.difficulty in ['easy', 'medium']:
+            if episode.difficulty in ["easy", "medium"]:
                 new_episodes.append(episode)
         return new_episodes
 
@@ -163,7 +160,6 @@ def test_iterator():
 
 
 def test_generator():
-
     cfg_path = os.path.join("tests/configs/datasets", "sun360_indoor.py")
     assert os.path.exists(cfg_path)
     cfg = Config.fromfile(cfg_path)
@@ -200,7 +196,7 @@ def test_generator():
 
     # change difficulty
     print(">>> Test #3: Changed Diff")
-    sampler.set_difficulty('hard', bounded=True)
+    sampler.set_difficulty("hard", bounded=True)
     for i in range(num_iter):
         episode = next(episode_generator)
         print(i, episode.img_name, episode.difficulty)

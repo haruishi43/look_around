@@ -18,7 +18,7 @@ def test_rlenv():
         split="train",
         filter_fn=None,
         dtype=torch.float32,
-        device=torch.device('cpu'),
+        device=torch.device("cpu"),
     )
 
     obs = rlenv.reset()
@@ -30,6 +30,6 @@ def test_rlenv():
         if done:
             if action == "stop":
                 print("called stop")
-                assert info['called_stop']
+                assert info["called_stop"]
             print(">>> next episode")
             obs = rlenv.reset()

@@ -16,7 +16,6 @@ from LookAround.FindView.rotation_tracker import RotationTracker
 
 
 class RandomAgent(object):
-
     def __init__(self) -> None:
         self.actions = ["up", "down", "right", "left", "stop"]
 
@@ -28,7 +27,6 @@ class RandomAgent(object):
 
 
 if __name__ == "__main__":
-
     # initialize data path
     data_root = "./data/sun360/indoor/bedroom"
     img_name = "pano_afvwdfmjeaglsd.jpg"
@@ -64,7 +62,7 @@ if __name__ == "__main__":
     )
     sim.inititialize_loader(
         dtype=dtype,
-        device=torch.device('cpu'),
+        device=torch.device("cpu"),
     )
     sim.reset(
         equi_path=img_path,

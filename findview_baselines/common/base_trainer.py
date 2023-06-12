@@ -33,7 +33,6 @@ class BaseTrainer(object):
     _last_checkpoint_percent: float
 
     def __init__(self) -> None:
-
         # Initialize properties
         self.num_updates_done = 0
         self.num_steps_done = 0
@@ -67,7 +66,7 @@ class BaseTrainer(object):
         self,
         file_name: str,
         save_state: Dict[str, Any],
-        extra_state: Optional[Dict[str, Any]] = None
+        extra_state: Optional[Dict[str, Any]] = None,
     ) -> None:
         raise NotImplementedError
 
@@ -109,7 +108,7 @@ class BaseRLTrainer(BaseTrainer):
         run_id = str(self.trainer_cfg.run_id)
         if self.trainer_cfg.identifier is not None:
             assert len(self.trainer_cfg.identifier) > 0
-            run_id = run_id + '_' + str(self.trainer_cfg.identifier)
+            run_id = run_id + "_" + str(self.trainer_cfg.identifier)
         self.run_id = run_id
 
         # set spaces to None
@@ -117,21 +116,32 @@ class BaseRLTrainer(BaseTrainer):
         self._policy_action_space = None
 
         # Some sanity checks in the input config
-        if self.trainer_cfg.num_updates != -1 and self.trainer_cfg.total_num_steps != -1:
+        if (
+            self.trainer_cfg.num_updates != -1
+            and self.trainer_cfg.total_num_steps != -1
+        ):
             raise RuntimeError(
                 "`num_updates` and `total_num_steps` are both specified. One must be -1.\n"
                 "`num_updates`: {} `total_num_steps`: {}".format(
-                    self.trainer_cfg.num_updates, self.trainer_cfg.total_num_steps,
+                    self.trainer_cfg.num_updates,
+                    self.trainer_cfg.total_num_steps,
                 )
             )
-        if self.trainer_cfg.num_updates == -1 and self.trainer_cfg.total_num_steps == -1:
+        if (
+            self.trainer_cfg.num_updates == -1
+            and self.trainer_cfg.total_num_steps == -1
+        ):
             raise RuntimeError(
                 "One of `num_updates` and `total_num_steps` must be specified.\n"
                 "`num_updates`: {} `total_num_steps`: {}".format(
-                    self.trainer_cfg.num_updates, self.trainer_cfg.total_num_steps,
+                    self.trainer_cfg.num_updates,
+                    self.trainer_cfg.total_num_steps,
                 )
             )
-        if self.trainer_cfg.num_ckpts != -1 and self.trainer_cfg.ckpt_interval != -1:
+        if (
+            self.trainer_cfg.num_ckpts != -1
+            and self.trainer_cfg.ckpt_interval != -1
+        ):
             raise RuntimeError(
                 "`num_ckpts` and `ckpt_interval` are both specified."
                 "  One must be -1.\n"
@@ -139,7 +149,10 @@ class BaseRLTrainer(BaseTrainer):
                     self.trainer_cfg.num_ckpts, self.trainer_cfg.ckpt_interval
                 )
             )
-        if self.trainer_cfg.num_ckpts == -1 and self.trainer_cfg.ckpt_interval == -1:
+        if (
+            self.trainer_cfg.num_ckpts == -1
+            and self.trainer_cfg.ckpt_interval == -1
+        ):
             raise RuntimeError(
                 "One of `num_ckpts` and `ckpt_interval` must be specified"
                 " `num_ckpts`: {} `ckpt_interval`: {}".format(
@@ -175,7 +188,6 @@ class BaseRLTrainer(BaseTrainer):
 
     @property
     def obs_space(self) -> spaces.Dict:
-
         # NOTE: obtain obs_space dynamically
         if self._obs_space is None and self.envs is not None:
             self._obs_space = self.envs.observation_spaces[0]
@@ -188,7 +200,6 @@ class BaseRLTrainer(BaseTrainer):
 
     @property
     def policy_action_space(self) -> ActionSpace:
-
         # NOTE: obtain action_space dynamically
         if self._policy_action_space is None and self.envs is not None:
             self._policy_action_space = self.envs.action_spaces[0]
@@ -209,8 +220,8 @@ class BaseRLTrainer(BaseTrainer):
             rlenv=self.cfg.rl_env.name,
             run_id=self.run_id,
         )
-        assert '{' not in ckpt_dir, ckpt_dir
-        assert '}' not in ckpt_dir, ckpt_dir
+        assert "{" not in ckpt_dir, ckpt_dir
+        assert "}" not in ckpt_dir, ckpt_dir
         if not os.path.exists(ckpt_dir):
             os.makedirs(ckpt_dir, exist_ok=True)
         return ckpt_dir
@@ -225,8 +236,8 @@ class BaseRLTrainer(BaseTrainer):
             rlenv=self.cfg.rl_env.name,
             run_id=self.run_id,
         )
-        assert '{' not in tb_dir, tb_dir
-        assert '}' not in tb_dir, tb_dir
+        assert "{" not in tb_dir, tb_dir
+        assert "}" not in tb_dir, tb_dir
         if not os.path.exists(tb_dir):
             os.makedirs(tb_dir, exist_ok=True)
         return tb_dir
@@ -242,8 +253,8 @@ class BaseRLTrainer(BaseTrainer):
             split="train",
             run_id=self.run_id,
         )
-        assert '{' not in log_path, log_path
-        assert '}' not in log_path, log_path
+        assert "{" not in log_path, log_path
+        assert "}" not in log_path, log_path
         parent_path = os.path.dirname(log_path)
         if not os.path.exists(parent_path):
             os.makedirs(parent_path, exist_ok=True)
@@ -253,7 +264,7 @@ class BaseRLTrainer(BaseTrainer):
         self,
         file_name: str,
         save_state: Dict[str, Any],
-        extra_state: Optional[Dict[str, Any]] = None
+        extra_state: Optional[Dict[str, Any]] = None,
     ) -> None:
         """Save checkpoint with specified name.
         Args:
@@ -265,9 +276,7 @@ class BaseRLTrainer(BaseTrainer):
         if extra_state is not None:
             save_state["extra_state"] = extra_state
 
-        torch.save(
-            save_state, os.path.join(self.ckpt_dir, file_name)
-        )
+        torch.save(save_state, os.path.join(self.ckpt_dir, file_name))
 
     def _init_rlenvs(
         self,

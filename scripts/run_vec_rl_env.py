@@ -36,14 +36,14 @@ def parse_args():
         "--config",
         required=True,
         type=str,
-        help="config file for creating dataset"
+        help="config file for creating dataset",
     )
     parser.add_argument(
         "--agent",
         required=True,
         type=str,
-        choices=['single', 'greedy', 'fm'],
-        help="name of the agent"
+        choices=["single", "greedy", "fm"],
+        help="name of the agent",
     )
     return parser.parse_args()
 
@@ -58,9 +58,9 @@ if __name__ == "__main__":
     # params:
     vec_type = "threaded"
     env_cls = FindViewRLEnv
-    split = 'train'
+    split = "train"
     dtype = torch.float32
-    device = torch.device('cpu')
+    device = torch.device("cpu")
     num_steps = 500
 
     envs = construct_envs(
@@ -74,11 +74,20 @@ if __name__ == "__main__":
 
     # initialize agent
     if args.agent == "single":
-        agents = [SingleMovementAgent.from_config(cfg=cfg) for _ in range(cfg.num_envs)]
+        agents = [
+            SingleMovementAgent.from_config(cfg=cfg)
+            for _ in range(cfg.num_envs)
+        ]
     elif args.agent == "greedy":
-        agents = [GreedyMovementAgent.from_config(cfg=cfg) for _ in range(cfg.num_envs)]
+        agents = [
+            GreedyMovementAgent.from_config(cfg=cfg)
+            for _ in range(cfg.num_envs)
+        ]
     elif args.agent == "fm":
-        agents = [FeatureMatchingAgent.from_config(cfg=cfg) for _ in range(cfg.num_envs)]
+        agents = [
+            FeatureMatchingAgent.from_config(cfg=cfg)
+            for _ in range(cfg.num_envs)
+        ]
     else:
         raise ValueError
 
@@ -92,18 +101,17 @@ if __name__ == "__main__":
     print(len(obs), obs[0].keys())
     render = envs.render()
     # images.append(render['target'])
-    images.append(render['pers'])
+    images.append(render["pers"])
     episodes = envs.current_episodes()
 
     for step in tqdm(range(num_steps)):
-
         actions = [agent.act() for agent in agents]
 
         outputs = envs.step(actions)
         obs, rewards, dones, infos = [list(x) for x in zip(*outputs)]
         # print(rewards)
         # print(dones)
-        pers = envs.render()['pers']
+        pers = envs.render()["pers"]
         # target = envs.render()['target']
         images.append(pers)
 
@@ -111,17 +119,20 @@ if __name__ == "__main__":
             if done:
                 if actions[i] == "stop":
                     print(f"{i} called stop")
-                    assert infos[i]['called_stop']
+                    assert infos[i]["called_stop"]
                 print(f"Loading next episode for {i}")
-                save_path = os.path.join('./results/vecrlenv', f"{args.agent}_{i}_{infos[i]['img_name']}.json")
-                with open(save_path, 'w') as f:
+                save_path = os.path.join(
+                    "./results/vecrlenv",
+                    f"{args.agent}_{i}_{infos[i]['img_name']}.json",
+                )
+                with open(save_path, "w") as f:
                     json.dump(infos[i], f, indent=2)
 
                 agents[i].reset()
 
     images_to_video_cv2(
         images=images,
-        output_dir='./results/vecrlenv',
-        video_name=f'{args.agent}_test',
+        output_dir="./results/vecrlenv",
+        video_name=f"{args.agent}_test",
         fps=30.0,
     )

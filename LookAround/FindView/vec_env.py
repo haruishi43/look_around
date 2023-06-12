@@ -66,6 +66,7 @@ class _ReadWrapper:
     """Convenience wrapper to track if a connection to a worker process
     should have something to read.
     """
+
     read_fn: Callable[[], Any]
     rank: int
     is_waiting: bool = False
@@ -88,6 +89,7 @@ class _WriteWrapper:
     can be written to safely.  In other words, checks to make sure the
     result returned from the last write was read.
     """
+
     write_fn: Callable[[Any], None]
     read_wrapper: _ReadWrapper
 
@@ -102,7 +104,6 @@ class _WriteWrapper:
 
 
 class VecEnv(object):
-
     # Properties
     action_spaces: List[spaces.Dict]
     observation_spaces: List[spaces.Dict]
@@ -160,7 +161,6 @@ class VecEnv(object):
 
 
 class MPVecEnv(VecEnv):
-
     # Hidden Properties
     _workers: List[Union[mp.Process, Thread]]
     _mp_ctx: BaseContext
@@ -174,7 +174,6 @@ class MPVecEnv(VecEnv):
         auto_reset_done: bool = True,
         multiprocessing_start_method: str = "forkserver",
     ) -> None:
-
         self._num_envs = len(env_fn_kwargs)
 
         assert multiprocessing_start_method in self._valid_start_methods, (
@@ -240,9 +239,7 @@ class MPVecEnv(VecEnv):
                         if auto_reset_done and done:
                             # FIXME: last observation is not taken into account during validation
                             observations = env.reset()
-                        connection_write_fn(
-                            (observations, reward, done, info)
-                        )
+                        connection_write_fn((observations, reward, done, info))
                     elif isinstance(env, FindViewEnv):  # type: ignore
                         observations = env.step(**data)
                         done = env.episode_over
@@ -415,9 +412,7 @@ class MPVecEnv(VecEnv):
 
     def wait_step(self) -> List[Any]:
         """Wait until all the asynchronized environments have synchronized."""
-        return [
-            self.wait_step_at(i) for i in range(self.num_envs)
-        ]
+        return [self.wait_step_at(i) for i in range(self.num_envs)]
 
     def step(
         self,
@@ -523,20 +518,19 @@ class MPVecEnv(VecEnv):
         return results
 
     def render(
-        self, *args, **kwargs,
+        self,
+        *args,
+        **kwargs,
     ) -> Union[Dict[str, np.ndarray], None]:
         """Render observations from all environments in a tiled image."""
         for write_fn in self._connection_write_fns:
             write_fn((RENDER_COMMAND, (args, kwargs)))
         renders = [read_fn() for read_fn in self._connection_read_fns]
-        pers = [r['pers'] for r in renders]
-        target = [r['target'] for r in renders]
+        pers = [r["pers"] for r in renders]
+        target = [r["target"] for r in renders]
         pers = tile_images(pers)
         target = tile_images(target)
-        return {
-            "pers": pers,
-            "target": target
-        }
+        return {"pers": pers, "target": target}
 
     def change_difficulty(
         self,
@@ -547,7 +541,7 @@ class MPVecEnv(VecEnv):
             write_fn(
                 (
                     CHANGE_DIFFICULTY_COMMAND,
-                    dict(difficulty=difficulty, bounded=bounded)
+                    dict(difficulty=difficulty, bounded=bounded),
                 )
             )
         # NOTE: need to read before another write
@@ -626,7 +620,6 @@ class ThreadedVecEnv(MPVecEnv):
 
 
 class EquilibVecEnv(VecEnv):
-
     # Properties
     envs: List[Union[FindViewEnv, FindViewEnv]]
 
@@ -636,14 +629,12 @@ class EquilibVecEnv(VecEnv):
         env_fn_kwargs,
         auto_reset_done: bool = True,
     ) -> None:
-
         self._num_envs = len(env_fn_kwargs)
         self._auto_reset_done = auto_reset_done
 
         # initialize envs
         self.envs = [
-            make_env_fn(**env_fn_kwargs[i])
-            for i in range(self._num_envs)
+            make_env_fn(**env_fn_kwargs[i]) for i in range(self._num_envs)
         ]
 
         self.action_spaces = [env.action_space for env in self.envs]
@@ -653,8 +644,7 @@ class EquilibVecEnv(VecEnv):
 
     @property
     def num_envs(self):
-        """number of individual environments.
-        """
+        """number of individual environments."""
         return self._num_envs - len(self._paused)
 
     def current_episodes(self):
@@ -732,9 +722,7 @@ class EquilibVecEnv(VecEnv):
                 if done and self._auto_reset_done:
                     observation = env.reset()
 
-                batch_ret.append(
-                    (observation, reward, done, info)
-                )
+                batch_ret.append((observation, reward, done, info))
             elif isinstance(env, FindViewEnv):
                 observation = env.step_after()
                 done = env.episode_over
@@ -777,13 +765,13 @@ class EquilibVecEnv(VecEnv):
 
     def render(self):
         renders = [env.render() for env in self.envs]
-        pers = [r['pers'] for r in renders]
-        target = [r['target'] for r in renders]
+        pers = [r["pers"] for r in renders]
+        target = [r["target"] for r in renders]
         pers_tile = tile_images(pers)
         target_tile = tile_images(target)
         return {
-            'pers': pers_tile,
-            'target': target_tile,
+            "pers": pers_tile,
+            "target": target_tile,
         }
 
     def change_difficulty(self, difficulty: str, bounded: bool) -> None:
@@ -805,6 +793,7 @@ class EquilibVecEnv(VecEnv):
 
 
 # filters for making datasets
+
 
 def filter_by_name(
     episode: Union[Episode, PseudoEpisode],
@@ -829,6 +818,7 @@ def filter_by_difficulty(
 
 # env/rlenv initialization function
 
+
 def make_env_fn(
     cfg: Config,
     filter_fn: Callable[..., bool],
@@ -836,9 +826,8 @@ def make_env_fn(
     rank: int,
     num_episodes_per_img: int = -1,
     dtype: Union[np.dtype, torch.dtype] = torch.float32,
-    device: torch.device = torch.device('cpu'),
+    device: torch.device = torch.device("cpu"),
 ) -> FindViewEnv:
-
     # FIXME: play around with this value for threaded and multiprocessing
     # Lower threads the better
     torch.set_num_threads(1)  # NOTE: this is needed for multiprocessing?
@@ -861,9 +850,8 @@ def make_rl_env_fn(
     rank: int,
     num_episodes_per_img: int = -1,
     dtype: Union[np.dtype, torch.dtype] = torch.float32,
-    device: torch.device = torch.device('cpu'),
+    device: torch.device = torch.device("cpu"),
 ) -> FindViewRLEnv:
-
     # FIXME: play around with this value for threaded and multiprocessing
     # Lower threads the better
     torch.set_num_threads(1)  # NOTE: this is needed for multiprocessing?
@@ -882,12 +870,13 @@ def make_rl_env_fn(
 
 # function to construct vectorized envs
 
+
 def construct_envs(
     cfg: Config,
     split: str,
     is_rlenv: bool = True,
     dtype: Union[np.dtype, torch.dtype] = torch.float32,
-    device: torch.device = torch.device('cpu'),
+    device: torch.device = torch.device("cpu"),
     vec_type: str = "threaded",
     auto_reset_done: bool = True,
 ) -> VecEnv:
@@ -926,7 +915,6 @@ def construct_envs(
     # 2. create initialization arguments for each environment
     env_fn_kwargs = []
     for i in range(num_envs):
-
         _cfg = deepcopy(cfg)  # make sure to clone
         _cfg.seed = _cfg.seed + i  # iterator and sampler depends on this
 

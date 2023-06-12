@@ -23,7 +23,6 @@ from findview_baselines.utils.common import (
 
 
 class BaseValidator(object):
-
     # Properties
     cfg: Config
     val_cfg: Config
@@ -38,7 +37,6 @@ class BaseValidator(object):
         self,
         cfg: Config,
     ) -> None:
-
         # Initialize properties
         self.cfg = cfg
         self.val_cfg = self.cfg.validator
@@ -46,7 +44,7 @@ class BaseValidator(object):
         run_id = str(self.cfg.trainer.run_id)
         if self.cfg.trainer.identifier is not None:
             assert len(self.cfg.trainer.identifier) > 0
-            run_id = run_id + '_' + str(self.cfg.trainer.identifier)
+            run_id = run_id + "_" + str(self.cfg.trainer.identifier)
         self.run_id = run_id
 
         # Initialize hidden properties
@@ -92,7 +90,7 @@ class BaseValidator(object):
 
         NOTE: make sure that `num_envs=1` inorder to get the most consistent results
         """
-        self.split = 'test'
+        self.split = "test"
 
         logger.add_filehandler(self.log_path)
 
@@ -110,8 +108,9 @@ class BaseValidator(object):
                 # evaluate singe checkpoint
                 proposed_index = get_checkpoint_id(ckpt_path)
                 print(proposed_index)
-                assert proposed_index is not None, \
-                    f"ERR: could not find valid ckpt for {ckpt_path}"
+                assert (
+                    proposed_index is not None
+                ), f"ERR: could not find valid ckpt for {ckpt_path}"
                 # ckpt_idx = proposed_index
                 self._eval_checkpoint(
                     ckpt_path,
@@ -175,7 +174,6 @@ class BaseValidator(object):
 
 
 class BaseRLValidator(BaseValidator):
-
     # Properties
     device: torch.device
 
@@ -221,8 +219,8 @@ class BaseRLValidator(BaseValidator):
             rlenv=self.cfg.rl_env.name,
             run_id=self.run_id,
         )
-        assert '{' not in ckpt_dir, ckpt_dir
-        assert '}' not in ckpt_dir, ckpt_dir
+        assert "{" not in ckpt_dir, ckpt_dir
+        assert "}" not in ckpt_dir, ckpt_dir
         if not os.path.exists(ckpt_dir):
             os.makedirs(ckpt_dir, exist_ok=True)
         return ckpt_dir
@@ -238,8 +236,8 @@ class BaseRLValidator(BaseValidator):
             split=self.split,
             run_id=self.run_id,
         )
-        assert '{' not in tb_dir, tb_dir
-        assert '}' not in tb_dir, tb_dir
+        assert "{" not in tb_dir, tb_dir
+        assert "}" not in tb_dir, tb_dir
         if not os.path.exists(tb_dir):
             os.makedirs(tb_dir, exist_ok=True)
         return tb_dir
@@ -255,8 +253,8 @@ class BaseRLValidator(BaseValidator):
             split=self.split,
             run_id=self.run_id,
         )
-        assert '{' not in video_dir, video_dir
-        assert '}' not in video_dir, video_dir
+        assert "{" not in video_dir, video_dir
+        assert "}" not in video_dir, video_dir
         if not os.path.exists(video_dir):
             os.makedirs(video_dir, exist_ok=True)
         return video_dir
@@ -272,8 +270,8 @@ class BaseRLValidator(BaseValidator):
             split=self.split,
             run_id=self.run_id,
         )
-        assert '{' not in metric_dir, metric_dir
-        assert '}' not in metric_dir, metric_dir
+        assert "{" not in metric_dir, metric_dir
+        assert "}" not in metric_dir, metric_dir
         if not os.path.exists(metric_dir):
             os.makedirs(metric_dir, exist_ok=True)
         return metric_dir
@@ -289,8 +287,8 @@ class BaseRLValidator(BaseValidator):
             split=self.split,
             run_id=self.run_id,
         )
-        assert '{' not in log_path, log_path
-        assert '}' not in log_path, log_path
+        assert "{" not in log_path, log_path
+        assert "}" not in log_path, log_path
         parent_path = os.path.dirname(log_path)
         if not os.path.exists(parent_path):
             os.makedirs(parent_path, exist_ok=True)

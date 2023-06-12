@@ -19,7 +19,6 @@ from LookAround.FindView.corruptions import corrupt, get_corruption_names
 
 
 class CorruptionModule(object):
-
     severity_levels = (0, 1, 2, 3, 4, 5)
 
     _corruptions: List[str]
@@ -36,12 +35,11 @@ class CorruptionModule(object):
         seed: int = 0,
         deterministic: bool = True,
     ) -> None:
-
         self._use_clear = use_clear
         self._bounded = bounded
         self.severity = severity
 
-        _names = get_corruption_names(subset='all')
+        _names = get_corruption_names(subset="all")
         if isinstance(corruptions, str):
             corruptions = [corruptions]
         assert len(corruptions) > 0
@@ -54,12 +52,11 @@ class CorruptionModule(object):
 
     @classmethod
     def from_config(cls, cfg: Config):
-
         corruptions = cfg.corrupter.corruptions
         if isinstance(corruptions, str):
-            if corruptions in ('all', 'blur', 'noise', 'digital', 'weather'):
+            if corruptions in ("all", "blur", "noise", "digital", "weather"):
                 corruptions = get_corruption_names(corruptions)
-            elif corruptions in get_corruption_names('all'):
+            elif corruptions in get_corruption_names("all"):
                 corruptions = [corruptions]
             else:
                 raise ValueError()
@@ -87,8 +84,9 @@ class CorruptionModule(object):
 
     @severity.setter
     def severity(self, severity: int):
-        assert severity in self.severity_levels, \
-            f"ERR: given severity is {severity}"
+        assert (
+            severity in self.severity_levels
+        ), f"ERR: given severity is {severity}"
         if self._use_clear:
             if self._bounded:
                 self._severity = severity
@@ -106,10 +104,10 @@ class CorruptionModule(object):
         img: Tensor,
         name: Optional[str] = None,
     ) -> Tuple[Tensor, str, int]:
-
         if (name is not None) and isinstance(name, str):
-            assert name in self._corruptions, \
-                f"ERR: {name} is no in {self._corruptions}"
+            assert (
+                name in self._corruptions
+            ), f"ERR: {name} is no in {self._corruptions}"
         else:
             name = self.rst.choice(self._corruptions)
 
@@ -176,7 +174,6 @@ class CorruptionModule(object):
 
 
 class CorruptedFindViewEnv(FindViewEnv):
-
     # Modules
     _corruptor: CorruptionModule
 
@@ -200,10 +197,9 @@ class CorruptedFindViewEnv(FindViewEnv):
         filter_fn: Optional[Callable[..., bool]] = None,
         num_episodes_per_img: int = -1,
         dtype: Union[np.dtype, torch.dtype] = torch.float32,
-        device: torch.device = torch.device('cpu'),
+        device: torch.device = torch.device("cpu"),
     ):
-        """Initialization from Config
-        """
+        """Initialization from Config"""
 
         # Initialize dataset
         dataset = make_dataset(
@@ -214,13 +210,13 @@ class CorruptedFindViewEnv(FindViewEnv):
         )
 
         # Initialize episode iterator
-        if split in ('train'):
+        if split in ("train"):
             iter_options = cfg.episode_generator_kwargs
-            iter_options['seed'] = cfg.seed
+            iter_options["seed"] = cfg.seed
             episode_iterator = dataset.get_generator(**iter_options)
-        elif split in ('val', 'test'):
+        elif split in ("val", "test"):
             iter_options = cfg.episode_iterator_kwargs
-            iter_options['seed'] = cfg.seed
+            iter_options["seed"] = cfg.seed
             episode_iterator = dataset.get_iterator(**iter_options)
         else:
             raise ValueError(f"got {split} as split which is unsupported")
@@ -244,15 +240,17 @@ class CorruptedFindViewEnv(FindViewEnv):
         info = super().get_info()
         assert self._corruption_name is not None
         assert self._corruption_severity is not None
-        info['corruption'] = self._corruption_name
-        info['severity'] = self._corruption_severity
+        info["corruption"] = self._corruption_name
+        info["severity"] = self._corruption_severity
         return info
 
     def reset(self, name: Optional[str] = None) -> Dict[str, Tensor]:
         self._reset_stats()
 
         self._current_episode = next(self._episode_iterator)
-        assert self._current_episode is not None, "ERR: called reset, but there are no more episodes in the iterator"
+        assert (
+            self._current_episode is not None
+        ), "ERR: called reset, but there are no more episodes in the iterator"
 
         initial_rotation = self._current_episode.initial_rotation
         target_rotation = self._current_episode.target_rotation
@@ -266,7 +264,9 @@ class CorruptedFindViewEnv(FindViewEnv):
         )
 
         (
-            corrupted, corruption_name, corruption_severity
+            corrupted,
+            corruption_name,
+            corruption_severity,
         ) = self._corruptor.corrupt(
             img=_target,
             name=name,
@@ -288,6 +288,7 @@ class CorruptedFindViewEnv(FindViewEnv):
         self,
         severity: int,
     ) -> None:
-        assert severity in self._corruptor.severity_levels, \
-            f"ERR: {severity} is not in {self._corruptor.severity_levels}"
+        assert (
+            severity in self._corruptor.severity_levels
+        ), f"ERR: {severity} is not in {self._corruptor.severity_levels}"
         self._corruptor.severity = severity

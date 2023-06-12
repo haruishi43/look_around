@@ -29,7 +29,9 @@ from findview_baselines.agents.greedy import GreedyMovementAgent
 from findview_baselines.agents.feature_matching import FeatureMatchingAgent
 
 
-def filter_episodes_by_sub_labels(episode: Episode, sub_labels: List[str]) -> bool:
+def filter_episodes_by_sub_labels(
+    episode: Episode, sub_labels: List[str]
+) -> bool:
     return episode.sub_label in sub_labels
 
 
@@ -44,8 +46,8 @@ def parse_args():
         "--agent",
         required=True,
         type=str,
-        choices=['single', 'greedy', 'fm'],
-        help="name of the agent"
+        choices=["single", "greedy", "fm"],
+        help="name of the agent",
     )
     return parser.parse_args()
 
@@ -58,11 +60,13 @@ if __name__ == "__main__":
     print(cfg.pretty_text)
 
     # params
-    split = 'test'  # NOTE: we're using an iterator
+    split = "test"  # NOTE: we're using an iterator
     sub_labels = ["restaurant"]
 
     # setup filter func
-    filter_by_labels = partial(filter_episodes_by_sub_labels, sub_labels=sub_labels)
+    filter_by_labels = partial(
+        filter_episodes_by_sub_labels, sub_labels=sub_labels
+    )
 
     # initialize dataset
     dataset = make_dataset(
@@ -89,7 +93,7 @@ if __name__ == "__main__":
     sim = FindViewSim.from_config(cfg=cfg)
     sim.inititialize_loader(
         dtype=torch.float32,
-        device=torch.device('cpu'),
+        device=torch.device("cpu"),
     )
     # sim.inititialize_loader(
     #     dtype=torch.float32,
@@ -120,7 +124,7 @@ if __name__ == "__main__":
             initial_rotation=initial_rotation,
             target_rotation=target_rotation,
         )
-        obs = {'pers': pers, 'target': target}
+        obs = {"pers": pers, "target": target}
         agent.reset()
 
         pers_list = []
@@ -131,7 +135,7 @@ if __name__ == "__main__":
             pers = sim.move(rot)
             target = sim.target
 
-            obs = {'pers': pers, 'target': target}
+            obs = {"pers": pers, "target": target}
 
             render_pers = sim.render_pers()
             pers_list.append(render_pers)
@@ -139,7 +143,7 @@ if __name__ == "__main__":
         # save as video
         images_to_video_cv2(
             images=pers_list,
-            output_dir='./results/sim',
+            output_dir="./results/sim",
             video_name=f"{args.agent}_{episode.img_name}",
             fps=30.0,
         )

@@ -44,9 +44,8 @@ def joint_filter(
     remove_labels: Union[List[str], Tuple[str]],
     difficulty: str,
 ) -> bool:
-    return (
-        filter_by_difficulty(episode, difficulty)
-        and filter_out_sub_labels(episode, remove_labels)
+    return filter_by_difficulty(episode, difficulty) and filter_out_sub_labels(
+        episode, remove_labels
     )
 
 
@@ -70,25 +69,27 @@ def single(
         filter_fn=filter_fn,
         num_episodes_per_img=num_episodes_per_img,
         dtype=np.float32,
-        device='cpu',
+        device="cpu",
     )
     _cfg = deepcopy(cfg)
     _cfg.fm.distance_threshold = threshold
     print(cfg.fm.distance_threshold, _cfg.fm.distance_threshold)
-    agent = FeatureMatchingAgent.from_config(_cfg)  # NOTE: make sure to use the edited Config
+    agent = FeatureMatchingAgent.from_config(
+        _cfg
+    )  # NOTE: make sure to use the edited Config
 
     # Name:
     name = f"fm_{cfg.fm.feature_type}"
     if threshold <= 0:
-        name += '_inf'
+        name += "_inf"
     else:
-        name += f'_{threshold}'
+        name += f"_{threshold}"
 
     save_path = os.path.join(
-        'results',
-        'fm_validations',
+        "results",
+        "fm_validations",
         dataset_name,
-        f'{difficulty}_{name}.json',
+        f"{difficulty}_{name}.json",
     )
     parent_path = os.path.dirname(save_path)
     if not os.path.exists(parent_path):
@@ -111,7 +112,7 @@ def single(
         t = time.time()
         observations = env.reset()
         env_time = time.time() - t
-        act_time = 0.
+        act_time = 0.0
         agent.reset()
 
         while not env.episode_over:
@@ -125,8 +126,8 @@ def single(
 
         metrics = env.get_metrics()
         episodes_metrics.append(metrics)
-        env_time = env_time / metrics['elapsed_steps']
-        act_time = act_time / metrics['elapsed_steps']
+        env_time = env_time / metrics["elapsed_steps"]
+        act_time = act_time / metrics["elapsed_steps"]
         env_times.append(env_time)
         act_times.append(act_time)
 
@@ -163,7 +164,7 @@ def single(
             env=env_time,
         ),
     )
-    with open(save_path, 'w') as f:
+    with open(save_path, "w") as f:
         json.dump(save_dict, f, indent=2)
 
     # logging
@@ -174,7 +175,7 @@ def single(
 
     env.close()
 
-    return avg_metrics['l1_distance']
+    return avg_metrics["l1_distance"]
 
 
 def main():
@@ -187,19 +188,19 @@ def main():
     parser.add_argument(
         "--diff",
         type=str,
-        default='easy',
+        default="easy",
     )
     parser.add_argument(
         "--num-episodes",
         type=int,
         default=100,
-        help='number of episodes per evaluation',
+        help="number of episodes per evaluation",
     )
     parser.add_argument(
-        '--options',
-        nargs='+',
+        "--options",
+        nargs="+",
         action=DictAction,
-        help='arguments in dict',
+        help="arguments in dict",
     )
     args = parser.parse_args()
     run_exp(**vars(args))
@@ -223,13 +224,13 @@ def run_exp(
     remove_labels = ["others"]  # NOTE: hard-coded
     difficulty = diff
     num_episodes = num_episodes
-    if cfg.dataset.name == 'sun360':
+    if cfg.dataset.name == "sun360":
         dataset_name = "findview_{dataset}_{version}_{category}".format(
             dataset=cfg.dataset.name,
             version=cfg.dataset.version,
             category=cfg.dataset.category,
         )
-    elif cfg.dataset.name == 'wacv360indoor':
+    elif cfg.dataset.name == "wacv360indoor":
         dataset_name = "findview_{dataset}_{version}".format(
             dataset=cfg.dataset.name,
             version=cfg.dataset.version,
@@ -239,9 +240,9 @@ def run_exp(
 
     log_path = os.path.join(
         cfg.log_root,
-        'fm_validations',
+        "fm_validations",
         dataset_name,
-        f'{difficulty}_fm_{cfg.fm.feature_type}.log',
+        f"{difficulty}_fm_{cfg.fm.feature_type}.log",
     )
     parent_path = os.path.dirname(log_path)
     if not os.path.exists(parent_path):
@@ -260,7 +261,7 @@ def run_exp(
         num_episodes_per_img=1,
         num_episodes=num_episodes,
     )
-    metrics_by_thresholds['inf'] = distance
+    metrics_by_thresholds["inf"] = distance
 
     thresholds = [10, 20, 30, 40, 50, 60, 70, 80, 90, 100]
 

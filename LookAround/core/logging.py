@@ -35,5 +35,7 @@ class LookAroundLogger(logging.Logger):
 
 
 logger = LookAroundLogger(
-    name="look_around", level=logging.INFO, format_str="%(asctime)-15s %(message)s"
+    name="look_around",
+    level=logging.INFO,
+    format_str="%(asctime)-15s %(message)s",
 )

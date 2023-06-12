@@ -6,7 +6,10 @@ from typing import Union
 import numpy as np
 import torch
 
-from LookAround.core.improc import post_process_for_render, post_process_for_render_torch
+from LookAround.core.improc import (
+    post_process_for_render,
+    post_process_for_render_torch,
+)
 
 
 def obs2img(
@@ -14,8 +17,7 @@ def obs2img(
     target: Union[np.ndarray, torch.Tensor],
     to_bgr: bool = False,
 ) -> np.ndarray:
-    """Generate concatenated frame for validation/benchmark videos
-    """
+    """Generate concatenated frame for validation/benchmark videos"""
 
     # NOTE: make sure that the operations don't change the observations
     _pers = deepcopy(pers)

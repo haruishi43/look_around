@@ -29,9 +29,9 @@ def make_dataset(
     """
 
     # initialize dataset
-    if split in ('val', 'test'):
+    if split in ("val", "test"):
         dataset = StaticDataset.from_config(cfg=cfg, split=split)
-    elif split == 'train':
+    elif split == "train":
         dataset = DynamicDataset.from_config(cfg=cfg, split="train")
     else:
         raise ValueError(f"ERR: {split} is not a valid split")
@@ -41,6 +41,8 @@ def make_dataset(
         dataset = dataset.filter_dataset(filter_fn)
 
     if num_episodes_per_img > 0 and isinstance(dataset, StaticDataset):
-        dataset = dataset.reduce_dataset(num_episodes_per_img=num_episodes_per_img)
+        dataset = dataset.reduce_dataset(
+            num_episodes_per_img=num_episodes_per_img
+        )
 
     return dataset

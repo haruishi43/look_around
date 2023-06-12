@@ -1,10 +1,10 @@
 _base_ = [
-    '../agents/ppo.py',
-    '../findview/sun360/alpha/indoor/rl_envs/basic.py',
-    '../findview/sun360/_base_/trainer.py',
+    "../agents/ppo.py",
+    "../findview/sun360/alpha/indoor/rl_envs/basic.py",
+    "../findview/sun360/_base_/trainer.py",
 ]
 dataset = dict(
-    difficulty='easy',
+    difficulty="easy",
     bounded=False,
 )
 trainer = dict(
@@ -28,6 +28,6 @@ validator = dict(
     bounded=False,
 )
 scheduler = dict(
-    initial_difficulty='easy',
+    initial_difficulty="easy",
     update_interval=10,
 )

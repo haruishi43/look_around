@@ -104,9 +104,9 @@ def _build_pack_info_from_dones(
         #                   for start in episode_starts[0:num_valid_for_length]
         # * N because each step is separated by N elements
         new_inds = (
-            torch.arange(
-                prev_len, next_len, device=episode_starts.device
-            ).view(next_len - prev_len, 1)
+            torch.arange(prev_len, next_len, device=episode_starts.device).view(
+                next_len - prev_len, 1
+            )
             * N
             + episode_starts[0:num_valid_for_length].view(
                 1, num_valid_for_length
@@ -131,8 +131,11 @@ def _build_pack_info_from_dones(
     # that this episode is the last contiguous block of experience,
     # This is needed for getting the correct hidden states after
     # the RNN forward pass
-    last_episode_in_batch_mask = (
-        (episode_starts + (lengths - 1) * N) // N
+    # last_episode_in_batch_mask = (
+    #     (episode_starts + (lengths - 1) * N) // N
+    # ) == (T - 1)
+    last_episode_in_batch_mask = torch.div(
+        (episode_starts + (lengths - 1) * N), N, rounding_mode="floor"
     ) == (T - 1)
 
     return (
@@ -353,9 +356,7 @@ class LSTMStateEncoder(RNNStateEncoder):
     ) -> torch.Tensor:
         return torch.cat(hidden_states, 0)
 
-    def unpack_hidden(
-        self, hidden_states
-    ) -> Tuple[torch.Tensor, torch.Tensor]:
+    def unpack_hidden(self, hidden_states) -> Tuple[torch.Tensor, torch.Tensor]:
         lstm_states = torch.chunk(hidden_states, 2, 0)
         return (lstm_states[0], lstm_states[1])
 

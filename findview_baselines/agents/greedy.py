@@ -34,7 +34,6 @@ def movement_generator(size=4):
 
 
 class GreedyMovementAgent(Agent):
-
     def __init__(
         self,
         chance: float = 0.001,
@@ -63,9 +62,8 @@ class GreedyMovementAgent(Agent):
         self.g = movement_generator(len(self.movement_actions))
 
     def act(self, observations):
-
-        pers = observations['pers']
-        target = observations['target']
+        pers = observations["pers"]
+        target = observations["target"]
 
         close = False
         if torch.is_tensor(pers):
@@ -84,7 +82,6 @@ class GreedyMovementAgent(Agent):
 
 
 def main():
-
     import argparse
 
     from LookAround.config import DictAction
@@ -97,15 +94,15 @@ def main():
         required=True,
     )
     parser.add_argument(
-        '--name',
+        "--name",
         type=str,
-        help='name of the agent (used for naming save directory)'
+        help="name of the agent (used for naming save directory)",
     )
     parser.add_argument(
-        '--options',
-        nargs='+',
+        "--options",
+        nargs="+",
         action=DictAction,
-        help='arguments in dict',
+        help="arguments in dict",
     )
     args = parser.parse_args()
     cfg = Config.fromfile(args.config)
@@ -119,7 +116,7 @@ def main():
     agent = GreedyMovementAgent.from_config(cfg)
     name = agent.name
     if args.name is not None:
-        name += '_' + args.name
+        name += "_" + args.name
 
     # Benchmark
     print(f"Benchmarking {name}")

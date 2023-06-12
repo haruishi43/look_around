@@ -31,7 +31,7 @@ def parse_args():
         "--config",
         required=True,
         type=str,
-        help="config file for creating dataset"
+        help="config file for creating dataset",
     )
     return parser.parse_args()
 
@@ -44,9 +44,9 @@ if __name__ == "__main__":
     print(cfg.pretty_text)
 
     # params:
-    split = 'test'
+    split = "test"
     dtype = torch.float32
-    device = torch.device('cpu')
+    device = torch.device("cpu")
     num_steps = 5000
     img_names = ["pano_awotqqaapbgcaf", "pano_asxxieiyhiqchw"]
     sub_labels = ["restaurant"]
@@ -70,12 +70,11 @@ if __name__ == "__main__":
 
     # render
     render = rlenv.render()
-    cv2.imshow("target", render['target'])
-    cv2.imshow("pers", render['pers'])
+    cv2.imshow("target", render["target"])
+    cv2.imshow("pers", render["pers"])
 
     steps = 0
     for i in tqdm(range(num_steps)):  # replace it with `while True`
-
         print(f"Step: {steps}")
 
         # change direction `wasd` or exit with `q`
@@ -94,7 +93,7 @@ if __name__ == "__main__":
         print("reward", reward, action, done)
 
         # render
-        pers = rlenv.render()['pers']
+        pers = rlenv.render()["pers"]
         cv2.imshow("pers", pers)
 
         # update step
@@ -103,7 +102,7 @@ if __name__ == "__main__":
         if done:
             if action == "stop":
                 print("called stop")
-                assert info['called_stop']
+                assert info["called_stop"]
             print(">>> next episode!")
 
             # NEED TO RESET!

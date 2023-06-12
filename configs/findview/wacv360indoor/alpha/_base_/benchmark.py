@@ -1,4 +1,4 @@
-_base_ = ['../../../_base_/benchmark.py']
+_base_ = ["../../../_base_/benchmark.py"]
 benchmark = dict(
     video_dir=(
         "{results_root}/benchmarks/"

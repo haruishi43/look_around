@@ -204,7 +204,9 @@ class FindViewBaselineNet(Net):
         return self.state_encoder.num_recurrent_layers
 
     def forward(self, observations, rnn_hidden_states, prev_actions, masks):
-        target_encoding = self.goal_visual_encoder({"target": observations["target"]})
+        target_encoding = self.goal_visual_encoder(
+            {"target": observations["target"]}
+        )
 
         x = [target_encoding]
 

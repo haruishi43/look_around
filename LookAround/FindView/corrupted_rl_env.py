@@ -20,7 +20,6 @@ __all__ = [
 
 
 class CorruptedFindViewRLEnv(gym.Env):
-
     # Hidden Properties
     _env: CorruptedFindViewEnv
 
@@ -31,7 +30,7 @@ class CorruptedFindViewRLEnv(gym.Env):
         filter_fn: Optional[Callable[..., bool]] = None,
         num_episodes_per_img: int = -1,
         dtype: Union[np.dtype, torch.dtype] = torch.float32,
-        device: torch.device = torch.device('cpu'),
+        device: torch.device = torch.device("cpu"),
     ) -> None:
         """FindView RL Environment
 
@@ -85,7 +84,7 @@ class CorruptedFindViewRLEnv(gym.Env):
         return self._env.number_of_episodes
 
     def _reset_metrics(self) -> None:
-        self._prev_dist = self._env.get_metrics()['l1_distance']
+        self._prev_dist = self._env.get_metrics()["l1_distance"]
 
     def reset(self):
         observations = self._env.reset()
@@ -146,10 +145,11 @@ class CorruptedFindViewRLEnv(gym.Env):
         self.close()
 
 
-def build_func(cfg: Config, name: str, registry: Registry , **kwargs):
+def build_func(cfg: Config, name: str, registry: Registry, **kwargs):
     rlenv_cls = registry.get(name)
-    assert rlenv_cls is not None, \
-        f"{name} is not in the {registry.name} registry"
+    assert (
+        rlenv_cls is not None
+    ), f"{name} is not in the {registry.name} registry"
 
     return rlenv_cls(
         cfg=cfg,
@@ -158,18 +158,16 @@ def build_func(cfg: Config, name: str, registry: Registry , **kwargs):
 
 
 # Create a RL Env Registry
-CorruptedRLEnvRegistry = Registry('corrupted_rlenvs', build_func=build_func)
+CorruptedRLEnvRegistry = Registry("corrupted_rlenvs", build_func=build_func)
 
 
-@CorruptedRLEnvRegistry.register_module(name='Basic')
+@CorruptedRLEnvRegistry.register_module(name="Basic")
 class BasicCorruptedFindviewRLEnv(CorruptedFindViewRLEnv):
-
     def __init__(
         self,
         cfg: Config,
         **kwargs,
     ) -> None:
-
         self._rl_env_cfg = cfg.rl_env
         self._slack_reward = self._rl_env_cfg.slack_reward
         self._success_reward = self._rl_env_cfg.success_reward
@@ -185,8 +183,8 @@ class BasicCorruptedFindviewRLEnv(CorruptedFindViewRLEnv):
 
     def _end_rewards(self, measures):
         reward_success = 0
-        if self._env.episode_over and measures['called_stop']:
-            l1 = measures['l1_distance']
+        if self._env.episode_over and measures["called_stop"]:
+            l1 = measures["l1_distance"]
             reward_success = self._success_reward / (l1 + 1.0)
         elif self._env.episode_over:
             # if agent couldn't finish by the limit, penalize them
@@ -196,7 +194,7 @@ class BasicCorruptedFindviewRLEnv(CorruptedFindViewRLEnv):
     def get_reward(self, observations) -> float:
         # FIXME: make a good reward function here
         measures = self._env.get_metrics()
-        curr_dist = measures['l1_distance']
+        curr_dist = measures["l1_distance"]
 
         # Penalty: slack reward for every step it takes
         # value is small

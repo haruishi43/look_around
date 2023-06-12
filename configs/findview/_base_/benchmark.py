@@ -1,5 +1,5 @@
 benchmark = dict(
-    device='cpu',
+    device="cpu",
     dtype="torch.float32",
     num_threads=4,
     video_dir=(

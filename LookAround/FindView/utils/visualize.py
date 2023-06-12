@@ -11,13 +11,13 @@ from tqdm import tqdm
 from LookAround.FindView.actions import FindViewActions
 from LookAround.utils.visualizations import images_to_video, images_to_video_cv2
 
-ASSET_ROOT = './LookAround/FindView/utils/assets'
+ASSET_ROOT = "./LookAround/FindView/utils/assets"
 ASSETS = {
-    'up': os.path.join(ASSET_ROOT, 'up.png'),
-    'down': os.path.join(ASSET_ROOT, 'down.png'),
-    'right': os.path.join(ASSET_ROOT, 'right.png'),
-    'left': os.path.join(ASSET_ROOT, 'left.png'),
-    'stop': os.path.join(ASSET_ROOT, 'stop.png'),
+    "up": os.path.join(ASSET_ROOT, "up.png"),
+    "down": os.path.join(ASSET_ROOT, "down.png"),
+    "right": os.path.join(ASSET_ROOT, "right.png"),
+    "left": os.path.join(ASSET_ROOT, "left.png"),
+    "stop": os.path.join(ASSET_ROOT, "stop.png"),
 }
 
 
@@ -27,8 +27,7 @@ def resize_and_add_bbox(
     color: Tuple[int, int, int],
     thickness: int = 2,
 ) -> np.ndarray:
-    """Create a boundary around the input image
-    """
+    """Create a boundary around the input image"""
     template = np.full(
         (
             resize_shape[0] + 2 * thickness,
@@ -55,8 +54,7 @@ def draw_bfov(
     color: tuple = (0, 255, 0),
     thickness: int = 4,
 ) -> np.ndarray:
-    """Draw a bounding FOV around the prespective view
-    """
+    """Draw a bounding FOV around the prespective view"""
 
     points = points.tolist()
     points = [(x, y) for y, x in points]
@@ -66,7 +64,10 @@ def draw_bfov(
         else:
             next_point = points[index + 1]
 
-        if abs(point[0] - next_point[0]) < 100 and abs(point[1] - next_point[1]) < 100:
+        if (
+            abs(point[0] - next_point[0]) < 100
+            and abs(point[1] - next_point[1]) < 100
+        ):
             # NOTE: make sure that lines are cut when the BFOV wraps around
             cv2.line(equi, point, next_point, color=color, thickness=thickness)
 
@@ -102,8 +103,7 @@ def generate_movement_video(
     verbose: bool = False,
     **kwargs,
 ) -> None:
-    """Generate an "easy to see" movement video
-    """
+    """Generate an "easy to see" movement video"""
 
     assert len(pers) == len(pers_bboxs)
     assert len(pers) == len(actions)
@@ -120,14 +120,18 @@ def generate_movement_video(
         font_scale = 1
         font_thickness = 2
         line_type = cv2.LINE_AA
-        text = 'hoge'
+        text = "hoge"
         (_, text_h), _ = cv2.getTextSize(text, font, font_scale, font_thickness)
         template_frame = np.full(
             (
-                2 * frame_boundary[0] + equi_size[0]
-                + boundary_between_updown + pers_size[0]
+                2 * frame_boundary[0]
+                + equi_size[0]
+                + boundary_between_updown
+                + pers_size[0]
                 + 2 * pers_boundary_thickness
-                + boundary_between_updown + text_h + text_bottom_boundary,
+                + boundary_between_updown
+                + text_h
+                + text_bottom_boundary,
                 2 * frame_boundary[1] + equi_size[1],
                 3,
             ),
@@ -137,8 +141,10 @@ def generate_movement_video(
     else:
         template_frame = np.full(
             (
-                2 * frame_boundary[0] + equi_size[0]
-                + boundary_between_updown + pers_size[0]
+                2 * frame_boundary[0]
+                + equi_size[0]
+                + boundary_between_updown
+                + pers_size[0]
                 + 2 * pers_boundary_thickness,
                 2 * frame_boundary[1] + equi_size[1],
                 3,
@@ -255,11 +261,22 @@ def generate_movement_video(
             w : w + pers_size[1],
         ] = initial_bpers
         if add_text:
-            text = 'Initial'
-            (text_w, _), _ = cv2.getTextSize(text, font, font_scale, font_thickness)
-            text_y = (h + pers_size[0] + boundary_between_updown + text_h)
-            text_x = (w + (pers_size[1] - text_w) // 2)
-            cv2.putText(frame, text, (text_x, text_y), font, font_scale, text_color, font_thickness, line_type)
+            text = "Initial"
+            (text_w, _), _ = cv2.getTextSize(
+                text, font, font_scale, font_thickness
+            )
+            text_y = h + pers_size[0] + boundary_between_updown + text_h
+            text_x = w + (pers_size[1] - text_w) // 2
+            cv2.putText(
+                frame,
+                text,
+                (text_x, text_y),
+                font,
+                font_scale,
+                text_color,
+                font_thickness,
+                line_type,
+            )
         w += pers_size[1] + boundary_between_pers
         # target perspective
         frame[
@@ -267,11 +284,22 @@ def generate_movement_video(
             w : w + pers_size[1],
         ] = target_bpers
         if add_text:
-            text = 'Target'
-            (text_w, _), _ = cv2.getTextSize(text, font, font_scale, font_thickness)
-            text_y = (h + pers_size[0] + boundary_between_updown + text_h)
-            text_x = (w + (pers_size[1] - text_w) // 2)
-            cv2.putText(frame, text, (text_x, text_y), font, font_scale, text_color, font_thickness, line_type)
+            text = "Target"
+            (text_w, _), _ = cv2.getTextSize(
+                text, font, font_scale, font_thickness
+            )
+            text_y = h + pers_size[0] + boundary_between_updown + text_h
+            text_x = w + (pers_size[1] - text_w) // 2
+            cv2.putText(
+                frame,
+                text,
+                (text_x, text_y),
+                font,
+                font_scale,
+                text_color,
+                font_thickness,
+                line_type,
+            )
         w += pers_size[1] + boundary_between_pers
         # current perspective
         frame[
@@ -279,25 +307,36 @@ def generate_movement_video(
             w : w + pers_size[1],
         ] = bp
         if add_text:
-            text = 'Perspective'
-            (text_w, _), _ = cv2.getTextSize(text, font, font_scale, font_thickness)
-            text_y = (h + pers_size[0] + boundary_between_updown + text_h)
-            text_x = (w + (pers_size[1] - text_w) // 2)
-            cv2.putText(frame, text, (text_x, text_y), font, font_scale, text_color, font_thickness, line_type)
+            text = "Perspective"
+            (text_w, _), _ = cv2.getTextSize(
+                text, font, font_scale, font_thickness
+            )
+            text_y = h + pers_size[0] + boundary_between_updown + text_h
+            text_x = w + (pers_size[1] - text_w) // 2
+            cv2.putText(
+                frame,
+                text,
+                (text_x, text_y),
+                font,
+                font_scale,
+                text_color,
+                font_thickness,
+                line_type,
+            )
         w += pers_size[1] + boundary_arrow
 
         # process actions
         action = actions[index]
         if isinstance(action, dict):
-            action = action['action']
+            action = action["action"]
         if isinstance(action, int):
             action = FindViewActions.all[action]
         asset = assets[action]
         h += displacement[0]
         w += displacement[1]
         frame[
-            h: h + asset_size[0],
-            w: w + asset_size[1],
+            h : h + asset_size[0],
+            w : w + asset_size[1],
         ] = asset
 
         if use_imageio:

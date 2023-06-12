@@ -9,6 +9,7 @@ evgenia.rusak@bethgelab.org, benjamin.mitzkus@bethgelab.org
 
 import numpy as np
 from PIL import Image
+
 # from .corruptions import (
 #     gaussian_noise, shot_noise, impulse_noise, defocus_blur,
 #     glass_blur, motion_blur, zoom_blur, snow, frost, fog,
@@ -16,10 +17,22 @@ from PIL import Image
 #     jpeg_compression, speckle_noise, gaussian_blur, spatter, saturate,
 # )
 from .corruptions import (
-    motion_blur, defocus_blur, glass_blur, gaussian_blur,  # Blur
-    gaussian_noise, impulse_noise, shot_noise, speckle_noise,  # Noise
-    brightness, contrast, saturate, jpeg_compression,  # Digital
-    snow, spatter, fog, frost,  # Weather
+    motion_blur,
+    defocus_blur,
+    glass_blur,
+    gaussian_blur,  # Blur
+    gaussian_noise,
+    impulse_noise,
+    shot_noise,
+    speckle_noise,  # Noise
+    brightness,
+    contrast,
+    saturate,
+    jpeg_compression,  # Digital
+    snow,
+    spatter,
+    fog,
+    frost,  # Weather
 )
 
 
@@ -35,10 +48,22 @@ from .corruptions import (
 # }
 
 corruption_tuple = (
-    motion_blur, defocus_blur, glass_blur, gaussian_blur,  # Blur
-    gaussian_noise, impulse_noise, shot_noise, speckle_noise,  # Noise
-    brightness, contrast, saturate, jpeg_compression,  # Digital
-    snow, spatter, fog, frost,  # Weather
+    motion_blur,
+    defocus_blur,
+    glass_blur,
+    gaussian_blur,  # Blur
+    gaussian_noise,
+    impulse_noise,
+    shot_noise,
+    speckle_noise,  # Noise
+    brightness,
+    contrast,
+    saturate,
+    jpeg_compression,  # Digital
+    snow,
+    spatter,
+    fog,
+    frost,  # Weather
 )
 
 corruption_dict = {
@@ -129,28 +154,34 @@ def corrupt(image, severity=1, corruption_name=None, corruption_number=-1):
     """
 
     if not isinstance(image, np.ndarray):
-        raise AttributeError('Expecting type(image) to be numpy.ndarray')
+        raise AttributeError("Expecting type(image) to be numpy.ndarray")
     if not (image.dtype.type is np.uint8):
-        raise AttributeError('Expecting image.dtype.type to be numpy.uint8')
+        raise AttributeError("Expecting image.dtype.type to be numpy.uint8")
 
     if not (image.ndim in [2, 3]):
-        raise AttributeError('Expecting image.shape to be either (height x width) or (height x width x channels)')
+        raise AttributeError(
+            "Expecting image.shape to be either (height x width) or (height x width x channels)"
+        )
     if image.ndim == 2:
         image = np.stack((image,) * 3, axis=-1)
 
     height, width, channels = image.shape
 
-    if (height < 32 or width < 32):
-        raise AttributeError('Image width and height must be at least 32 pixels')
+    if height < 32 or width < 32:
+        raise AttributeError(
+            "Image width and height must be at least 32 pixels"
+        )
 
     if not (channels in [1, 3]):
-        raise AttributeError('Expecting image to have either 1 or 3 channels (last dimension)')
+        raise AttributeError(
+            "Expecting image to have either 1 or 3 channels (last dimension)"
+        )
 
     if channels == 1:
         image = np.stack((np.squeeze(image),) * 3, axis=-1)
 
     if not (severity in [1, 2, 3, 4, 5]):
-        raise AttributeError('Severity must be an integer in [1, 5]')
+        raise AttributeError("Severity must be an integer in [1, 5]")
 
     if not (corruption_name is None):
         image_corrupted = corruption_dict[corruption_name](
@@ -163,7 +194,9 @@ def corrupt(image, severity=1, corruption_name=None, corruption_number=-1):
             severity,
         )
     else:
-        raise ValueError("Either corruption_name or corruption_number must be passed")
+        raise ValueError(
+            "Either corruption_name or corruption_number must be passed"
+        )
 
     return np.uint8(image_corrupted)
 
@@ -187,16 +220,18 @@ def corrupt(image, severity=1, corruption_name=None, corruption_number=-1):
 #         raise ValueError("subset must be one of ['common', 'validation', 'all']")
 
 
-def get_corruption_names(subset='all'):
-    if subset == 'all':
+def get_corruption_names(subset="all"):
+    if subset == "all":
         return [f.__name__ for f in corruption_tuple]
-    elif subset == 'blur':
+    elif subset == "blur":
         return [f.__name__ for f in corruption_tuple[0:4]]
-    elif subset == 'noise':
+    elif subset == "noise":
         return [f.__name__ for f in corruption_tuple[4:8]]
-    elif subset == 'digital':
+    elif subset == "digital":
         return [f.__name__ for f in corruption_tuple[8:12]]
-    elif subset == 'weather':
+    elif subset == "weather":
         return [f.__name__ for f in corruption_tuple[12:]]
     else:
-        raise ValueError(f"subset must be one of ['all', 'blur', 'noise', 'digital', 'weather'], but go {subset}")
+        raise ValueError(
+            f"subset must be one of ['all', 'blur', 'noise', 'digital', 'weather'], but go {subset}"
+        )

@@ -23,7 +23,6 @@ T = TypeVar("T", bound=PseudoEpisode)
 
 
 class DynamicDataset(Generic[T]):
-
     pseudos: List[T]
 
     _fov: float
@@ -67,10 +66,10 @@ class DynamicDataset(Generic[T]):
         - sample_limit (int)
         """
 
-        assert os.path.exists(dataset_json_path), \
-            f"ERR: {dataset_json_path} doesn't exist"
-        assert os.path.exists(data_dir), \
-            f"ERR: {data_dir} doesn't exist"
+        assert os.path.exists(
+            dataset_json_path
+        ), f"ERR: {dataset_json_path} doesn't exist"
+        assert os.path.exists(data_dir), f"ERR: {data_dir} doesn't exist"
 
         self.pseudos = []
 
@@ -184,18 +183,17 @@ class DynamicDataset(Generic[T]):
         json_str: str,
         data_dir: os.PathLike,
     ) -> None:
-        """Load json data to Episodes
-        """
+        """Load json data to Episodes"""
         deserialized = json.loads(json_str)
-        assert len(deserialized) > 0 and isinstance(deserialized, list), \
-            "ERR: contents of json string unreadable"
+        assert len(deserialized) > 0 and isinstance(
+            deserialized, list
+        ), "ERR: contents of json string unreadable"
 
         for d in deserialized:
             # make sure that full path is loaded
             d["path"] = os.path.join(os.getcwd(), data_dir, d["path"])
             # FIXME: do we need this check before hand?
-            assert os.path.exists(d["path"]), \
-                f"ERR: {d['path']} doesn't exist"
+            assert os.path.exists(d["path"]), f"ERR: {d['path']} doesn't exist"
             pseudo = PseudoEpisode(**d)
             self.pseudos.append(pseudo)
 
@@ -209,20 +207,22 @@ class DynamicDataset(Generic[T]):
             **kwargs,
         )
 
-    def filter_dataset(self, filter_fn: Callable[[T], bool]) -> "DynamicDataset":
+    def filter_dataset(
+        self, filter_fn: Callable[[T], bool]
+    ) -> "DynamicDataset":
         new_pseudos = []
         for pseudo in self.pseudos:
             if filter_fn(pseudo):
                 new_pseudos.append(pseudo)
-        assert len(new_pseudos) > 0, \
-            "ERR: filtered all pseudos; no pseudo for dataset"
+        assert (
+            len(new_pseudos) > 0
+        ), "ERR: filtered all pseudos; no pseudo for dataset"
         new_dataset = copy(self)  # copies all attributes
         new_dataset.pseudos = new_pseudos
         return new_dataset
 
 
 class DynamicGenerator(Iterator):
-
     def __init__(
         self,
         pseudos: Sequence[T],
@@ -231,7 +231,6 @@ class DynamicGenerator(Iterator):
         num_repeat_pseudo: int = -1,
         seed: int = 0,
     ) -> None:
-
         # FIXME: is this necessary?
         self.rst = random.Random(seed)
         self.np_rst = np.random.RandomState(seed)
@@ -256,8 +255,7 @@ class DynamicGenerator(Iterator):
         return self
 
     def __next__(self) -> Episode:
-        """The main logic for handling how episodes will be iterated.
-        """
+        """The main logic for handling how episodes will be iterated."""
         pseudo = self.get_pseudo()
         episode = self.sampler(pseudo)
         return episode

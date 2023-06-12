@@ -1,8 +1,12 @@
-gymnasium
-pyequilib
+numpy
+scipy
 imageio
 imageio-ffmpeg
-moviepy
 scikit-image
-scipy
+moviepy
 numba
+gymnasium
+pyequilib
+
+protobuf==3.20.1  # needs to be pinned for tensorboard to work with pytorch
+tensorflow==2.8

@@ -6,7 +6,6 @@ from LookAround.FindView.actions import FindViewActions
 
 
 class Human(Agent):
-
     def __init__(self):
         self.name = "human"
 

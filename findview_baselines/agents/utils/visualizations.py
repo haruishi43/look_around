@@ -14,7 +14,6 @@ def draw_matches(
     kps_target,
     matches,
 ) -> np.ndarray:
-
     img = cv2.drawMatches(
         img1=gray_pers,
         keypoints1=kps_pers,
