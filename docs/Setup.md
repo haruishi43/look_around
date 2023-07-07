@@ -13,7 +13,6 @@ pip install -U protobuf==3.20.1
 pip install tensorflow==2.8.0
 ```
 
-
 ## Project
 
 Setting up `data` directory:
