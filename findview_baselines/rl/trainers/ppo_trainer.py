@@ -1,9 +1,8 @@
 #!/usr/bin/env python3
 
-import os
 import time
 from collections import defaultdict, deque
-from copy import deepcopy
+import os
 from typing import Any, Dict, Optional
 
 from mmengine import symlink
@@ -14,23 +13,16 @@ from torch.optim.lr_scheduler import LambdaLR
 from LookAround.config import Config
 from LookAround.core import logger
 from LookAround.utils.random import seed
-from LookAround.FindView.corrupted_vec_env import (
-    CorruptedVecEnv,
-    construct_corrupted_envs,
-)
 
 from findview_baselines.common import (
     BaseRLTrainer,
     TensorboardWriter,
     RolloutStorage,
 )
-from findview_baselines.common.scheduler import (
-    DifficultyScheduler,
-    SeverityScheduler,
-)
-from findview_baselines.rl.ppo import PPO, Policy
-from findview_baselines.rl.ppo.corrupted_validator import CorruptedPPOValidator
-from findview_baselines.rl.ppo.policy import FindViewBaselinePolicy
+from findview_baselines.common.scheduler import DifficultyScheduler
+from findview_baselines.rl.trainers import PPO, Policy
+from findview_baselines.rl.trainers.ppo_validator import PPOValidator
+from findview_baselines.rl.models.base_policy import FindViewBaselinePolicy
 from findview_baselines.utils.common import (
     ObservationBatchingCache,
     batch_obs,
@@ -38,9 +30,8 @@ from findview_baselines.utils.common import (
 )
 
 
-class CorruptedPPOTrainer(BaseRLTrainer):
+class PPOTrainer(BaseRLTrainer):
     # Properties
-    envs: Optional[CorruptedVecEnv]
     agent: Optional[PPO]
     actor_critic: Optional[Policy]
 
@@ -55,29 +46,6 @@ class CorruptedPPOTrainer(BaseRLTrainer):
         self.actor_critic = None
         self.agent = None
         self._obs_batching_cache = ObservationBatchingCache()
-
-    def _init_rlenvs(
-        self,
-        cfg: Optional[Config] = None,
-    ) -> None:
-        if cfg is None:
-            cfg = deepcopy(self.cfg)
-
-        if cfg.trainer.dtype == "torch.float32":
-            dtype = torch.float32
-        elif cfg.trainer.dtype == "torch.float64":
-            dtype = torch.float64
-        else:
-            raise ValueError()
-
-        self.envs = construct_corrupted_envs(
-            cfg=cfg,
-            split="train",
-            is_rlenv=True,
-            dtype=dtype,
-            device=self.device,
-            vec_type=cfg.trainer.vec_type,
-        )
 
     def _setup_actor_critic_agent(self) -> None:
         """Sets up actor critic and agent for PPO."""
@@ -464,17 +432,12 @@ class CorruptedPPOTrainer(BaseRLTrainer):
             )
 
         # account keeping stuff
-        validator = CorruptedPPOValidator(cfg=self.cfg)
+        validator = PPOValidator(cfg=self.cfg)
         difficulty_scheduler = DifficultyScheduler(
             initial_difficulty=self.cfg.scheduler.initial_difficulty,
             update_interval=self.cfg.scheduler.update_interval,
             num_updates_done=self.num_updates_done,
             bounded=self.cfg.dataset.bounded,
-        )
-        severity_scheduler = SeverityScheduler(
-            initial_severity=self.cfg.corruption_scheduler.initial_severity,
-            max_severity=self.cfg.corruption_scheduler.max_severity,
-            update_interval=self.cfg.corruption_scheduler.update_interval,
         )
         checkpoint_distances = []
 
@@ -530,7 +493,6 @@ class CorruptedPPOTrainer(BaseRLTrainer):
                         step_id=self.num_steps_done,
                         difficulty=difficulty_scheduler.current_difficulty,
                         bounded=difficulty_scheduler.bounded,
-                        severity=severity_scheduler.current_severity,
                     )
 
                     # compare againt all checkpoints
@@ -585,10 +547,6 @@ class CorruptedPPOTrainer(BaseRLTrainer):
                 # FIXME: update difficulty scheduler based on metrics
                 # FIXME: put this inside `if self.should_checkpoint()` loop?
                 difficulty_scheduler.update(
-                    envs=self.envs,
-                    num_updates_done=self.num_updates_done,
-                )
-                severity_scheduler.update(
                     envs=self.envs,
                     num_updates_done=self.num_updates_done,
                 )

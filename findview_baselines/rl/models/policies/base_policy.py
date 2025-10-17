@@ -2,18 +2,27 @@
 
 import abc
 
-import torch
-from gymnasium import spaces
 from torch import nn as nn
 
-from findview_baselines.rl.models.rnn_state_encoder import (
-    build_rnn_state_encoder,
-)
-from findview_baselines.rl.models.simple_cnn import SimpleCNN
-from findview_baselines.utils.common import CategoricalNet, GaussianNet
+from findview_baselines.rl.models.nets.base_net import Net
+from ..utils import CategoricalNet, GaussianNet
+
+
+class CriticHead(nn.Module):
+    def __init__(self, input_size):
+        super().__init__()
+        self.fc = nn.Linear(input_size, 1)
+        nn.init.orthogonal_(self.fc.weight)
+        nn.init.constant_(self.fc.bias, 0)
+
+    def forward(self, x):
+        return self.fc(x)
 
 
 class Policy(nn.Module, metaclass=abc.ABCMeta):
+    action_distribution: nn.Module
+    net: Net
+
     def __init__(
         self,
         net,
@@ -63,6 +72,14 @@ class Policy(nn.Module, metaclass=abc.ABCMeta):
     def forward(self, *x):
         raise NotImplementedError
 
+    @property
+    def should_load_agent_state(self):
+        return True
+
+    @property
+    def num_recurrent_layers(self) -> int:
+        return self.net.num_recurrent_layers
+
     def act(
         self,
         observations,
@@ -109,114 +126,7 @@ class Policy(nn.Module, metaclass=abc.ABCMeta):
 
         return value, action_log_probs, distribution_entropy, rnn_hidden_states
 
-
-class CriticHead(nn.Module):
-    def __init__(self, input_size):
-        super().__init__()
-        self.fc = nn.Linear(input_size, 1)
-        nn.init.orthogonal_(self.fc.weight)
-        nn.init.constant_(self.fc.bias, 0)
-
-    def forward(self, x):
-        return self.fc(x)
-
-
-class FindViewBaselinePolicy(Policy):
-    def __init__(
-        self,
-        observation_space: spaces.Dict,
-        action_space,
-        hidden_size: int = 512,
-        **kwargs,
-    ):
-        super().__init__(
-            FindViewBaselineNet(  # type: ignore
-                observation_space=observation_space,
-                hidden_size=hidden_size,
-            ),
-            action_space.n,
-            **kwargs,
-        )
-
-
-class Net(nn.Module, metaclass=abc.ABCMeta):
+    @classmethod
     @abc.abstractmethod
-    def forward(self, observations, rnn_hidden_states, prev_actions, masks):
+    def from_config(cls, config, observation_space, action_space):
         pass
-
-    @property
-    @abc.abstractmethod
-    def output_size(self):
-        pass
-
-    @property
-    @abc.abstractmethod
-    def num_recurrent_layers(self):
-        pass
-
-    @property
-    @abc.abstractmethod
-    def is_blind(self):
-        pass
-
-
-class FindViewBaselineNet(Net):
-    """Network which passes the input image through CNN and concatenates
-    goal vector with CNN's output and passes that through RNN.
-    """
-
-    def __init__(
-        self,
-        observation_space: spaces.Dict,
-        hidden_size: int,
-    ):
-        super().__init__()
-
-        goal_observation_space = spaces.Dict(
-            {"target": observation_space.spaces["target"]}
-        )
-        self.goal_visual_encoder = SimpleCNN(
-            goal_observation_space, hidden_size
-        )
-        self._n_input_goal = hidden_size
-
-        self._hidden_size = hidden_size
-
-        self.visual_encoder = SimpleCNN(observation_space, hidden_size)
-
-        self.state_encoder = build_rnn_state_encoder(
-            (0 if self.is_blind else self._hidden_size) + self._n_input_goal,
-            self._hidden_size,
-        )
-
-        self.train()
-
-    @property
-    def output_size(self):
-        return self._hidden_size
-
-    @property
-    def is_blind(self):
-        return self.visual_encoder.is_blind
-
-    @property
-    def num_recurrent_layers(self):
-        return self.state_encoder.num_recurrent_layers
-
-    def forward(self, observations, rnn_hidden_states, prev_actions, masks):
-        target_encoding = self.goal_visual_encoder(
-            {"target": observations["target"]}
-        )
-
-        x = [target_encoding]
-
-        if not self.is_blind:
-            perception_embed = self.visual_encoder(observations)
-            x = [perception_embed] + x
-
-        x_out = torch.cat(x, dim=1)
-        x_out, rnn_hidden_states = self.state_encoder(
-            x_out, rnn_hidden_states, masks
-        )
-
-        return x_out, rnn_hidden_states

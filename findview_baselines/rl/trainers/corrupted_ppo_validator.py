@@ -20,8 +20,8 @@ from findview_baselines.common.base_validator import BaseRLValidator
 from findview_baselines.common.corrupted_rl_envs import (
     construct_corrupted_envs_for_validation,
 )
-from findview_baselines.rl.ppo.ppo import PPO
-from findview_baselines.rl.ppo.policy import FindViewBaselinePolicy
+from findview_baselines.rl.trainers.ppo import PPO
+from findview_baselines.rl.models.base_policy import FindViewBaselinePolicy
 from findview_baselines.utils.common import (
     ObservationBatchingCache,
     batch_obs,

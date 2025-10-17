@@ -8,7 +8,7 @@ from torch import nn as nn
 from torch import optim as optim
 
 from findview_baselines.common import RolloutStorage
-from findview_baselines.rl.ppo.policy import Policy
+from findview_baselines.rl.models.base_policy import Policy
 
 EPS_PPO = 1e-5
 

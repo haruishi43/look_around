@@ -6,8 +6,11 @@ import numpy as np
 import torch
 from torch import nn as nn
 
+from .base_encoder import EncoderRegistry, BaseEncoder
 
-class SimpleCNN(nn.Module):
+
+@EncoderRegistry.register_module()
+class SimpleCNN(BaseEncoder):
     """A Simple 3-Conv CNN followed by a fully connected layer
     Takes in observations and produces an embedding of the rgb and/or depth components
     Args:
@@ -18,41 +21,31 @@ class SimpleCNN(nn.Module):
     def __init__(
         self,
         observation_space,
-        output_size,
+        **kwargs,
     ):
-        super().__init__()
-
-        if "pers" in observation_space.spaces:
-            self._n_input_pers = observation_space.spaces["pers"].shape[0]
-        else:
-            self._n_input_pers = 0
-
-        if "target" in observation_space.spaces:
-            self._n_input_target = observation_space.spaces["target"].shape[0]
-        else:
-            self._n_input_target = 0
+        super().__init__(
+            observation_space=observation_space,
+            **kwargs,
+        )
 
         # kernel size for different CNN layers
-        self._cnn_layers_kernel_size = [(8, 8), (4, 4), (3, 3)]
-
+        cnn_layers_kernel_size = [(8, 8), (4, 4), (3, 3)]
         # strides for different CNN layers
-        self._cnn_layers_stride = [(4, 4), (2, 2), (1, 1)]
+        cnn_layers_stride = [(4, 4), (2, 2), (1, 1)]
 
-        if self._n_input_pers > 0:
+        if self._n_input_dict["rgb"] > 0:
             cnn_dims = np.array(
-                observation_space.spaces["pers"].shape[-2:], dtype=np.float32
+                observation_space.spaces["rgb"].shape[:2], dtype=np.float32
             )
-        elif self._n_input_target > 0:
+        elif self._n_input_dict["depth"] > 0:
             cnn_dims = np.array(
-                observation_space.spaces["target"].shape[-2:], dtype=np.float32
+                observation_space.spaces["depth"].shape[:2], dtype=np.float32
             )
 
         if self.is_blind:
-            self.cnn = nn.Sequential()
+            self.enc = nn.Sequential()
         else:
-            for kernel_size, stride in zip(
-                self._cnn_layers_kernel_size, self._cnn_layers_stride
-            ):
+            for kernel_size, stride in zip(cnn_layers_kernel_size, cnn_layers_stride):
                 cnn_dims = self._conv_output_dim(
                     dimension=cnn_dims,
                     padding=np.array([0, 0], dtype=np.float32),
@@ -61,38 +54,36 @@ class SimpleCNN(nn.Module):
                     stride=np.array(stride, dtype=np.float32),
                 )
 
-            # FIXME: change this to a siamese network instead of convoluting in channels
-            # only 3 stacked CNN, probably not enough to represent exact images
-            # to compare two images, it's probably safer to use two CNN with shared weight
-            # and add linear at the end
-            # maybe also add a loss to learn if the two images are the same or different
-            # it will enable better learning for "stop"
-            self.cnn = nn.Sequential(
+            self.enc = nn.Sequential(
                 nn.Conv2d(
-                    in_channels=self._n_input_pers + self._n_input_target,
+                    in_channels=self.in_channels,
                     out_channels=32,
-                    kernel_size=self._cnn_layers_kernel_size[0],
-                    stride=self._cnn_layers_stride[0],
+                    kernel_size=cnn_layers_kernel_size[0],
+                    stride=cnn_layers_stride[0],
                 ),
                 nn.ReLU(True),
                 nn.Conv2d(
                     in_channels=32,
                     out_channels=64,
-                    kernel_size=self._cnn_layers_kernel_size[1],
-                    stride=self._cnn_layers_stride[1],
+                    kernel_size=cnn_layers_kernel_size[1],
+                    stride=cnn_layers_stride[1],
                 ),
                 nn.ReLU(True),
                 nn.Conv2d(
                     in_channels=64,
                     out_channels=32,
-                    kernel_size=self._cnn_layers_kernel_size[2],
-                    stride=self._cnn_layers_stride[2],
+                    kernel_size=cnn_layers_kernel_size[2],
+                    stride=cnn_layers_stride[2],
                 ),
-                #  nn.ReLU(True),
-                nn.Flatten(),
-                nn.Linear(32 * cnn_dims[0] * cnn_dims[1], output_size),
-                nn.ReLU(True),
+                # nn.ReLU(True),
             )
+
+        # Important!
+        self._output_shape = (
+            32,
+            cnn_dims[0],
+            cnn_dims[1],
+        )
 
         self.layer_init()
 
@@ -132,10 +123,6 @@ class SimpleCNN(nn.Module):
                 )
                 if layer.bias is not None:
                     nn.init.constant_(layer.bias, val=0)
-
-    @property
-    def is_blind(self):
-        return self._n_input_pers + self._n_input_target == 0
 
     def forward(self, observations: Dict[str, torch.Tensor]):
         cnn_input = []

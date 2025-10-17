@@ -4,8 +4,8 @@ import argparse
 
 from LookAround.config import Config, DictAction
 
-from findview_baselines.rl.ppo.trainer import PPOTrainer
-from findview_baselines.rl.ppo.validator import PPOValidator
+from findview_baselines.rl.trainers.ppo_trainer import PPOTrainer
+from findview_baselines.rl.trainers.ppo_validator import PPOValidator
 
 
 def main():

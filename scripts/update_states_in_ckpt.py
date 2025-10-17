@@ -12,7 +12,7 @@ from LookAround.config import Config
 
 from findview_baselines.utils.common import get_last_checkpoint_folder
 
-from findview_baselines.rl.ppo.ppo_trainer import PPOTrainer
+from findview_baselines.rl.trainers.ppo_trainer import PPOTrainer
 
 
 def parse_args():

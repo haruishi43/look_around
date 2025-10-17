@@ -19,7 +19,7 @@ from gymnasium.spaces import (
 from LookAround.config import Config
 from LookAround.core.agent import Agent
 
-from findview_baselines.rl.ppo.policy import FindViewBaselinePolicy
+from findview_baselines.rl.models.base_policy import FindViewBaselinePolicy
 
 
 class PPOAgent(Agent):

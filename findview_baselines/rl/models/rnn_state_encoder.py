@@ -389,6 +389,7 @@ def build_rnn_state_encoder(
 ):
     """Factory for :ref:`RNNStateEncoder`.  Returns one with either a GRU or LSTM based on
         the specified RNN type.
+
     :param input_size: The input size of the RNN
     :param hidden_size: The hidden dimension of the RNN
     :param rnn_types: The type of the RNN cell.  Can either be GRU or LSTM

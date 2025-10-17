@@ -1,4 +1,5 @@
 policy = dict(
+    type="BasicPolicy",
     action_distribution_type="categorical",
     use_log_std=False,
     use_softplus=False,
@@ -7,6 +8,10 @@ policy = dict(
     min_log_std=-5,
     max_log_std=2,
     action_activation="tanh",
+)
+net = dict(
+    type="SharedEncNet",
+    hidden_size=512,
 )
 ppo = dict(
     clip_param=0.2,
